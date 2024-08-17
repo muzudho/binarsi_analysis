@@ -756,7 +756,7 @@ class Board():
             (begin, length) = self.get_position_on_axis(dst_file_axis)
 
             # 石が置いてる軸
-            if self.exists_stone_on_axis(dst_file_axis):
+            if 0 < length:
                 # SHIFT できる
 
                 # 例えば：
@@ -782,33 +782,51 @@ class Board():
         for dst_rank in range(0, RANK_LEN):
             dst_rank_axis = Axis(RANK_ID, dst_rank)
 
-            (begin, length) = self.get_position_on_axis(dst_file_axis)
+            (begin, length) = self.get_position_on_axis(dst_rank_axis)
 
             # 石が置いてる軸
-            if self.exists_stone_on_axis(dst_rank_axis):
+            if 0 < length:
                 # SHIFT できる
                 for i in range(0, length):
-                    self._legal_moves.append(Move(dst_file_axis, Operator(f's{i}')))
+                    self._legal_moves.append(Move(dst_rank_axis, Operator(f's{i}')))
 
 
         # とりあえず NOT ができる出力筋を探す
         for dst_file in range(0, FILE_LEN):
             dst_file_axis = Axis(FILE_ID, dst_file)
 
-            # TODO 石が置いてある軸(Rev)
-            # 石が置いてない軸(New)
-            if not self.exists_stone_on_axis(dst_file_axis):
+            # 石が置いてある軸
+            #
+            #   TODO 内側の NOT は、IN 引数も必要？
+            #
+            if self.exists_stone_on_axis(dst_file_axis):
+                # 番外を除いて、隣のどちらにも石が置いてある必要がる
+                if 0 < dst_file:
+                    younger_src_file_axis = Axis(FILE_ID, dst_file - 1)
+                    if not self.exists_stone_on_axis(younger_src_file_axis):
+                        continue
+
+                if dst_file < FILE_LEN - 1:
+                    elder_src_file_axis = Axis(FILE_ID, dst_file + 1)
+                    if not self.exists_stone_on_axis(elder_src_file_axis):
+                        continue
+
+                # NOT で Reverse できる
+                self._legal_moves.append(Move(dst_file_axis, Operator('n')))
+
+            # 石が置いてない軸
+            else:
                 # 隣のどちらかに石が置いているか？
                 if 0 < dst_file:
                     younger_src_file_axis = Axis(FILE_ID, dst_file - 1)
                     if self.exists_stone_on_axis(younger_src_file_axis):
-                        # NOT できる
+                        # NOT で New できる
                         self._legal_moves.append(Move(dst_file_axis, Operator('n')))
 
                 if dst_file < FILE_LEN - 1:
                     elder_src_file_axis = Axis(FILE_ID, dst_file + 1)
                     if self.exists_stone_on_axis(elder_src_file_axis):
-                        # NOT できる
+                        # NOT で New できる
                         self._legal_moves.append(Move(dst_file_axis, Operator('n')))
 
 
@@ -816,20 +834,38 @@ class Board():
         for dst_rank in range(0, RANK_LEN):
             dst_rank_axis = Axis(RANK_ID, dst_rank)
 
-            # TODO 石が置いてある軸(Rev)
-            # 石が置いてない軸(New)
-            if not self.exists_stone_on_axis(dst_rank_axis):
+            # 石が置いてある軸
+            #
+            #   TODO 内側の NOT は、IN 引数も必要？
+            #
+            if self.exists_stone_on_axis(dst_rank_axis):
+                # 番外を除いて、隣のどちらにも石が置いてある必要がる
+                if 0 < dst_rank:
+                    younger_src_file_axis = Axis(RANK_ID, dst_file - 1)
+                    if not self.exists_stone_on_axis(younger_src_file_axis):
+                        continue
+
+                if dst_rank < RANK_LEN - 1:
+                    elder_src_file_axis = Axis(RANK_ID, dst_file + 1)
+                    if not self.exists_stone_on_axis(elder_src_file_axis):
+                        continue
+
+                # NOT で Reverse できる
+                self._legal_moves.append(Move(dst_file_axis, Operator('n')))
+
+            # 石が置いてない軸
+            else:
                 # 隣のどちらかに石が置いているか？
                 if 0 < dst_rank:
                     younger_src_rank_axis = Axis(RANK_ID, dst_rank - 1)
                     if self.exists_stone_on_axis(younger_src_rank_axis):
-                        # NOT できる
+                        # NOT で New できる
                         self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
 
                 if dst_rank < RANK_LEN - 1:
                     elder_src_rank_axis = Axis(RANK_ID, dst_rank + 1)
                     if self.exists_stone_on_axis(elder_src_rank_axis):
-                        # NOT できる
+                        # NOT で New できる
                         self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
 
         # TODO とりあえず ZERO ができる出力筋を探す(Rev)(New)
