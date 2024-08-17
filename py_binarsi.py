@@ -137,6 +137,11 @@ class Axis():
 
 
     def to_code(self):
+        """
+        Returns
+        -------
+        '1' ～ '7' や、 'a' ～ 'f' といった文字
+        """
         global _num_to_rank
 
         if self._axis_id == FILE_ID:
@@ -200,7 +205,7 @@ class Operator():
         # 変数名を縮める
         op = self._code
 
-        # ノット（単項演算子 new）
+        # ノット（単項演算子 New）
         if op == 'n':
             if stone == PC_BLACK:
                 return PC_WHITE
@@ -346,10 +351,32 @@ class Board():
     """
 
     def __init__(self):
+        # 初期化
+        self.subinit()
+
+
+    def subinit(self):
+        """（サブ部分として）盤をクリアーする"""
         # 各マス
         self._squares = [PC_EMPTY] * BOARD_AREA
         # 合法手
         self._legal_moves = []
+        # 軸ロック
+        self._axis_locks = {
+            '1' : False,
+            '2' : False,
+            '3' : False,
+            '4' : False,
+            '5' : False,
+            '6' : False,
+            '7' : False,
+            'a' : False,
+            'b' : False,
+            'c' : False,
+            'd' : False,
+            'e' : False,
+            'f' : False,
+        }
 
 
     @property
@@ -358,20 +385,14 @@ class Board():
         return self._legal_moves
 
 
-    def subclear(self):
-        """（サブ部分として）盤をクリアーする"""
-        self._squares = [PC_EMPTY] * BOARD_AREA
-
-
     def clear(self):
         """盤をクリアーする"""
-        self.subclear()
-        self.update_legal_moves()
+        self.subinit()
 
 
     def reset(self):
         """平手初期局面に戻す"""
-        self.subclear()
+        self.subinit()
 
         sq = Square.code_to_sq_obj('3c').as_num
         self._squares[sq] = PC_WHITE
@@ -547,7 +568,7 @@ class Board():
                 # 何ビットシフトか？
                 bit_shift = int(op[1:2])
 
-                # 入力筋を探索
+                # 筋を対象にした Shift
                 if move.axis.axis_id == FILE_ID:
                     src_dst_file = move.axis.number
 
@@ -563,13 +584,13 @@ class Board():
                     #       石を移す先の配列のインデックスの求め方は以下の通り
                     #       dst_index = (src_index - begin + bit_shift) % length + begin
 
-                    # (1)
                     source_stones = [PC_EMPTY] * RANK_LEN
                     for rank in range(0, RANK_LEN):
                         src_sq = Square.file_rank_to_sq(src_dst_file, rank)
                         stone = self._squares[src_sq]
                         source_stones[rank] = stone
 
+                    # (1)
                     (begin, length) = self.get_position_on_axis(move.axis)
 
                     # (2)
@@ -580,10 +601,13 @@ class Board():
                         # コピー
                         self._squares[dst_sq] = source_stones[src_rank]
 
+                    # 軸にロックをかける
+                    self._axis_locks[move.axis.to_code()] = True
+
                     self.update_legal_moves()
                     return
 
-                # 入力段を探索
+                # 段を対象にした Shift
                 if move.axis.axis_id == RANK_ID:
                     src_dst_rank = move.axis.number
 
@@ -599,13 +623,13 @@ class Board():
                     #       石を移す先の配列のインデックスの求め方は以下の通り
                     #       dst_index = (src_index - begin + bit_shift) % length + begin
 
-                    # (1)
                     source_stones = [PC_EMPTY] * FILE_LEN
                     for file in range(0, FILE_LEN):
                         src_sq = Square.file_rank_to_sq(file, src_dst_rank)
                         stone = self._squares[src_sq]
                         source_stones[file] = stone
 
+                    # (1)
                     (begin, length) = self.get_position_on_axis(move.axis)
 
                     # (2)
@@ -616,6 +640,8 @@ class Board():
                         # コピー
                         self._squares[dst_sq] = source_stones[src_file]
 
+                    # 軸にロックをかける
+                    self._axis_locks[move.axis.to_code()] = True
 
                     self.update_legal_moves()
                     return
@@ -672,6 +698,8 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
+                    # New にはロックがかからない
+
                     self.update_legal_moves()
                     return
 
@@ -683,9 +711,9 @@ class Board():
                     elif dst_rank == FILE_LEN - 1:
                         src_rank = dst_rank - 1
                     # 上か下で、石が置いてある軸が入力軸
-                    elif self.exists_stone_on_axis(Axis(FILE_ID, dst_rank - 1)):
+                    elif self.exists_stone_on_axis(Axis(RANK_ID, dst_rank - 1)):
                         src_rank = dst_rank - 1
-                    elif self.exists_stone_on_axis(Axis(FILE_ID, dst_rank + 1)):
+                    elif self.exists_stone_on_axis(Axis(RANK_ID, dst_rank + 1)):
                         src_rank = dst_rank + 1
                     else:
                         raise ValueError("not operator invalid operation")
@@ -697,6 +725,8 @@ class Board():
 
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    # New にはロックはかからない
 
                     self.update_legal_moves()
                     return
@@ -717,6 +747,9 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
+                    # 軸にロックをかける
+                    self._axis_locks[move.axis.to_code()] = True
+
                     self.update_legal_moves()
                     return
 
@@ -732,6 +765,9 @@ class Board():
 
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    # 軸にロックをかける
+                    self._axis_locks[move.axis.to_code()] = True
 
                     self.update_legal_moves()
                     return
@@ -752,6 +788,9 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
+                    # 軸にロックをかける
+                    self._axis_locks[move.axis.to_code()] = True
+
                     self.update_legal_moves()
                     return
 
@@ -767,6 +806,9 @@ class Board():
 
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    # 軸にロックをかける
+                    self._axis_locks[move.axis.to_code()] = True
 
                     self.update_legal_moves()
                     return
@@ -982,19 +1024,43 @@ class Board():
         """（拡張仕様）盤のテキスト形式"""
         global _pc_to_str
 
-        # 数値を文字列に変更
-        s = ["Q"] * BOARD_AREA
+        # 数値を文字列(Str)に変更
+        s = [' '] * BOARD_AREA
         for sq in range(0, BOARD_AREA):
             s[sq] = _pc_to_str[self._squares[sq]]
 
+        # 筋（段）の符号、またはロック
+        def get_axis_code_2(axis_code):
+            if self._axis_locks[axis_code]:
+                return '#'
+
+            return axis_code
+
+        # Axis
+        a = {
+            '1' : get_axis_code_2('1'),
+            '2' : get_axis_code_2('2'),
+            '3' : get_axis_code_2('3'),
+            '4' : get_axis_code_2('4'),
+            '5' : get_axis_code_2('5'),
+            '6' : get_axis_code_2('6'),
+            '7' : get_axis_code_2('7'),
+            'a' : get_axis_code_2('a'),
+            'b' : get_axis_code_2('b'),
+            'c' : get_axis_code_2('c'),
+            'd' : get_axis_code_2('d'),
+            'e' : get_axis_code_2('e'),
+            'f' : get_axis_code_2('f'),
+        }
+
         return f"""\
-    1 2 3 4 5 6 7
+    {a['1']} {a['2']} {a['3']} {a['4']} {a['5']} {a['6']} {a['7']}
   +---------------+
-a | {s[0]} {s[ 6]} {s[12]} {s[18]} {s[24]} {s[30]} {s[36]} |
-b | {s[1]} {s[ 7]} {s[13]} {s[19]} {s[25]} {s[31]} {s[37]} |
-c | {s[2]} {s[ 8]} {s[14]} {s[20]} {s[26]} {s[32]} {s[38]} |
-d | {s[3]} {s[ 9]} {s[15]} {s[21]} {s[27]} {s[33]} {s[39]} |
-e | {s[4]} {s[10]} {s[16]} {s[22]} {s[28]} {s[34]} {s[40]} |
-f | {s[5]} {s[11]} {s[17]} {s[23]} {s[29]} {s[35]} {s[41]} |
+{a['a']} | {s[0]} {s[ 6]} {s[12]} {s[18]} {s[24]} {s[30]} {s[36]} |
+{a['b']} | {s[1]} {s[ 7]} {s[13]} {s[19]} {s[25]} {s[31]} {s[37]} |
+{a['c']} | {s[2]} {s[ 8]} {s[14]} {s[20]} {s[26]} {s[32]} {s[38]} |
+{a['d']} | {s[3]} {s[ 9]} {s[15]} {s[21]} {s[27]} {s[33]} {s[39]} |
+{a['e']} | {s[4]} {s[10]} {s[16]} {s[22]} {s[28]} {s[34]} {s[40]} |
+{a['f']} | {s[5]} {s[11]} {s[17]} {s[23]} {s[29]} {s[35]} {s[41]} |
   +---------------+
 """
