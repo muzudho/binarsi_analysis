@@ -1,3 +1,5 @@
+import re
+
 # 石（PieCe）番号
 PC_EMPTY = 0
 PC_BLACK = 1
@@ -294,6 +296,12 @@ class Move():
 
     @staticmethod
     def code_to_move_obj(move_u):
+
+        # TODO フォーマットチェック
+        result = re.match(r"^[1234567abcdef](s|n|ze|no|xo|na|a|xn|o|on)$", move_u)
+        if result is None:
+            raise ValueError(f"format error.  move_u:`{move_u}`")
+
         axis_u = move_u[0:1]
         
         if len(move_u) == 2:
@@ -398,8 +406,11 @@ class Board():
 
     def push_usi(self, move_u):
         """一手指す
-        example: 4n
-            code: do 4n
+
+        Parameters
+        ----------
+        move_u : str
+            例： "4n"
         """
         move = Move.code_to_move_obj(move_u)
 

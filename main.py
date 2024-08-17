@@ -78,6 +78,12 @@ class UsiEngine():
                 self.print_legal_moves()
 
 
+            # 自己対局
+            #       code: selfmatch
+            elif cmd[0] == 'selfmatch':
+                self.self_match()
+
+
     def usi(self):
         """usi握手"""
 
@@ -191,8 +197,11 @@ class UsiEngine():
 
     def do(self, cmd):
         """一手指す
-        example: 4n
-            code: do 4n
+
+        Parameters
+        ----------
+        cmd : str
+            例： "do", "4n"
         """
         self._board.push_usi(cmd[1])
 
@@ -222,6 +231,30 @@ class UsiEngine():
             print(f"    ({i + 1:2}) move:{move.to_code()}")
 
         print("合法手一覧表示　ここまで：")
+
+
+    def self_match(self):
+        """自己対局
+            code: selfmatch
+        """
+        print("自己対局　ここから：")
+
+        for moves_num in range(0, 100):
+
+            if len(self._board.legal_moves) < 1:
+                print("合法手なし")
+                break
+
+            # １つ選ぶ
+            move = random.sample(self._board.legal_moves, 1)[0]
+
+            # １手指す
+            self._board.push_usi(move.to_code())
+
+            # 盤表示
+            self.print_board()
+
+        print("自己対局　ここまで：")
 
 
 if __name__ == '__main__':
