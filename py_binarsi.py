@@ -27,6 +27,15 @@ _rank_to_num = {
     'f' : 5,
 }
 
+_num_to_rank = {
+    0 : 'a',
+    1 : 'b',
+    2 : 'c',
+    3 : 'd',
+    4 : 'e',
+    5 : 'f',
+}
+
 
 class Square():
     """マス"""
@@ -122,6 +131,16 @@ class Axis():
         raise ValueError(f"not found axis.  code:{code}")
 
 
+    def to_code(self):
+        global _num_to_rank
+
+        if self._axis_id == FILE_ID:
+            return str(self._number + 1)
+
+        if self._axis_id == RANK_ID:
+            return _num_to_rank[self._number]
+        
+        raise ValueError(f"axis_id:{self._axis_id}  number:{self._number}")
 
 
 class Operator():
@@ -273,6 +292,7 @@ class Move():
         return self._operator
 
 
+    @staticmethod
     def code_to_move_obj(move_u):
         axis_u = move_u[0:1]
         
@@ -282,6 +302,10 @@ class Move():
             operator_u = move_u[1:3]
 
         return Move(Axis.code_to_axis_obj(axis_u), Operator(operator_u))
+
+
+    def to_code(self):
+        return f"{self.axis.to_code()}{self.operator.code}"
 
 
 class Board():
@@ -313,6 +337,14 @@ class Board():
     def __init__(self):
         # 各マス
         self._squares = [PC_EMPTY] * BOARD_AREA
+        # 合法手
+        self._legal_moves = []
+
+
+    @property
+    def legal_moves(self):
+        """合法手一覧"""
+        return self._legal_moves
 
 
     def reset(self):
@@ -321,6 +353,8 @@ class Board():
 
         sq = Square.code_to_sq_obj('3c').as_num
         self._squares[sq] = PC_WHITE
+
+        self.update_legal_moves()
 
 
     def set_sfen(self, sfen_code):
@@ -424,6 +458,7 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
+                    self.update_legal_moves()
                     return
 
                 # 入力段を探索
@@ -449,6 +484,7 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
+                    self.update_legal_moves()
                     return
 
             # TODO ゼロ
@@ -508,9 +544,50 @@ class Board():
         """TODO 一手詰めの手を返す"""
         pass
 
-    def legal_moves(self):
-        """TODO 合法手の一覧を返す"""
-        pass
+
+    def update_legal_moves(self):
+        """TODO 合法手の一覧生成"""
+
+        self._legal_moves = []
+
+        # とりあえず not ができる出力筋を探す
+        for dst_file in range(0, FILE_LEN):
+            dst_file_axis = Axis(FILE_ID, dst_file)
+
+            # 石が置いてない軸
+            if not self.exists_stone_on_axis(dst_file_axis):
+                # 隣のどちらかに石が置いているか？
+                if 0 < dst_file:
+                    younger_src_file_axis = Axis(FILE_ID, dst_file - 1)
+                    if self.exists_stone_on_axis(younger_src_file_axis):
+                        # not できる
+                        self._legal_moves.append(Move(dst_file_axis, Operator('n')))
+
+                if dst_file < FILE_LEN - 1:
+                    elder_src_file_axis = Axis(FILE_ID, dst_file + 1)
+                    if self.exists_stone_on_axis(elder_src_file_axis):
+                        # not できる
+                        self._legal_moves.append(Move(dst_file_axis, Operator('n')))
+
+        # TODO とりあえず NOT ができる出力段を探す
+        for dst_rank in range(0, RANK_LEN):
+            dst_rank_axis = Axis(RANK_ID, dst_rank)
+
+            # 石が置いてない軸
+            if not self.exists_stone_on_axis(dst_rank_axis):
+                # 隣のどちらかに石が置いているか？
+                if 0 < dst_rank:
+                    younger_src_rank_axis = Axis(RANK_ID, dst_rank - 1)
+                    if self.exists_stone_on_axis(younger_src_rank_axis):
+                        # not できる
+                        self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
+
+                if dst_rank < RANK_LEN - 1:
+                    elder_src_rank_axis = Axis(RANK_ID, dst_rank + 1)
+                    if self.exists_stone_on_axis(elder_src_rank_axis):
+                        # not できる
+                        self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
+
 
     def as_str(self):
         """（拡張仕様）盤のテキスト形式"""

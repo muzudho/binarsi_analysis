@@ -72,6 +72,11 @@ class UsiEngine():
             elif cmd[0] == 'board':
                 self.print_board()
 
+            # 合法手一覧表示
+            #       code: legal_moves
+            elif cmd[0] == 'legal_moves':
+                self.print_legal_moves()
+
 
     def usi(self):
         """usi握手"""
@@ -149,7 +154,9 @@ class UsiEngine():
                 print(f'bestmove {best_move}', flush=True)
                 return
 
-        # １手指す（投了のケースは対応済みなので、ここで対応しなくていい）
+        # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
+
+        # １手指す
         best_move = cshogi.move_to_code(random.choice(list(self._board.legal_moves)))
 
         print(f"info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move")
@@ -202,6 +209,19 @@ class UsiEngine():
             code: board
         """
         print(self._board.as_str())
+
+
+    def print_legal_moves(self):
+        """合法手一覧表示
+            code: legal_moves
+        """
+        print("合法手一覧表示　ここから：")
+
+        for i in range(0, len(self._board.legal_moves)):
+            move = self._board.legal_moves[i]
+            print(f"    ({i + 1:2}) move:{move.to_code()}")
+
+        print("合法手一覧表示　ここまで：")
 
 
 if __name__ == '__main__':
