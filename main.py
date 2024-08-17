@@ -184,8 +184,8 @@ class UsiEngine():
 
     def do(self, cmd):
         """一手指す
-        example: ７六歩
-            code: do 7g7f
+        example: 4n
+            code: do 4n
         """
         self._board.push_usi(cmd[1])
 

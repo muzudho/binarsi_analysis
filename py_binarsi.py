@@ -9,6 +9,10 @@ _pc_to_str = {
     2 : '0',
 }
 
+# 軸
+FILE_ID = 1
+RANK_ID = 2
+
 # 盤面積
 FILE_LEN = 7
 RANK_LEN = 6
@@ -53,14 +57,76 @@ class Square():
         return Square(Square.file_rank_to_sq(file_num, rank_num))
 
 
-class Move():
-    """指し手
+class Axis():
+    """軸"""
 
-    例： "4n", "dn", "5o"
+    _code_to_axis_obj = None
 
-    軸（axis）、演算子（operator）
+    def __init__(self, axis_id, number):
+        """初期化
+        Parameters
+        ----------
+        axis_id : int
+            1: file
+            2: rank
+        """
 
-    軸： [1, 2, 3, 4, 5, 6, 7, a, b, c, d, e, f]
+        if axis_id not in (FILE_ID, RANK_ID):
+            raise ValueError(f"undefined axis id: {axis_id}")
+
+        self._axis_id = axis_id
+        self._number = number
+
+
+    @property
+    def axis_id(self):
+        return self._axis_id
+
+
+    @property
+    def number(self):
+        return self._number
+
+
+    @classmethod
+    def code_to_axis_obj(clazz, code):
+        """生成
+
+        Parameters
+        ----------
+        code : str
+            "1" ～ "7"、 "a" ～ "f"
+        """
+
+        if clazz._code_to_axis_obj is None:
+            clazz._code_to_axis_obj = {
+                '1': Axis(FILE_ID, 0),
+                '2': Axis(FILE_ID, 1),
+                '3': Axis(FILE_ID, 2),
+                '4': Axis(FILE_ID, 3),
+                '5': Axis(FILE_ID, 4),
+                '6': Axis(FILE_ID, 5),
+                '7': Axis(FILE_ID, 6),
+                'a': Axis(RANK_ID, 0),
+                'b': Axis(RANK_ID, 1),
+                'c': Axis(RANK_ID, 2),
+                'd': Axis(RANK_ID, 3),
+                'e': Axis(RANK_ID, 4),
+                'f': Axis(RANK_ID, 5),
+            }
+
+
+        if code in clazz._code_to_axis_obj:
+            return clazz._code_to_axis_obj[code]
+
+        raise ValueError(f"not found axis.  code:{code}")
+
+
+
+
+class Operator():
+    """演算子
+
     演算子：
         s : Shift
         n : Not
@@ -74,13 +140,148 @@ class Move():
         on: ONe
     """
 
-    def __init__(move_u):
-        self._axis = move_u[0:1]
+    def __init__(self, code):
+        self._code = code
+
+
+    @property
+    def code(self):
+        return self._code
+
+
+    def shift(self):
+        """シフト演算する"""
+
+        # 変数名を縮める
+        op = self._code
+
+        # TODO シフト
+        if op == 's':
+            return
+
+        raise ValueError(f"undefined operator code: {op}")
+
+
+    def unary_operate(self, stone):
+        """単項演算する
+
+        Parameters
+        ----------
+        stone : int
+            石の種類
+        """
+
+        # 変数名を縮める
+        op = self._code
+
+        # TODO ノット（単項演算子 new）
+        if op == 'n':
+            if stone == PC_BLACK:
+                return PC_WHITE
+            
+            if stone == PC_WHITE:
+                return PC_BLACK
+            
+            if stone == PC_EMPTY:
+                return PC_EMPTY
+        
+        raise ValueError(f"undefined operator  code:{op}  stone:{stone}")
+
+
+    def binary_operate(self, left_stone, right_stone):
+        """二項演算する
+        
+        Parameters
+        ----------
+        left_stone : int
+            軸上の数字が小さい方の石の種類
+        right_stone : int
+            軸上の数字が大きい方の石の種類
+        """
+
+        # 変数名を縮める
+        op = self._code
+
+        # TODO ゼロ
+        if op == 'ze':
+            return
+        
+        # TODO ノア
+        if op == 'no':
+            return
+        
+        # TODO エクソア
+        if op == 'xo':
+            return
+        
+        # TODO ナンド
+        if op == 'na':
+            return
+        
+        # TODO アンド
+        if op == 'a':
+            return
+        
+        # TODO エクスノア
+        if op == 'xn':
+            return
+        
+        # TODO オア
+        if op == 'o':
+            return
+        
+        # TODO ワン
+        if op == 'on':
+            return
+
+        raise ValueError(f"undefined operator  code:{op}  left_stone:{left_stone}  right_stone:{right_stone}")
+
+
+class Move():
+    """指し手
+
+    例： "4n", "dn", "5o"
+
+    出力軸（axis）、演算子（operator）
+
+    出力軸： [1, 2, 3, 4, 5, 6, 7, a, b, c, d, e, f]
+    """
+
+    def __init__(self, axis, operator):
+        """初期化
+        
+        Parameters
+        ----------
+        axis : Axis
+            軸オブジェクト
+        operator : str
+            演算子
+        """
+        self._axis = axis
+        self._operator = operator
+
+
+    @property
+    def axis(self):
+        """軸オブジェクト"""
+        return self._axis
+
+
+    @property
+    def operator(self):
+        """演算子オブジェクト"""
+        return self._operator
+
+
+    def code_to_move_obj(move_u):
+        axis_u = move_u[0:1]
         
         if len(move_u) == 2:
-            self._operator = move_u[1:2]
+            operator_u = move_u[1:2]
         else:
-            self._operator = move_u[1:3]
+            operator_u = move_u[1:3]
+
+        return Move(Axis.code_to_axis_obj(axis_u), Operator(operator_u))
 
 
 class Board():
@@ -127,9 +328,162 @@ class Board():
         pass
 
 
+    def exists_stone_on_axis(self, axis):
+        """指定の軸に石が置いてあるか？
+        
+        Parameters
+        ----------
+        axis : Axis
+            軸オブジェクト
+        """
+
+        # 筋
+        if axis.axis_id == FILE_ID:
+            for rank in range(0, RANK_LEN):
+                sq = Square.file_rank_to_sq(axis.number, rank)
+                stone = self._squares[sq]
+
+                if stone != PC_EMPTY:
+                    return True
+                
+            return False
+
+        # 段
+        if axis.axis_id == RANK_ID:
+            for file in range(0, FILE_LEN):
+                sq = Square.file_rank_to_sq(file, axis.number)
+                stone = self._squares[sq]
+
+                if stone != PC_EMPTY:
+                    return True
+                
+            return False
+
+        raise ValueError(f"undefined axis_id: {axis.axis_id}")
+
+
     def push_usi(self, move_u):
-        """TODO 一手指す"""
-        pass
+        """一手指す
+        example: 4n
+            code: do 4n
+        """
+        move = Move.code_to_move_obj(move_u)
+
+        # 対象の軸に石が置いてある ---> Shift操作、または Reverse操作
+        if self.exists_stone_on_axis(move.axis):
+            # TODO 演算子
+            #move.operator.code
+            pass
+
+        # 対象の軸に石が置いてない ---> New操作
+        else:
+            # TODO 演算子
+            
+            # 変数名を縮める
+            op = move.operator.code
+            """
+            演算子：
+                s : Shift
+                n : Not
+                ze: ZEro
+                no: NOr
+                xo: XOr
+                na: NAnd
+                a : And
+                xn: XNor
+                o : Or
+                on: ONe
+            """
+
+            # TODO シフト
+            if op == 's':
+                return
+            
+            # TODO ノット（単項演算子 new）
+            if op == 'n':
+                # 入力筋を探索
+                if move.axis.axis_id == FILE_ID:
+                    dst_file = move.axis.number
+                    if dst_file == 0:
+                        src_file = dst_file + 1
+                    elif dst_file == FILE_LEN - 1:
+                        src_file = dst_file - 1
+                    # 左か右で、石が置いてある軸が入力軸
+                    elif self.exists_stone_on_axis(Axis(FILE_ID, dst_file - 1)):
+                        src_file = dst_file - 1
+                    elif self.exists_stone_on_axis(Axis(FILE_ID, dst_file + 1)):
+                        src_file = dst_file + 1
+                    else:
+                        raise ValueError("not operator invalid operation")
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for rank in range(0, RANK_LEN):
+                        src_sq = Square.file_rank_to_sq(src_file, rank)
+                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    return
+
+                # 入力段を探索
+                if move.axis.axis_id == RANK_ID:
+                    dst_rank = move.axis.number
+                    if dst_rank == 0:
+                        src_rank = dst_rank + 1
+                    elif dst_rank == FILE_LEN - 1:
+                        src_rank = dst_rank - 1
+                    # 上か下で、石が置いてある軸が入力軸
+                    elif self.exists_stone_on_axis(Axis(FILE_ID, dst_rank - 1)):
+                        src_rank = dst_rank - 1
+                    elif self.exists_stone_on_axis(Axis(FILE_ID, dst_rank + 1)):
+                        src_rank = dst_rank + 1
+                    else:
+                        raise ValueError("not operator invalid operation")
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for file in range(0, FILE_LEN):
+                        src_sq = Square.file_rank_to_sq(file, src_rank)
+                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    return
+
+            # TODO ゼロ
+            if op == 'ze':
+                return
+            
+            # TODO ノア
+            if op == 'no':
+                return
+            
+            # TODO エクソア
+            if op == 'xo':
+                return
+            
+            # TODO ナンド
+            if op == 'na':
+                return
+            
+            # TODO アンド
+            if op == 'a':
+                return
+            
+            # TODO エクスノア
+            if op == 'xn':
+                return
+            
+            # TODO オア
+            if op == 'o':
+                return
+            
+            # TODO ワン
+            if op == 'on':
+                return
+
+            raise ValueError(f"undefined operator code: {ope}")
 
 
     def pop(self, move_u):
