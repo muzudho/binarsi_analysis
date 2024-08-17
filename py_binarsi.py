@@ -305,8 +305,11 @@ class Move():
     @staticmethod
     def code_to_move_obj(move_u):
 
-        # TODO フォーマットチェック
-        result = re.match(r"^[1234567abcdef](s0|s1|s2|s3|s4|s5|s6|n|nL|nH|ze|no|xo|na|a|xn|o|on)$", move_u)
+        # フォーマットチェック
+        #
+        #   文字数が短い方が先にマッチしてしまうかもしれないので、短い文字列は右に置くように並び順に注意
+        #
+        result = re.match(r"^[1234567abcdef](na|nH|nL|no|on|s0|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|n|o)$", move_u)
         if result is None:
             raise ValueError(f"format error.  move_u:`{move_u}`")
 
