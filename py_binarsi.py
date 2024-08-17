@@ -163,7 +163,7 @@ class Operator():
         o : Or
         on: ONe
     
-    ただし、Shift はさらに、ずらすビット数が後ろに付く：
+    ただし、SHIFT はさらに、ずらすビット数が後ろに付く：
         s0
         s1
         s2
@@ -172,6 +172,11 @@ class Operator():
         s5
         s6
     筋の場合は上から下へ、段の場合は左から右へ、が順方向
+
+    NOT は単項演算子なので、Reverse するときは、 In が Low, High のどちらか指定する必要がある
+        n
+        nL
+        nH
     """
 
     def __init__(self, code):
@@ -296,7 +301,7 @@ class Move():
     def code_to_move_obj(move_u):
 
         # TODO フォーマットチェック
-        result = re.match(r"^[1234567abcdef](s0|s1|s2|s3|s4|s5|s6|n|ze|no|xo|na|a|xn|o|on)$", move_u)
+        result = re.match(r"^[1234567abcdef](s0|s1|s2|s3|s4|s5|s6|n|nL|nH|ze|no|xo|na|a|xn|o|on)$", move_u)
         if result is None:
             raise ValueError(f"format error.  move_u:`{move_u}`")
 
@@ -796,23 +801,18 @@ class Board():
             dst_file_axis = Axis(FILE_ID, dst_file)
 
             # 石が置いてある軸
-            #
-            #   TODO 内側の NOT は、IN 引数も必要？
-            #
             if self.exists_stone_on_axis(dst_file_axis):
-                # 番外を除いて、隣のどちらにも石が置いてある必要がる
                 if 0 < dst_file:
-                    younger_src_file_axis = Axis(FILE_ID, dst_file - 1)
-                    if not self.exists_stone_on_axis(younger_src_file_axis):
-                        continue
+                    lower_src_file_axis = Axis(FILE_ID, dst_file - 1)
+                    if self.exists_stone_on_axis(lower_src_file_axis):
+                        # 軸上で小さい方にある石を NOT して Reverse できる
+                        self._legal_moves.append(Move(dst_file_axis, Operator('nL')))
 
                 if dst_file < FILE_LEN - 1:
-                    elder_src_file_axis = Axis(FILE_ID, dst_file + 1)
-                    if not self.exists_stone_on_axis(elder_src_file_axis):
-                        continue
-
-                # NOT で Reverse できる
-                self._legal_moves.append(Move(dst_file_axis, Operator('n')))
+                    higher_src_file_axis = Axis(FILE_ID, dst_file + 1)
+                    if self.exists_stone_on_axis(higher_src_file_axis):
+                        # 軸上で大きい方にある石を NOT して Reverse できる
+                        self._legal_moves.append(Move(dst_file_axis, Operator('nH')))
 
             # 石が置いてない軸
             else:
@@ -835,23 +835,18 @@ class Board():
             dst_rank_axis = Axis(RANK_ID, dst_rank)
 
             # 石が置いてある軸
-            #
-            #   TODO 内側の NOT は、IN 引数も必要？
-            #
             if self.exists_stone_on_axis(dst_rank_axis):
-                # 番外を除いて、隣のどちらにも石が置いてある必要がる
                 if 0 < dst_rank:
-                    younger_src_file_axis = Axis(RANK_ID, dst_file - 1)
-                    if not self.exists_stone_on_axis(younger_src_file_axis):
-                        continue
+                    lower_src_rank_axis = Axis(RANK_ID, dst_rank - 1)
+                    if self.exists_stone_on_axis(lower_src_rank_axis):
+                        # 軸上で小さい方にある石を NOT して Reverse できる
+                        self._legal_moves.append(Move(dst_rank_axis, Operator('nL')))
 
                 if dst_rank < RANK_LEN - 1:
-                    elder_src_file_axis = Axis(RANK_ID, dst_file + 1)
-                    if not self.exists_stone_on_axis(elder_src_file_axis):
-                        continue
-
-                # NOT で Reverse できる
-                self._legal_moves.append(Move(dst_file_axis, Operator('n')))
+                    higher_src_rank_axis = Axis(RANK_ID, dst_rank + 1)
+                    if self.exists_stone_on_axis(higher_src_rank_axis):
+                        # 軸上で大きい方にある石を NOT して Reverse できる
+                        self._legal_moves.append(Move(dst_rank_axis, Operator('nH')))
 
             # 石が置いてない軸
             else:
