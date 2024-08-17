@@ -753,31 +753,42 @@ class Board():
         for dst_file in range(0, FILE_LEN):
             dst_file_axis = Axis(FILE_ID, dst_file)
 
+            (begin, length) = self.get_position_on_axis(dst_file_axis)
+
             # 石が置いてる軸
             if self.exists_stone_on_axis(dst_file_axis):
-                # shift できる
-                self._legal_moves.append(Move(dst_file_axis, Operator('s0')))
-                self._legal_moves.append(Move(dst_file_axis, Operator('s1')))
-                self._legal_moves.append(Move(dst_file_axis, Operator('s2')))
-                self._legal_moves.append(Move(dst_file_axis, Operator('s3')))
-                self._legal_moves.append(Move(dst_file_axis, Operator('s4')))
-                self._legal_moves.append(Move(dst_file_axis, Operator('s5'))) # 段は最大６段しかない
+                # SHIFT できる
+
+                # 例えば：
+                # 
+                #     1 2 3 4 5 6 7
+                #   +---------------+
+                # a | . . . . . . . |
+                # b | . . . . . . . |
+                # c | . . 0 1 0 1 . |
+                # d | . . . . . . . |
+                # e | . . . . . . . |
+                # f | . . . . . . . |
+                #   +---------------+
+                # 
+                # 上記 c段の石の長さは４目なので、シフトは s0, s1, s2, s3 だけを合法手とするよう制限する。
+                # 枝が増えてしまうのを防ぐ
+
+                for i in range(0, length):
+                    self._legal_moves.append(Move(dst_file_axis, Operator(f's{i}')))
 
 
         # とりあえず SHIFT ができる出力段を探す（SHIFT に Rev, New は無い）
         for dst_rank in range(0, RANK_LEN):
             dst_rank_axis = Axis(RANK_ID, dst_rank)
 
+            (begin, length) = self.get_position_on_axis(dst_file_axis)
+
             # 石が置いてる軸
             if self.exists_stone_on_axis(dst_rank_axis):
                 # SHIFT できる
-                self._legal_moves.append(Move(dst_rank_axis, Operator('s0')))
-                self._legal_moves.append(Move(dst_rank_axis, Operator('s1')))
-                self._legal_moves.append(Move(dst_rank_axis, Operator('s2')))
-                self._legal_moves.append(Move(dst_rank_axis, Operator('s3')))
-                self._legal_moves.append(Move(dst_rank_axis, Operator('s4')))
-                self._legal_moves.append(Move(dst_rank_axis, Operator('s5')))
-                self._legal_moves.append(Move(dst_rank_axis, Operator('s6'))) # 筋は最大７筋しかない
+                for i in range(0, length):
+                    self._legal_moves.append(Move(dst_file_axis, Operator(f's{i}')))
 
 
         # とりあえず NOT ができる出力筋を探す
