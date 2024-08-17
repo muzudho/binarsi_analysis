@@ -690,43 +690,110 @@ class Board():
 
         self._legal_moves = []
 
-        # とりあえず not ができる出力筋を探す
+
+        # とりあえず SHIFT ができる出力筋を探す（SHIFT に Rev, New は無い）
         for dst_file in range(0, FILE_LEN):
             dst_file_axis = Axis(FILE_ID, dst_file)
 
-            # 石が置いてない軸
+            # 石が置いてる軸
+            if self.exists_stone_on_axis(dst_file_axis):
+                # shift できる
+                self._legal_moves.append(Move(dst_file_axis, Operator('s0')))
+                self._legal_moves.append(Move(dst_file_axis, Operator('s1')))
+                self._legal_moves.append(Move(dst_file_axis, Operator('s2')))
+                self._legal_moves.append(Move(dst_file_axis, Operator('s3')))
+                self._legal_moves.append(Move(dst_file_axis, Operator('s4')))
+                self._legal_moves.append(Move(dst_file_axis, Operator('s5'))) # 段は最大６段しかない
+
+
+        # とりあえず SHIFT ができる出力段を探す（SHIFT に Rev, New は無い）
+        for dst_rank in range(0, RANK_LEN):
+            dst_rank_axis = Axis(RANK_ID, dst_rank)
+
+            # 石が置いてる軸
+            if self.exists_stone_on_axis(dst_rank_axis):
+                # SHIFT できる
+                self._legal_moves.append(Move(dst_rank_axis, Operator('s0')))
+                self._legal_moves.append(Move(dst_rank_axis, Operator('s1')))
+                self._legal_moves.append(Move(dst_rank_axis, Operator('s2')))
+                self._legal_moves.append(Move(dst_rank_axis, Operator('s3')))
+                self._legal_moves.append(Move(dst_rank_axis, Operator('s4')))
+                self._legal_moves.append(Move(dst_rank_axis, Operator('s5')))
+                self._legal_moves.append(Move(dst_rank_axis, Operator('s6'))) # 筋は最大７筋しかない
+
+
+        # とりあえず NOT ができる出力筋を探す
+        for dst_file in range(0, FILE_LEN):
+            dst_file_axis = Axis(FILE_ID, dst_file)
+
+            # TODO 石が置いてある軸(Rev)
+            # 石が置いてない軸(New)
             if not self.exists_stone_on_axis(dst_file_axis):
                 # 隣のどちらかに石が置いているか？
                 if 0 < dst_file:
                     younger_src_file_axis = Axis(FILE_ID, dst_file - 1)
                     if self.exists_stone_on_axis(younger_src_file_axis):
-                        # not できる
+                        # NOT できる
                         self._legal_moves.append(Move(dst_file_axis, Operator('n')))
 
                 if dst_file < FILE_LEN - 1:
                     elder_src_file_axis = Axis(FILE_ID, dst_file + 1)
                     if self.exists_stone_on_axis(elder_src_file_axis):
-                        # not できる
+                        # NOT できる
                         self._legal_moves.append(Move(dst_file_axis, Operator('n')))
 
-        # TODO とりあえず NOT ができる出力段を探す
+
+        # とりあえず NOT ができる出力段を探す
         for dst_rank in range(0, RANK_LEN):
             dst_rank_axis = Axis(RANK_ID, dst_rank)
 
-            # 石が置いてない軸
+            # TODO 石が置いてある軸(Rev)
+            # 石が置いてない軸(New)
             if not self.exists_stone_on_axis(dst_rank_axis):
                 # 隣のどちらかに石が置いているか？
                 if 0 < dst_rank:
                     younger_src_rank_axis = Axis(RANK_ID, dst_rank - 1)
                     if self.exists_stone_on_axis(younger_src_rank_axis):
-                        # not できる
+                        # NOT できる
                         self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
 
                 if dst_rank < RANK_LEN - 1:
                     elder_src_rank_axis = Axis(RANK_ID, dst_rank + 1)
                     if self.exists_stone_on_axis(elder_src_rank_axis):
-                        # not できる
+                        # NOT できる
                         self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
+
+        # TODO とりあえず ZERO ができる出力筋を探す(Rev)(New)
+
+        # TODO とりあえず ZERO ができる出力段を探す(Rev)(New)
+
+        # TODO とりあえず NOR ができる出力筋を探す(Rev)(New)
+
+        # TODO とりあえず NOR ができる出力段を探す(Rev)(New)
+
+        # TODO とりあえず XOR ができる出力筋を探す(Rev)(New)
+
+        # TODO とりあえず XOR ができる出力段を探す(Rev)(New)
+
+        # TODO とりあえず NAND ができる出力筋を探す(Rev)(New)
+
+        # TODO とりあえず NAND ができる出力段を探す(Rev)(New)
+
+        # TODO とりあえず AND ができる出力筋を探す(Rev)(New)
+
+        # TODO とりあえず AND ができる出力段を探す(Rev)(New)
+
+        # TODO とりあえず XNOR ができる出力筋を探す(Rev)(New)
+
+        # TODO とりあえず XNOR ができる出力段を探す(Rev)(New)
+
+        # TODO とりあえず OR ができる出力筋を探す(Rev)(New)
+
+        # TODO とりあえず OR ができる出力段を探す(Rev)(New)
+
+        # TODO とりあえず ONE ができる出力筋を探す(Rev)(New)
+
+        # TODO とりあえず ONE ができる出力段を探す(Rev)(New)
 
 
     def as_str(self):
