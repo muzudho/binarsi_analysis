@@ -907,10 +907,11 @@ class Board():
                 # f | . . . . . . . |
                 #   +---------------+
                 # 
-                # 上記 c段の石の長さは４目なので、シフトは s0, s1, s2, s3 だけを合法手とするよう制限する。
+                # 上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
+                # ゼロビットシフトは禁止する
                 # 枝が増えてしまうのを防ぐ
 
-                for i in range(0, length):
+                for i in range(1, length):
                     self._legal_moves.append(Move(dst_file_axis, Operator(f's{i}')))
 
 
@@ -927,7 +928,8 @@ class Board():
             # 石が置いてる軸
             if 0 < length:
                 # Shift できる
-                for i in range(0, length):
+                # ゼロビットシフトは禁止する
+                for i in range(1, length):
                     self._legal_moves.append(Move(dst_rank_axis, Operator(f's{i}')))
 
 
