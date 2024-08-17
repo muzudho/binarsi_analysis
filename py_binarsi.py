@@ -402,6 +402,96 @@ class Board():
         raise ValueError(f"undefined axis_id: {axis.axis_id}")
 
 
+    def get_position_on_axis(self, axis):
+        """軸を指定すると、そこにある石の連なりの開始位置と長さを返す
+
+        例えば：
+
+            1 2 3 4 5 6 7
+          +---------------+
+        a | . . . . . . . |
+        b | . . . . . . . |
+        c | . . 0 1 0 1 . |
+        d | . . . . . . . |
+        e | . . . . . . . |
+        f | . . . . . . . |
+          +---------------+
+
+        上図の c 段を指定すると、 start:2, length:4 のような数を返す
+        """
+        # 入力筋を探索
+        if axis.axis_id == FILE_ID:
+            src_dst_file = axis.number
+
+            # 入力軸から、出力軸へ、評価値を出力
+            #
+            #   必要な変数を調べる：
+            #       最初のマージン（空欄）は無視する
+            #       最初の石の位置を覚える。変数名を begin とする
+            #       連続する石の長さを覚える。変数名を length とする
+            #       最後のマージン（空欄）は無視する
+            source_stones = [PC_EMPTY] * RANK_LEN
+            state = 0
+            begin = 0
+            length = 0
+            for rank in range(0, RANK_LEN):
+                src_sq = Square.file_rank_to_sq(src_dst_file, rank)
+                stone = self._squares[src_sq]
+                source_stones[rank] = stone
+
+                if state == 0:
+                    if stone != PC_EMPTY:
+                        begin = rank
+                        state = 1
+                elif state == 1:
+                    if stone == PC_EMPTY:
+                        length = rank - begin
+                        state = 2
+
+            if state == 1:
+                length = RANK_LEN - begin
+                state = 2
+
+            return (begin, length)
+
+        # 入力段を探索
+        if axis.axis_id == RANK_ID:
+            src_dst_rank = axis.number
+
+            # 入力軸から、出力軸へ、評価値を出力
+            #
+            #   必要な変数を調べる：
+            #       最初のマージン（空欄）は無視する
+            #       最初の石の位置を覚える。変数名を begin とする
+            #       連続する石の長さを覚える。変数名を length とする
+            #       最後のマージン（空欄）は無視する
+            source_stones = [PC_EMPTY] * FILE_LEN
+            state = 0
+            begin = 0
+            length = 0
+            for file in range(0, FILE_LEN):
+                src_sq = Square.file_rank_to_sq(file, src_dst_rank)
+                stone = self._squares[src_sq]
+                source_stones[file] = stone
+
+                if state == 0:
+                    if stone != PC_EMPTY:
+                        begin = file
+                        state = 1
+                elif state == 1:
+                    if stone == PC_EMPTY:
+                        length = file - begin
+                        state = 2
+
+            if state == 1:
+                length = FILE_LEN - begin
+                state = 2
+
+            return (begin, length)
+
+        raise ValueError(f"undefined axis_id:{axis.axis_id}")
+
+
     def push_usi(self, move_u):
         """一手指す
 
@@ -456,31 +546,15 @@ class Board():
                     #   (2) 石を移す：
                     #       石を移す先の配列のインデックスの求め方は以下の通り
                     #       dst_index = (src_index - begin + bit_shift) % length + begin
-                    #   
-                    #
 
                     # (1)
                     source_stones = [PC_EMPTY] * RANK_LEN
-                    state = 0
-                    begin = 0
-                    length = 0
                     for rank in range(0, RANK_LEN):
                         src_sq = Square.file_rank_to_sq(src_dst_file, rank)
                         stone = self._squares[src_sq]
                         source_stones[rank] = stone
 
-                        if state == 0:
-                            if stone != PC_EMPTY:
-                                begin = rank
-                                state = 1
-                        elif state == 1:
-                            if stone == PC_EMPTY:
-                                length = rank - begin
-                                state = 2
-
-                    if state == 1:
-                        length = RANK_LEN - begin
-                        state = 2
+                    (begin, length) = self.get_position_on_axis(move.axis)
 
                     # (2)
                     for src_rank in range(begin, begin+length):
@@ -508,31 +582,15 @@ class Board():
                     #   (2) 石を移す：
                     #       石を移す先の配列のインデックスの求め方は以下の通り
                     #       dst_index = (src_index - begin + bit_shift) % length + begin
-                    #   
-                    #
 
                     # (1)
                     source_stones = [PC_EMPTY] * FILE_LEN
-                    state = 0
-                    begin = 0
-                    length = 0
                     for file in range(0, FILE_LEN):
                         src_sq = Square.file_rank_to_sq(file, src_dst_rank)
                         stone = self._squares[src_sq]
                         source_stones[file] = stone
 
-                        if state == 0:
-                            if stone != PC_EMPTY:
-                                begin = file
-                                state = 1
-                        elif state == 1:
-                            if stone == PC_EMPTY:
-                                length = file - begin
-                                state = 2
-
-                    if state == 1:
-                        length = FILE_LEN - begin
-                        state = 2
+                    (begin, length) = self.get_position_on_axis(move.axis)
 
                     # (2)
                     for src_file in range(begin, begin+length):
