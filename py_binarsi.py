@@ -1,8 +1,3 @@
-# 盤面積
-FILE_LEN = 7
-RANK_LEN = 6
-BOARD_AREA = FILE_LEN * RANK_LEN
-
 # 石（PieCe）番号
 PC_EMPTY = 0
 PC_BLACK = 1
@@ -13,6 +8,50 @@ _pc_to_str = {
     1 : '1',
     2 : '0',
 }
+
+# 盤面積
+FILE_LEN = 7
+RANK_LEN = 6
+BOARD_AREA = FILE_LEN * RANK_LEN
+
+_rank_to_num = {
+    'a' : 0,
+    'b' : 1,
+    'c' : 2,
+    'd' : 3,
+    'e' : 4,
+    'f' : 5,
+}
+
+
+class Square():
+    """マス"""
+
+
+    def __init__(self, sq):
+        self._sq = sq
+
+
+    @property
+    def as_num(self):
+        return self._sq
+
+
+    @staticmethod
+    def file_rank_to_sq(file, rank):
+        return file * RANK_LEN + rank
+
+
+    @staticmethod
+    def code_to_sq_obj(code):
+        """1a を Square(0) に変換するといった操作"""
+        global _rank_to_num
+
+        file_num = int(code[0:1]) - 1
+        rank_num = _rank_to_num[code[1:2]]
+
+        return Square(Square.file_rank_to_sq(file_num, rank_num))
+
 
 class Move():
     """指し手
@@ -76,8 +115,11 @@ class Board():
 
 
     def reset(self):
-        """TODO 初期局面に戻す"""
-        pass
+        """TODO 平手初期局面に戻す"""
+        self._squares = [PC_EMPTY] * BOARD_AREA
+
+        sq = Square.code_to_sq_obj('3c').as_num
+        self._squares[sq] = PC_WHITE
 
 
     def set_sfen(self, sfen_code):
