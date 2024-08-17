@@ -69,7 +69,10 @@ class Square():
 
 
 class Axis():
-    """軸"""
+    """軸
+
+    例： '1',  '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f'
+    """
 
     _code_to_axis_obj = None
 
@@ -159,6 +162,16 @@ class Operator():
         xn: XNor
         o : Or
         on: ONe
+    
+    ただし、Shift はさらに、ずらすビット数が後ろに付く：
+        s0
+        s1
+        s2
+        s3
+        s4
+        s5
+        s6
+    筋の場合は上から下へ、段の場合は左から右へ、が順方向
     """
 
     def __init__(self, code):
@@ -168,19 +181,6 @@ class Operator():
     @property
     def code(self):
         return self._code
-
-
-    def shift(self):
-        """シフト演算する"""
-
-        # 変数名を縮める
-        op = self._code
-
-        # TODO シフト
-        if op == 's':
-            return
-
-        raise ValueError(f"undefined operator code: {op}")
 
 
     def unary_operate(self, stone):
@@ -195,7 +195,7 @@ class Operator():
         # 変数名を縮める
         op = self._code
 
-        # TODO ノット（単項演算子 new）
+        # ノット（単項演算子 new）
         if op == 'n':
             if stone == PC_BLACK:
                 return PC_WHITE
@@ -264,8 +264,6 @@ class Move():
     例： "4n", "dn", "5o"
 
     出力軸（axis）、演算子（operator）
-
-    出力軸： [1, 2, 3, 4, 5, 6, 7, a, b, c, d, e, f]
     """
 
     def __init__(self, axis, operator):
@@ -298,7 +296,7 @@ class Move():
     def code_to_move_obj(move_u):
 
         # TODO フォーマットチェック
-        result = re.match(r"^[1234567abcdef](s|n|ze|no|xo|na|a|xn|o|on)$", move_u)
+        result = re.match(r"^[1234567abcdef](s0|s1|s2|s3|s4|s5|s6|n|ze|no|xo|na|a|xn|o|on)$", move_u)
         if result is None:
             raise ValueError(f"format error.  move_u:`{move_u}`")
 
@@ -417,18 +415,12 @@ class Board():
         # 対象の軸に石が置いてある ---> Shift操作、または Reverse操作
         if self.exists_stone_on_axis(move.axis):
             # TODO 演算子
-            #move.operator.code
-            pass
 
-        # 対象の軸に石が置いてない ---> New操作
-        else:
-            # TODO 演算子
-            
             # 変数名を縮める
             op = move.operator.code
             """
             演算子：
-                s : Shift
+                s0 ～ s6: Shift
                 n : Not
                 ze: ZEro
                 no: NOr
@@ -440,11 +432,148 @@ class Board():
                 on: ONe
             """
 
-            # TODO シフト
-            if op == 's':
-                return
+            # TODO シフト（単項演算子 shift）
+            #
+            #   オペレーターの機能というより、ボードの機能
+            #   このゲームでのシフトは、入力と出力は同じ筋（段）上で行います（inplace）
+            #
+            if op.startswith('s'):
+                # 何ビットシフトか？
+                bit_shift = int(op[1:2])
+
+                # 入力筋を探索
+                if move.axis.axis_id == FILE_ID:
+                    src_dst_file = move.axis.number
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    #
+                    #   (1) 必要な変数を調べる：
+                    #       最初のマージン（空欄）は無視する
+                    #       最初の石の位置を覚える。変数名を begin とする
+                    #       連続する石の長さを覚える。変数名を length とする
+                    #       最後のマージン（空欄）は無視する
+                    #   
+                    #   (2) 石を移す：
+                    #       石を移す先の配列のインデックスの求め方は以下の通り
+                    #       dst_index = (src_index - begin + bit_shift) % length + begin
+                    #   
+                    #
+
+                    # (1)
+                    source_stones = [PC_EMPTY] * RANK_LEN
+                    state = 0
+                    begin = 0
+                    length = 0
+                    for rank in range(0, RANK_LEN):
+                        src_sq = Square.file_rank_to_sq(src_dst_file, rank)
+                        stone = self._squares[src_sq]
+                        source_stones[rank] = stone
+
+                        if state == 0:
+                            if stone != PC_EMPTY:
+                                begin = rank
+                                state = 1
+                        elif state == 1:
+                            if stone == PC_EMPTY:
+                                length = rank - begin
+                                state = 2
+
+                    if state == 1:
+                        length = RANK_LEN - begin
+                        state = 2
+
+                    # (2)
+                    for src_rank in range(begin, begin+length):
+                        dst_rank = (src_rank - begin + bit_shift) % length + begin
+                        dst_sq = Square.file_rank_to_sq(src_dst_file, dst_rank)
+
+                        # コピー
+                        self._squares[dst_sq] = source_stones[src_rank]
+
+                    self.update_legal_moves()
+                    return
+
+                # 入力段を探索
+                if move.axis.axis_id == RANK_ID:
+                    src_dst_rank = move.axis.number
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    #
+                    #   (1) 必要な変数を調べる：
+                    #       最初のマージン（空欄）は無視する
+                    #       最初の石の位置を覚える。変数名を begin とする
+                    #       連続する石の長さを覚える。変数名を length とする
+                    #       最後のマージン（空欄）は無視する
+                    #   
+                    #   (2) 石を移す：
+                    #       石を移す先の配列のインデックスの求め方は以下の通り
+                    #       dst_index = (src_index - begin + bit_shift) % length + begin
+                    #   
+                    #
+
+                    # (1)
+                    source_stones = [PC_EMPTY] * FILE_LEN
+                    state = 0
+                    begin = 0
+                    length = 0
+                    for file in range(0, FILE_LEN):
+                        src_sq = Square.file_rank_to_sq(file, src_dst_rank)
+                        stone = self._squares[src_sq]
+                        source_stones[file] = stone
+
+                        if state == 0:
+                            if stone != PC_EMPTY:
+                                begin = file
+                                state = 1
+                        elif state == 1:
+                            if stone == PC_EMPTY:
+                                length = file - begin
+                                state = 2
+
+                    if state == 1:
+                        length = FILE_LEN - begin
+                        state = 2
+
+                    # (2)
+                    for src_file in range(begin, begin+length):
+                        dst_file = (src_file - begin + bit_shift) % length + begin
+                        dst_sq = Square.file_rank_to_sq(dst_file, src_dst_rank)
+
+                        # コピー
+                        self._squares[dst_sq] = source_stones[src_file]
+
+
+                    self.update_legal_moves()
+                    return
+
+                raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
+
+        # 対象の軸に石が置いてない ---> New操作
+        else:
+            # TODO 演算子
             
-            # TODO ノット（単項演算子 new）
+            # 変数名を縮める
+            op = move.operator.code
+            """
+            演算子：
+                s0 ～ s6: Shift
+                n : Not
+                ze: ZEro
+                no: NOr
+                xo: XOr
+                na: NAnd
+                a : And
+                xn: XNor
+                o : Or
+                on: ONe
+            """
+
+            if op.startswith('s'):
+                # 石が無いところでシフトをするのは禁じ手
+                raise ValueError(f"石が無いところでシフトをするのは禁じ手  op:{op}")
+
+
+            # ノット（単項演算子 new）
             if op == 'n':
                 # 入力筋を探索
                 if move.axis.axis_id == FILE_ID:
