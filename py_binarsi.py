@@ -878,15 +878,19 @@ class Board():
         self._legal_moves = []
 
 
-        # とりあえず SHIFT ができる出力筋を探す（SHIFT に Rev, New は無い）
+        # とりあえず Shift ができる出力筋を探す（Shift に Rev, New は無い）
         for dst_file in range(0, FILE_LEN):
             dst_file_axis = Axis(FILE_ID, dst_file)
+
+            # 軸にロックが掛かっていたら Shift は禁止
+            if self._axis_locks[dst_file_axis.to_code()]:
+                continue
 
             (begin, length) = self.get_position_on_axis(dst_file_axis)
 
             # 石が置いてる軸
             if 0 < length:
-                # SHIFT できる
+                # Shift できる
 
                 # 例えば：
                 # 
@@ -907,35 +911,44 @@ class Board():
                     self._legal_moves.append(Move(dst_file_axis, Operator(f's{i}')))
 
 
-        # とりあえず SHIFT ができる出力段を探す（SHIFT に Rev, New は無い）
+        # とりあえず Shift ができる出力段を探す（Shift に Rev, New は無い）
         for dst_rank in range(0, RANK_LEN):
             dst_rank_axis = Axis(RANK_ID, dst_rank)
+
+            # 軸にロックが掛かっていたら Shift は禁止
+            if self._axis_locks[dst_rank_axis.to_code()]:
+                continue
 
             (begin, length) = self.get_position_on_axis(dst_rank_axis)
 
             # 石が置いてる軸
             if 0 < length:
-                # SHIFT できる
+                # Shift できる
                 for i in range(0, length):
                     self._legal_moves.append(Move(dst_rank_axis, Operator(f's{i}')))
 
 
-        # とりあえず NOT ができる出力筋を探す
+        # とりあえず Not ができる出力筋を探す
         for dst_file in range(0, FILE_LEN):
             dst_file_axis = Axis(FILE_ID, dst_file)
 
             # 石が置いてある軸
             if self.exists_stone_on_axis(dst_file_axis):
+
+                # 軸にロックが掛かっていたら Not の Reverse は禁止
+                if self._axis_locks[dst_file_axis.to_code()]:
+                    continue
+
                 if 0 < dst_file:
                     lower_src_file_axis = Axis(FILE_ID, dst_file - 1)
                     if self.exists_stone_on_axis(lower_src_file_axis):
-                        # 軸上で小さい方にある石を NOT して Reverse できる
+                        # 軸上で小さい方にある石を Not して Reverse できる
                         self._legal_moves.append(Move(dst_file_axis, Operator('nL')))
 
                 if dst_file < FILE_LEN - 1:
                     higher_src_file_axis = Axis(FILE_ID, dst_file + 1)
                     if self.exists_stone_on_axis(higher_src_file_axis):
-                        # 軸上で大きい方にある石を NOT して Reverse できる
+                        # 軸上で大きい方にある石を Not して Reverse できる
                         self._legal_moves.append(Move(dst_file_axis, Operator('nH')))
 
             # 石が置いてない軸
@@ -944,32 +957,37 @@ class Board():
                 if 0 < dst_file:
                     younger_src_file_axis = Axis(FILE_ID, dst_file - 1)
                     if self.exists_stone_on_axis(younger_src_file_axis):
-                        # NOT で New できる
+                        # Not で New できる
                         self._legal_moves.append(Move(dst_file_axis, Operator('n')))
 
                 if dst_file < FILE_LEN - 1:
                     elder_src_file_axis = Axis(FILE_ID, dst_file + 1)
                     if self.exists_stone_on_axis(elder_src_file_axis):
-                        # NOT で New できる
+                        # Not で New できる
                         self._legal_moves.append(Move(dst_file_axis, Operator('n')))
 
 
-        # とりあえず NOT ができる出力段を探す
+        # とりあえず Not ができる出力段を探す
         for dst_rank in range(0, RANK_LEN):
             dst_rank_axis = Axis(RANK_ID, dst_rank)
 
             # 石が置いてある軸
             if self.exists_stone_on_axis(dst_rank_axis):
+
+                # 軸にロックが掛かっていたら Not の Reverse は禁止
+                if self._axis_locks[dst_rank_axis.to_code()]:
+                    continue
+
                 if 0 < dst_rank:
                     lower_src_rank_axis = Axis(RANK_ID, dst_rank - 1)
                     if self.exists_stone_on_axis(lower_src_rank_axis):
-                        # 軸上で小さい方にある石を NOT して Reverse できる
+                        # 軸上で小さい方にある石を Not して Reverse できる
                         self._legal_moves.append(Move(dst_rank_axis, Operator('nL')))
 
                 if dst_rank < RANK_LEN - 1:
                     higher_src_rank_axis = Axis(RANK_ID, dst_rank + 1)
                     if self.exists_stone_on_axis(higher_src_rank_axis):
-                        # 軸上で大きい方にある石を NOT して Reverse できる
+                        # 軸上で大きい方にある石を Not して Reverse できる
                         self._legal_moves.append(Move(dst_rank_axis, Operator('nH')))
 
             # 石が置いてない軸
@@ -978,13 +996,13 @@ class Board():
                 if 0 < dst_rank:
                     younger_src_rank_axis = Axis(RANK_ID, dst_rank - 1)
                     if self.exists_stone_on_axis(younger_src_rank_axis):
-                        # NOT で New できる
+                        # Not で New できる
                         self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
 
                 if dst_rank < RANK_LEN - 1:
                     elder_src_rank_axis = Axis(RANK_ID, dst_rank + 1)
                     if self.exists_stone_on_axis(elder_src_rank_axis):
-                        # NOT で New できる
+                        # Not で New できる
                         self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
 
         # TODO とりあえず ZERO ができる出力筋を探す(Rev)(New)
