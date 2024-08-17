@@ -358,9 +358,20 @@ class Board():
         return self._legal_moves
 
 
-    def reset(self):
-        """TODO 平手初期局面に戻す"""
+    def subclear(self):
+        """（サブ部分として）盤をクリアーする"""
         self._squares = [PC_EMPTY] * BOARD_AREA
+
+
+    def clear(self):
+        """盤をクリアーする"""
+        self.subclear()
+        self.update_legal_moves()
+
+
+    def reset(self):
+        """平手初期局面に戻す"""
+        self.subclear()
 
         sq = Square.code_to_sq_obj('3c').as_num
         self._squares[sq] = PC_WHITE
@@ -636,9 +647,9 @@ class Board():
                 raise ValueError(f"石が無いところでシフトをするのは禁じ手  op:{op}")
 
 
-            # ノット（単項演算子 new）
+            # ノット（単項演算子 New）
             if op == 'n':
-                # 入力筋を探索
+                # 入力筋
                 if move.axis.axis_id == FILE_ID:
                     dst_file = move.axis.number
                     if dst_file == 0:
@@ -664,7 +675,7 @@ class Board():
                     self.update_legal_moves()
                     return
 
-                # 入力段を探索
+                # 入力段
                 if move.axis.axis_id == RANK_ID:
                     dst_rank = move.axis.number
                     if dst_rank == 0:
@@ -689,6 +700,77 @@ class Board():
 
                     self.update_legal_moves()
                     return
+
+
+            # ノット（単項演算子 Reverse）軸上の小さい方
+            if op == 'nL':
+                # 入力筋
+                if move.axis.axis_id == FILE_ID:
+                    dst_file = move.axis.number
+                    src_file = dst_file - 1
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for rank in range(0, RANK_LEN):
+                        src_sq = Square.file_rank_to_sq(src_file, rank)
+                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    self.update_legal_moves()
+                    return
+
+                # 入力段
+                if move.axis.axis_id == RANK_ID:
+                    dst_rank = move.axis.number
+                    src_rank = dst_rank - 1
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for file in range(0, FILE_LEN):
+                        src_sq = Square.file_rank_to_sq(file, src_rank)
+                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    self.update_legal_moves()
+                    return
+
+
+            # ノット（単項演算子 Reverse）軸上の大きい方
+            if op == 'nH':
+                # 入力筋
+                if move.axis.axis_id == FILE_ID:
+                    dst_file = move.axis.number
+                    src_file = dst_file + 1
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for rank in range(0, RANK_LEN):
+                        src_sq = Square.file_rank_to_sq(src_file, rank)
+                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    self.update_legal_moves()
+                    return
+
+                # 入力段
+                if move.axis.axis_id == RANK_ID:
+                    dst_rank = move.axis.number
+                    src_rank = dst_rank + 1
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for file in range(0, FILE_LEN):
+                        src_sq = Square.file_rank_to_sq(file, src_rank)
+                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                    self.update_legal_moves()
+                    return
+
 
             # TODO ゼロ
             if op == 'ze':

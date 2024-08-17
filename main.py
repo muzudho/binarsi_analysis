@@ -108,6 +108,8 @@ class UsiEngine():
 
     def usinewgame(self):
         """新しい対局"""
+        # 盤をクリアー
+        self._board.clear()
         print(f"[{datetime.datetime.now()}] usinewgame end", flush=True)
 
 
@@ -252,6 +254,7 @@ class UsiEngine():
             self._board.push_usi(move.to_code())
 
             # 盤表示
+            print(f"[{move.to_code()}]")
             self.print_board()
 
         print("自己対局　ここまで：")
