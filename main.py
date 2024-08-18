@@ -219,6 +219,11 @@ class UsiEngine():
         """
         self._board.push_usi(cmd[1])
 
+        # 盤表示
+        self.print_board()
+        self.print_sfen()
+        print("") # 空行
+
 
     def undo(self):
         """一手戻す

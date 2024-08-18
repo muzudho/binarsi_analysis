@@ -230,10 +230,25 @@ class Operator():
         n
         nL
         nH
+    
+    強制的にロックを外したい場合、末尾に `#` を付ける。これは盤面操作のためのもので、対局での使用は想定していない
+        例： `7c#` - ７筋の全石を取り除き、ロックも外す
     """
 
-    def __init__(self, stem_u):
+    def __init__(self, stem_u, force_unlock=False):
+        """初期化
+        
+        Parameters
+        ----------
+        stem_u : str
+            演算子語幹部のUSI書式文字列（軸ロック指定を除く）
+        force_unlock : bool
+        	強制アンロック
+        	True:  強制的にロックを解除する。盤面編集時に利用
+        	False: 対局ルールにある動作をする。遊び方に従ってロックがかかるか、遊び方に従ってロックをかけないかのどちらか
+        """
         self._stem_u = stem_u
+        self._force_unlock = force_unlock
     @staticmethod
     def code_to_operator(code):
         """コードからオブジェクトへ変換
@@ -247,20 +262,35 @@ class Operator():
         #
         #   文字数が短い方が先にマッチしてしまうかもしれないので、短い文字列は右に置くように並び順に注意
         #
-        result = re.match(r"^(na|nH|nL|no|on|s0|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|n|o)$", code)
+        result = re.match(r"^(na|nH|nL|no|on|s0|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|n|o)(#)?$", code)
         if result is None:
             raise ValueError(f"format error.  operator_u:`{code}`")
 
         stem_u = result.group(1)
+        force_unlock = result.group(2) == '#'
 
         return Operator(
-            stem_u=stem_u
-        )
+            stem_u=stem_u,
+            force_unlock=force_unlock)
 
 
     @property
     def code(self):
-        return self._stem_u
+        if self._force_unlock:
+            force_unlock_str = '#'
+        else:
+            force_unlock_str = ''
+    
+        return f"{self._stem_u}{force_unlock_str}"
+
+
+    @property
+    def force_unlock(self):
+        """強制アンロック
+        	True:  強制的にロックを解除する。盤面編集時に利用
+        	False: 対局ルールにある動作をする。遊び方に従ってロックがかかるか、遊び方に従ってロックをかけないかのどちらか
+        """
+        return self._force_unlock
 
 
     def unary_operate(self, stone):
@@ -342,7 +372,7 @@ class Move():
         "4n", "dn", "5o"
     
     盤面編集履歴での例：
-        "&7c"
+        "&7c#"
 
     盤面編集フラグ、出力軸（axis）、演算子（operator）
     """
@@ -711,7 +741,7 @@ class Board():
             対局時の例：
             	"4n"
             盤面編集時の例：
-            	"&7c"
+            	"&7c#"
         """
         move = Move.code_to_move_obj(move_u)
 
@@ -764,8 +794,13 @@ class Board():
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
 
-                # Clear を対局中に使うことは想定していない。盤面編集時に石を消すことを想定している。暫定的に Clear を使うと軸ロックも外れるものとする
-                self._axis_locks[move.axis.to_code()] = False
+                if move.operator.force_unlock:
+                    new_lock = False
+                else: 
+                    # Clear を対局中に使うことは想定していない。盤面編集時に石を消すことを想定している。暫定的に Clear を使うと軸ロックがかかるものとする
+                    new_lock = True
+
+                self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(move)
                 self.update_legal_moves()
                 return
@@ -849,8 +884,14 @@ class Board():
                 else:
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
-                # 石のある軸への Shift 演算は Shift なので、軸ロックがかかる
-                self._axis_locks[move.axis.to_code()] = True
+
+                if move.operator.force_unlock:
+                    new_lock = False
+                else: 
+                    # 石のある軸への Shift 演算は Shift なので、軸ロックがかかる
+                    new_lock = True
+
+                self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(move)
                 self.update_legal_moves()
                 return
@@ -887,8 +928,13 @@ class Board():
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
 
-                # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
-                self._axis_locks[move.axis.to_code()] = True
+                if move.operator.force_unlock:
+                    new_lock = False
+                else: 
+                    # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
+                    new_lock = True
+
+                self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(move)
                 self.update_legal_moves()
                 return
@@ -923,8 +969,14 @@ class Board():
                 else:
                     raise ValueError(f"undefined operator code:{op}")
 
-                # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
-                self._axis_locks[move.axis.to_code()] = True
+
+                if move.operator.force_unlock:
+                    new_lock = False
+                else: 
+                    # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
+                    new_lock = True
+
+                self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(move)
                 self.update_legal_moves()
                 return
@@ -1013,7 +1065,14 @@ class Board():
                 else:
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
-                # 対局中に New 操作しても軸ロックはかからない
+
+                if move.operator.force_unlock:
+                    new_lock = False
+                else: 
+                    # 対局中に New 操作しても軸ロックはかからない
+                    new_lock = False
+
+                self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(move)
                 self.update_legal_moves()
                 return
@@ -1051,8 +1110,13 @@ class Board():
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
 
-                # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
-                self._axis_locks[move.axis.to_code()] = True
+                if move.operator.force_unlock:
+                    new_lock = False
+                else: 
+                    # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
+                    new_lock = True
+
+                self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(move)
                 self.update_legal_moves()
                 return
@@ -1089,8 +1153,14 @@ class Board():
                 else:
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
-                # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
-                self._axis_locks[move.axis.to_code()] = True
+
+                if move.operator.force_unlock:
+                    new_lock = False
+                else: 
+                    # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
+                    new_lock = True
+
+                self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(move)
                 self.update_legal_moves()
                 return
