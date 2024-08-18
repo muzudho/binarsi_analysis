@@ -141,7 +141,7 @@ class Axis():
 
 
     @classmethod
-    def code_to_axis_obj(clazz, code):
+    def code_to_axis(clazz, code):
         """生成
 
         Parameters
@@ -149,6 +149,12 @@ class Axis():
         code : str
             "1" ～ "7"、 "a" ～ "f"
         """
+
+        # フォーマットチェック
+        result = re.match(r"^[1234567abcdef]$", code)
+        if result is None:
+            raise ValueError(f"format error.  axis_u:`{code}`")
+
 
         if clazz._code_to_axis_obj is None:
             clazz._code_to_axis_obj = {
@@ -228,6 +234,28 @@ class Operator():
 
     def __init__(self, stem_u):
         self._stem_u = stem_u
+    @staticmethod
+    def code_to_operator(code):
+        """コードからオブジェクトへ変換
+        
+        Parameters
+        ----------
+        code : str
+            コード（演算子語幹部、軸ロック指定含む）
+        """
+        # フォーマットチェック
+        #
+        #   文字数が短い方が先にマッチしてしまうかもしれないので、短い文字列は右に置くように並び順に注意
+        #
+        result = re.match(r"^(na|nH|nL|no|on|s0|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|n|o)$", code)
+        if result is None:
+            raise ValueError(f"format error.  operator_u:`{code}`")
+
+        stem_u = result.group(1)
+
+        return Operator(
+            stem_u=stem_u
+        )
 
 
     @property
@@ -342,24 +370,19 @@ class Move():
 
 
     @staticmethod
-    def code_to_move_obj(move_u):
+    def code_to_move_obj(code):
 
-        # フォーマットチェック
-        #
-        #   文字数が短い方が先にマッチしてしまうかもしれないので、短い文字列は右に置くように並び順に注意
-        #
-        result = re.match(r"^[1234567abcdef](na|nH|nL|no|on|s0|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|n|o)$", move_u)
+        result = re.match(r"^([1234567abcdef])(.*)$", code)
         if result is None:
-            raise ValueError(f"format error.  move_u:`{move_u}`")
+            raise ValueError(f"format error.  move_u:`{code}`")
 
-        axis_u = move_u[0:1]
-        
-        if len(move_u) == 2:
-            operator_u = move_u[1:2]
-        else:
-            operator_u = move_u[1:3]
 
-        return Move(Axis.code_to_axis_obj(axis_u), Operator(operator_u))
+        return Move(
+        	# 軸
+        	axis=Axis.code_to_axis(code=result.group(1)),
+        	# 演算子
+        	operator=Operator.code_to_operator(code=result.group(2))
+        )
 
 
     def to_code(self):
