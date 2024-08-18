@@ -284,7 +284,7 @@ class UsiEngine():
 
 
     def print_sfen(self):
-        """SFENを出力"""
+        """SFEN を出力"""
         print(f"sfen {self._board.as_sfen()}")
 
 

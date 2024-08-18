@@ -1528,7 +1528,8 @@ class Board():
         buffer = []
         spaces = 0
 
-        # 盤面
+        # 局面図
+        # ------
         for rank in range(0, RANK_LEN):
             for file in range(0, FILE_LEN):
                 sq = Square.file_rank_to_sq(file, rank)
@@ -1557,10 +1558,12 @@ class Board():
             if rank != RANK_LEN - 1:
                 buffer.append('/')
 
-        # TODO 手番
+        # TODO 添付局面図の手番
+        # --------------------
         buffer.append(' b ')
 
-        # 筋（段）の符号、またはロック
+        # 添付局面図の筋（段）の符号、またはロック
+        # -------------------------------------
         locked = False
         for axis_code in _axis_characters:
             if self._axis_locks[axis_code]:
@@ -1570,7 +1573,20 @@ class Board():
         if not locked:
             buffer.append('-')
 
-        # TODO 何手目か
-        buffer.append(' 0')
+        # TODO 添付局面図は何手目のものか
+        # -----------------------------
+        buffer.append(' 1')
+
+        # 添付局面図からの指し手
+        # ---------------------
+
+        move_u_list = []
+
+        for board_editing_record in self._board_editing_history:
+            move_u_list.append(board_editing_record.move.to_code())
+
+        moves_u = ' '.join(move_u_list).rstrip()
+
+        buffer.append(f' moves {moves_u}')
 
         return ''.join(buffer)
