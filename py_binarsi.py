@@ -338,12 +338,16 @@ class Operator():
 class Move():
     """指し手
 
-    例： "4n", "dn", "5o"
+    対局棋譜での例：
+        "4n", "dn", "5o"
+    
+    盤面編集履歴での例：
+        "&7c"
 
-    出力軸（axis）、演算子（operator）
+    盤面編集フラグ、出力軸（axis）、演算子（operator）
     """
 
-    def __init__(self, axis, operator):
+    def __init__(self, axis, operator, when_edit=False):
         """初期化
         
         Parameters
@@ -352,9 +356,12 @@ class Move():
             軸オブジェクト
         operator : str
             演算子
+        when_edit : bool
+            盤面編集か？
         """
         self._axis = axis
         self._operator = operator
+        self._when_edit = when_edit
 
 
     @property
@@ -369,20 +376,27 @@ class Move():
         return self._operator
 
 
+    @property
+    def when_edit(self):
+        """盤面編集か？"""
+        return self._when_edit
+
+
     @staticmethod
     def code_to_move_obj(code):
 
-        result = re.match(r"^([1234567abcdef])(.*)$", code)
+        result = re.match(r"^(&)?([1234567abcdef])(.*)$", code)
         if result is None:
             raise ValueError(f"format error.  move_u:`{code}`")
 
 
         return Move(
-        	# 軸
-        	axis=Axis.code_to_axis(code=result.group(1)),
-        	# 演算子
-        	operator=Operator.code_to_operator(code=result.group(2))
-        )
+            # 軸
+            axis=Axis.code_to_axis(code=result.group(2)),
+            # 演算子
+            operator=Operator.code_to_operator(code=result.group(3)),
+            # 盤面編集フラグ
+            when_edit=result.group(1) is not None)
 
 
     def to_code(self):
@@ -694,7 +708,10 @@ class Board():
         Parameters
         ----------
         move_u : str
-            例： "4n"
+            対局時の例：
+            	"4n"
+            盤面編集時の例：
+            	"&7c"
         """
         move = Move.code_to_move_obj(move_u)
 
@@ -749,6 +766,7 @@ class Board():
 
                 # Clear を対局中に使うことは想定していない。盤面編集時に石を消すことを想定している。暫定的に Clear を使うと軸ロックも外れるものとする
                 self._axis_locks[move.axis.to_code()] = False
+                self._board_editing_history.append(move)
                 self.update_legal_moves()
                 return
 
@@ -1080,34 +1098,42 @@ class Board():
 
             # TODO ゼロ
             if op == 'ze':
+                raise NotImplementedError(f"op:`{op}`")
                 return
             
             # TODO ノア
             if op == 'no':
+                raise NotImplementedError(f"op:`{op}`")
                 return
             
             # TODO エクソア
             if op == 'xo':
+                raise NotImplementedError(f"op:`{op}`")
                 return
             
             # TODO ナンド
             if op == 'na':
+                raise NotImplementedError(f"op:`{op}`")
                 return
             
             # TODO アンド
             if op == 'a':
+                raise NotImplementedError(f"op:`{op}`")
                 return
             
             # TODO エクスノア
             if op == 'xn':
+                raise NotImplementedError(f"op:`{op}`")
                 return
             
             # TODO オア
             if op == 'o':
+                raise NotImplementedError(f"op:`{op}`")
                 return
             
             # TODO ワン
             if op == 'on':
+                raise NotImplementedError(f"op:`{op}`")
                 return
 
             raise ValueError(f"undefined operator code: {op}")
