@@ -255,6 +255,8 @@ class UsiEngine():
 
         # 盤表示
         self.print_board()
+        self.print_sfen()
+        print("") # 空行
 
         for i in range(1, 100):
 
@@ -270,6 +272,8 @@ class UsiEngine():
 
             # 盤表示
             self.print_board()
+            self.print_sfen()
+            print("") # 空行
 
         print("自己対局　ここまで：")
 
