@@ -442,8 +442,9 @@ class Board():
             'e' : False,
             'f' : False,
         }
-        # 棋譜（Move のリスト）
-        self._game_record = []
+        # 盤面編集履歴（Move のリスト）
+        #       対局棋譜のスーパーセット
+        self._board_editing_history = []
 
 
     @property
@@ -452,9 +453,9 @@ class Board():
         return self._legal_moves
 
     @property
-    def game_record(self):
-        """棋譜"""
-        return self._game_record
+    def board_editing_history(self):
+        """盤面編集履歴（対局棋譜のスーパーセット）"""
+        return self._board_editing_history
 
 
     def clear(self):
@@ -794,15 +795,8 @@ class Board():
                         # コピー
                         self._squares[dst_sq] = source_stones[src_rank]
 
-                    # Shift 演算なので、軸にロックをかける
-                    self._axis_locks[move.axis.to_code()] = True
-
-                    self._game_record.append(move)
-                    self.update_legal_moves()
-                    return
-
                 # 石のある段を対象にした Shift
-                if move.axis.axis_id == RANK_ID:
+                elif move.axis.axis_id == RANK_ID:
                     src_dst_rank = move.axis.number
 
                     # 入力軸から、出力軸へ、評価値を出力
@@ -833,19 +827,20 @@ class Board():
 
                         # コピー
                         self._squares[dst_sq] = source_stones[src_file]
+                
+                else:
+                    raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
-                    # 石のある軸への Shift 演算は Shift なので、軸にロックをかける
-                    self._axis_locks[move.axis.to_code()] = True
-
-                    self._game_record.append(move)
-                    self.update_legal_moves()
-                    return
-
-                raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
+                # 石のある軸への Shift 演算は Shift なので、軸ロックがかかる
+                self._axis_locks[move.axis.to_code()] = True
+                self._board_editing_history.append(move)
+                self.update_legal_moves()
+                return
 
 
             # TODO 軸上の小さい方の数から、対象の石のある数へ Not の評価を出力する
             if op == 'nL':
+
                 # 筋方向
                 if move.axis.axis_id == FILE_ID:
                     dst_file = move.axis.number
@@ -858,15 +853,8 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                        # 石のある軸への Not 演算は Reverse なので、軸にロックをかける
-                        self._axis_locks[move.axis.to_code()] = True
-
-                        self._game_record.append(move)
-                        self.update_legal_moves()
-                        return
-
                 # 段方向
-                if move.axis.axis_id == RANK_ID:
+                elif move.axis.axis_id == RANK_ID:
                     dst_rank = move.axis.number
 
                     # 入力軸から、出力軸へ、評価値を出力
@@ -876,13 +864,16 @@ class Board():
 
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
+                
+                else:
+                    raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
-                        # 石のある軸への Not 演算は Reverse なので、軸にロックをかける
-                        self._axis_locks[move.axis.to_code()] = True
 
-                        self._game_record.append(move)
-                        self.update_legal_moves()
-                        return
+                # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
+                self._axis_locks[move.axis.to_code()] = True
+                self._board_editing_history.append(move)
+                self.update_legal_moves()
+                return
 
 
             # TODO 軸上の大きい方の数から、対象の数へ Not の評価を出力する
@@ -899,15 +890,8 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                        # 石のある軸への Not 演算は Reverse なので、軸にロックをかける
-                        self._axis_locks[move.axis.to_code()] = True
-
-                        self._game_record.append(move)
-                        self.update_legal_moves()
-                        return
-
                 # 段方向
-                if move.axis.axis_id == RANK_ID:
+                elif move.axis.axis_id == RANK_ID:
                     dst_rank = move.axis.number
 
                     # 入力軸から、出力軸へ、評価値を出力
@@ -918,15 +902,18 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                        # 石のある軸への Not 演算は Reverse なので、軸にロックをかける
-                        self._axis_locks[move.axis.to_code()] = True
+                else:
+                    raise ValueError(f"undefined operator code:{op}")
 
-                        self._game_record.append(move)
-                        self.update_legal_moves()
-                        return
+                # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
+                self._axis_locks[move.axis.to_code()] = True
+                self._board_editing_history.append(move)
+                self.update_legal_moves()
+                return
 
 
             raise ValueError(f"undefined operator code:{op}")
+
 
         # 対象の軸に石が置いてない ---> New操作
         else:
@@ -934,6 +921,7 @@ class Board():
             op = move.operator.code
             """
             演算子：
+                c : Clear
                 s0 ～ s6: Shift
                 n : Not
                 ze: ZEro
@@ -946,6 +934,11 @@ class Board():
                 on: ONe
             """
 
+            # TODO クリアー演算子
+            pass
+
+
+            # シフト演算子
             if op.startswith('s'):
                 # 石が無いところでシフトをするのは禁じ手
                 raise ValueError(f"石が無いところでシフトをするのは禁じ手  op:{op}")
@@ -976,14 +969,8 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                    # New にはロックがかからない
-
-                    self._game_record.append(move)
-                    self.update_legal_moves()
-                    return
-
                 # 入力段
-                if move.axis.axis_id == RANK_ID:
+                elif move.axis.axis_id == RANK_ID:
                     dst_rank = move.axis.number
                     if dst_rank == 0:
                         src_rank = dst_rank + 1
@@ -1005,11 +992,13 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                    # New にはロックはかからない
+                else:
+                    raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
-                    self._game_record.append(move)
-                    self.update_legal_moves()
-                    return
+                # 対局中に New 操作しても軸ロックはかからない
+                self._board_editing_history.append(move)
+                self.update_legal_moves()
+                return
 
 
             # ノット（単項演算子 Reverse）軸上の小さい方
@@ -1027,15 +1016,8 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                    # 軸にロックをかける
-                    self._axis_locks[move.axis.to_code()] = True
-
-                    self._game_record.append(move)
-                    self.update_legal_moves()
-                    return
-
                 # 入力段
-                if move.axis.axis_id == RANK_ID:
+                elif move.axis.axis_id == RANK_ID:
                     dst_rank = move.axis.number
                     src_rank = dst_rank - 1
 
@@ -1047,12 +1029,15 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                    # 軸にロックをかける
-                    self._axis_locks[move.axis.to_code()] = True
+                else:
+                    raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
-                    self._game_record.append(move)
-                    self.update_legal_moves()
-                    return
+
+                # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
+                self._axis_locks[move.axis.to_code()] = True
+                self._board_editing_history.append(move)
+                self.update_legal_moves()
+                return
 
 
             # ノット（単項演算子 Reverse）軸上の大きい方
@@ -1070,15 +1055,8 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                    # 軸にロックをかける
-                    self._axis_locks[move.axis.to_code()] = True
-
-                    self._game_record.append(move)
-                    self.update_legal_moves()
-                    return
-
                 # 入力段
-                if move.axis.axis_id == RANK_ID:
+                elif move.axis.axis_id == RANK_ID:
                     dst_rank = move.axis.number
                     src_rank = dst_rank + 1
 
@@ -1090,12 +1068,14 @@ class Board():
                         stone = self._squares[src_sq]
                         self._squares[dst_sq] = move.operator.unary_operate(stone)
 
-                    # 軸にロックをかける
-                    self._axis_locks[move.axis.to_code()] = True
+                else:
+                    raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
-                    self._game_record.append(move)
-                    self.update_legal_moves()
-                    return
+                # 石のある軸への Not 演算は Reverse なので、軸ロックがかかる
+                self._axis_locks[move.axis.to_code()] = True
+                self._board_editing_history.append(move)
+                self.update_legal_moves()
+                return
 
 
             # TODO ゼロ
@@ -1135,7 +1115,7 @@ class Board():
 
     def pop(self, move_u):
         """一手戻す"""
-        self._game_record.pop()
+        self._board_editing_history.pop()
         self.update_legal_moves()
 
 
@@ -1344,10 +1324,10 @@ class Board():
         # １行目表示
         # ---------
 
-        moves_num = len(self._game_record)
+        moves_num = len(self._board_editing_history)
 
-        if 0 < len(self._game_record):
-            latest_move_str = f"moved {self._game_record[-1].to_code()}"
+        if 0 < len(self._board_editing_history):
+            latest_move_str = f"moved {self._board_editing_history[-1].to_code()}"
         else:
             latest_move_str = 'init'
 

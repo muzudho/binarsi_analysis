@@ -126,15 +126,15 @@ class UsiEngine():
         self.position_detail(sfen_text, moves_text)
 
 
-    def position_detail(self, sfen_u, game_record_u):
+    def position_detail(self, sfen_u, board_editing_history_u):
         """局面データ解析
 
         Parameters
         ----------
         sfen_u : str
             SFEN文字列
-        game_record_u : str
-            指し手コードの空白区切りリスト
+        board_editing_history_u : str
+            盤面編集履歴。実体は指し手コードの空白区切りリスト。対局棋譜のスーパーセット
         """
 
         # 平手初期局面に変更
@@ -145,8 +145,8 @@ class UsiEngine():
         elif sfen_u[:5] == 'sfen ':
             self._board.set_sfen(sfen_u[5:])
 
-        # 棋譜再生
-        for move_u in game_record_u:
+        # 盤面編集履歴（対局棋譜のスーパーセット）再生
+        for move_u in board_editing_history_u:
             self._board.push_usi(move_u)
 
 
