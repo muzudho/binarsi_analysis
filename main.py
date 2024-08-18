@@ -254,8 +254,6 @@ class UsiEngine():
         print("自己対局　ここから：")
 
         # 盤表示
-        moves_num = len(self._board.game_record)
-        print(f"[{moves_num:3} moves | init]")
         self.print_board()
 
         for i in range(1, 100):
@@ -265,14 +263,12 @@ class UsiEngine():
                 break
 
             # １つ選ぶ
-            move = random.sample(self._board.legal_moves, 1)[0]
+            best_move = random.sample(self._board.legal_moves, 1)[0]
 
             # １手指す
-            self._board.push_usi(move.to_code())
+            self._board.push_usi(best_move.to_code())
 
             # 盤表示
-            moves_num = len(self._board.game_record)
-            print(f"[{moves_num:3} moves | done {move.to_code()}]")
             self.print_board()
 
         print("自己対局　ここまで：")

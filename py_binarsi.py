@@ -1267,17 +1267,33 @@ class Board():
     def as_str(self):
         """（拡張仕様）盤のテキスト形式
         例：
-                1 2 # # # 6 7
+            [  2 moves | moved 3s1]
+                1 2 # 4 5 6 7
               +---------------+
             a |               |
             b |               |
-            c |     0 0 0     |
-            # |     1 1 0     |
-            e |     1 0 1     |
+            c |     1         |
+            d |     0         |
+            e |               |
             f |               |
-              +---------------+        
+              +---------------+
         """
         global _pc_to_str
+
+        # １行目表示
+        # ---------
+
+        moves_num = len(self._game_record)
+
+        if 0 < len(self._game_record):
+            latest_move_str = f"moved {self._game_record[-1].to_code()}"
+        else:
+            latest_move_str = 'init'
+
+        print(f"[{moves_num:3} moves | {latest_move_str}]")
+
+        # 盤表示
+        # ------
 
         # 数値を文字列(Str)に変更
         s = [' '] * BOARD_AREA
