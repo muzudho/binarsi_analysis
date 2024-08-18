@@ -226,13 +226,13 @@ class Operator():
         nH
     """
 
-    def __init__(self, code):
-        self._code = code
+    def __init__(self, stem_u):
+        self._stem_u = stem_u
 
 
     @property
     def code(self):
-        return self._code
+        return self._stem_u
 
 
     def unary_operate(self, stone):
@@ -244,11 +244,8 @@ class Operator():
             石の種類
         """
 
-        # 変数名を縮める
-        op = self._code
-
         # ノット（単項演算子 New）
-        if op in ['nH', 'nL', 'n']:
+        if self._stem_u in ['nH', 'nL', 'n']:
             if stone == PC_BLACK:
                 return PC_WHITE
             
@@ -258,7 +255,7 @@ class Operator():
             if stone == PC_EMPTY:
                 return PC_EMPTY
         
-        raise ValueError(f"undefined operator  code:{op}  stone:{stone}")
+        raise ValueError(f"undefined operator  stem_u:{self._stem_u}  stone:{stone}")
 
 
     def binary_operate(self, left_stone, right_stone):
@@ -273,41 +270,41 @@ class Operator():
         """
 
         # 変数名を縮める
-        op = self._code
+        stem_u = self._stem_u
 
         # TODO ゼロ
-        if op == 'ze':
+        if stem_u == 'ze':
             return
         
         # TODO ノア
-        if op == 'no':
+        if stem_u == 'no':
             return
         
         # TODO エクソア
-        if op == 'xo':
+        if stem_u == 'xo':
             return
         
         # TODO ナンド
-        if op == 'na':
+        if stem_u == 'na':
             return
         
         # TODO アンド
-        if op == 'a':
+        if stem_u == 'a':
             return
         
         # TODO エクスノア
-        if op == 'xn':
+        if stem_u == 'xn':
             return
         
         # TODO オア
-        if op == 'o':
+        if stem_u == 'o':
             return
         
         # TODO ワン
-        if op == 'on':
+        if stem_u == 'on':
             return
 
-        raise ValueError(f"undefined operator  code:{op}  left_stone:{left_stone}  right_stone:{right_stone}")
+        raise ValueError(f"undefined operator  stem_u:{stem_u}  left_stone:{left_stone}  right_stone:{right_stone}")
 
 
 class Move():
@@ -683,6 +680,7 @@ class Board():
             op = move.operator.code
             """
             演算子：
+                c : Clear
                 s0 ～ s6: Shift
                 n : Not
                 ze: ZEro
