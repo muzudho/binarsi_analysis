@@ -249,6 +249,8 @@ class Operator():
         """
         self._stem_u = stem_u
         self._force_unlock = force_unlock
+
+
     @staticmethod
     def code_to_operator(code):
         """コードからオブジェクトへ変換
@@ -431,6 +433,38 @@ class Move():
 
     def to_code(self):
         return f"{self.axis.to_code()}{self.operator.code}"
+
+
+class BoardEditingRecord():
+    """盤面編集記録"""
+
+    def __init__(self, move, captured=[]):
+        """初期化
+        
+        Parameters
+        ----------
+        move : Move
+            指し手
+        captured : list
+            裏返して消えた石。
+            取るわけではないが、 Stockfish 系コンピュータ将棋エンジンのプログラミングを踏襲した変数名
+        """
+        self._move = move
+        self._captured = captured
+
+
+    @property
+    def move(self):
+        """指し手"""
+        return self._move
+
+
+    @property
+    def captured(self):
+        """裏返して消えた石
+        取るわけではないが、 Stockfish 系コンピュータ将棋エンジンのプログラミングを踏襲した変数名
+        """
+        return self._captured
 
 
 class Board():
@@ -801,7 +835,8 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(move)
+                self._board_editing_history.append(BoardEditingRecord(
+                    move=move))
                 self.update_legal_moves()
                 return
 
@@ -892,7 +927,8 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(move)
+                self._board_editing_history.append(BoardEditingRecord(
+                    move=move))
                 self.update_legal_moves()
                 return
 
@@ -935,7 +971,8 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(move)
+                self._board_editing_history.append(BoardEditingRecord(
+                    move=move))
                 self.update_legal_moves()
                 return
 
@@ -977,7 +1014,8 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(move)
+                self._board_editing_history.append(BoardEditingRecord(
+                    move=move))
                 self.update_legal_moves()
                 return
 
@@ -1073,7 +1111,8 @@ class Board():
                     new_lock = False
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(move)
+                self._board_editing_history.append(BoardEditingRecord(
+                    move=move))
                 self.update_legal_moves()
                 return
 
@@ -1117,7 +1156,8 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(move)
+                self._board_editing_history.append(BoardEditingRecord(
+                    move=move))
                 self.update_legal_moves()
                 return
 
@@ -1161,7 +1201,8 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(move)
+                self._board_editing_history.append(BoardEditingRecord(
+                    move=move))
                 self.update_legal_moves()
                 return
 
@@ -1423,7 +1464,7 @@ class Board():
         moves_num = len(self._board_editing_history)
 
         if 0 < len(self._board_editing_history):
-            latest_move_str = f"moved {self._board_editing_history[-1].to_code()}"
+            latest_move_str = f"moved {self._board_editing_history[-1].move.to_code()}"
         else:
             latest_move_str = 'init'
 

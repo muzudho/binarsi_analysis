@@ -126,14 +126,14 @@ class UsiEngine():
         self.position_detail(sfen_text, moves_text)
 
 
-    def position_detail(self, sfen_u, board_editing_history_u):
+    def position_detail(self, sfen_u, move_u_list):
         """局面データ解析
 
         Parameters
         ----------
         sfen_u : str
             SFEN文字列
-        board_editing_history_u : str
+        move_u_list : list
             盤面編集履歴。実体は指し手コードの空白区切りリスト。対局棋譜のスーパーセット
         """
 
@@ -146,7 +146,7 @@ class UsiEngine():
             self._board.set_sfen(sfen_u[5:])
 
         # 盤面編集履歴（対局棋譜のスーパーセット）再生
-        for move_u in board_editing_history_u:
+        for move_u in move_u_list:
             self._board.push_usi(move_u)
 
 
@@ -285,7 +285,7 @@ class UsiEngine():
 
     def print_sfen(self):
         """SFENを出力"""
-        print(self._board.as_sfen())
+        print(f"sfen {self._board.as_sfen()}")
 
 
 if __name__ == '__main__':
