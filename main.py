@@ -77,11 +77,15 @@ class UsiEngine():
             elif cmd[0] == 'legal_moves':
                 self.print_legal_moves()
 
-
             # 自己対局
             #       code: selfmatch
             elif cmd[0] == 'selfmatch':
                 self.self_match()
+
+            # SFENを出力
+            #       code: sfen
+            elif cmd[0] == 'sfen':
+                self.print_sfen()
 
 
     def usi(self):
@@ -262,6 +266,11 @@ class UsiEngine():
             self.print_board()
 
         print("自己対局　ここまで：")
+
+
+    def print_sfen(self):
+        """SFENを出力"""
+        print(self._board.as_sfen())
 
 
 if __name__ == '__main__':

@@ -1087,3 +1087,63 @@ class Board():
 {a['f']} | {s[5]} {s[11]} {s[17]} {s[23]} {s[29]} {s[35]} {s[41]} |
   +---------------+
 """
+
+
+    def as_sfen(self):
+        """（拡張仕様）盤のSFEN形式
+
+        空欄： 数に置き換え
+        黒石： x
+        白石： o
+        """
+        global _pc_to_str
+
+        buffer = []
+        spaces = 0
+
+        # 盤面
+        for rank in range(0, RANK_LEN):
+            for file in range(0, FILE_LEN):
+                sq = Square.file_rank_to_sq(file, rank)
+                stone = self._squares[sq]
+
+                if stone == PC_EMPTY:
+                    spaces += 1
+                else:
+                    # 空白の数を Flush
+                    if 0 < spaces:
+                        buffer.append(str(spaces))
+                        spaces = 0
+                    
+                    if stone == PC_BLACK:
+                        buffer.append('x')
+                    elif stone == PC_WHITE:
+                        buffer.append('o')
+                    else:
+                        raise ValueError(f"undefined stone:'{stone}'")
+
+            # 空白の数を Flush
+            if 0 < spaces:
+                buffer.append(str(spaces))
+                spaces = 0
+
+            if rank != RANK_LEN - 1:
+                buffer.append('/')
+
+        # TODO 手番
+        buffer.append(' b ')
+
+        # 筋（段）の符号、またはロック
+        locked = False
+        for axis_code in ['1', '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f']:
+            if self._axis_locks[axis_code]:
+                buffer.append(axis_code)
+                locked = True
+
+        if not locked:
+            buffer.append('-')
+
+        # TODO 何手目か
+        buffer.append(' 0')
+
+        return ''.join(buffer)
