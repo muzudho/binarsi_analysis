@@ -126,20 +126,28 @@ class UsiEngine():
         self.position_detail(sfen_text, moves_text)
 
 
-    def position_detail(self, sfen_text, moves_text_as_code):
-        """局面データ解析"""
+    def position_detail(self, sfen_u, game_record_u):
+        """局面データ解析
+
+        Parameters
+        ----------
+        sfen_u : str
+            SFEN文字列
+        game_record_u : str
+            指し手コードの空白区切りリスト
+        """
 
         # 平手初期局面に変更
-        if sfen_text == 'startpos':
+        if sfen_u == 'startpos':
             self._board.reset()
 
         # 指定局面に変更
-        elif sfen_text[:5] == 'sfen ':
-            self._board.set_sfen(sfen_text[5:])
+        elif sfen_u[:5] == 'sfen ':
+            self._board.set_sfen(sfen_u[5:])
 
         # 棋譜再生
-        for move_as_code in moves_text_as_code:
-            self._board.push_usi(move_as_code)
+        for move_u in game_record_u:
+            self._board.push_usi(move_u)
 
 
     def go(self):

@@ -38,6 +38,8 @@ _num_to_rank = {
     5 : 'f',
 }
 
+_axis_characters = ['1', '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f']
+
 
 class Square():
     """マス"""
@@ -66,6 +68,42 @@ class Square():
         rank_num = _rank_to_num[code[1:2]]
 
         return Square(Square.file_rank_to_sq(file_num, rank_num))
+
+
+class SquareCursor():
+    """盤上のマスを指すカーソル
+    進行方向は、盤の左上から始まって右へ、右端から１段下の左端へ"""
+
+
+    def __init__(self):
+        self._file = 0
+        self._rank = 0
+
+
+    @property
+    def file(self):
+        return self._file
+
+
+    @property
+    def rank(self):
+        return self._rank
+
+
+    def file_forward(self):
+        """カーソルを１つ進める"""
+        if self._file < FILE_LEN - 1:
+            self._file += 1
+        
+        # 改行
+        else:
+            self._file = 0
+            self._rank += 1
+
+
+    def get_sq(self):
+        """マス番号を返す"""
+        return Square.file_rank_to_sq(self._file, self._rank)
 
 
 class Axis():
@@ -403,8 +441,94 @@ class Board():
         self.update_legal_moves()
 
 
-    def set_sfen(self, sfen_code):
-        """TODO 指定局面に変更"""
+    def set_sfen(self, sfen_u):
+        """TODO 指定局面に変更
+
+        Parameters
+        ----------
+        sfen_u : str
+            SFEN書式文字列
+
+            例： `7/7/2o4/7/7/7 b - 0`
+
+                    1 2 3 4 5 6 7
+                +---------------+
+                a |               |
+                b |               |
+                c |     0         |
+                d |               |
+                e |               |
+                f |               |
+                +---------------+
+
+            例： `xooooxo/xooxxxo/ooxxooo/xooxxox/xoxxxxx/ooxoooo b 1234567abcdef 0`
+
+                    # # # # # # #
+                +---------------+
+                # | 1 0 0 0 0 1 0 |
+                # | 1 0 0 1 1 1 0 |
+                # | 0 0 1 1 0 0 0 |
+                # | 1 0 0 1 1 0 1 |
+                # | 1 0 1 1 1 1 1 |
+                # | 0 0 1 0 0 0 0 |
+                +---------------+
+        """
+        global _axis_characters
+
+        # 盤面の初期化
+        self.subinit()
+
+        cursor = SquareCursor()
+
+        parts = sfen_u.split(' ')
+
+        # 盤面の解析
+        numeric = 0
+        for ch in parts[0]:
+            if ch in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
+                numeric *= 10
+                numeric += int(ch)
+
+            elif ch in ['x', 'o']:
+                # 空白の数をフラッシュ
+                while 0 < numeric:
+                    # フォワード
+                    cursor.file_forward()
+                    numeric -= 1
+
+                sq = cursor.get_sq()
+
+                if ch == 'x':
+                    self._squares[sq] = PC_BLACK
+                else:
+                    self._squares[sq] = PC_WHITE
+
+                # フォワード
+                cursor.file_forward()
+
+            elif ch == '/':
+                pass
+
+            else:
+                raise ValueError(f"undefined sfen character on board:`{ch}`")
+
+        # TODO 手番の解析
+        if parts[1] == 'b':
+            pass
+        elif parts[1] == 'w':
+            pass
+        else:
+            raise ValueError(f"undefined sfen character on turn:`{ch}`")
+
+        # ロックの解析
+        for axis_u in parts[2]:
+            if axis_u in _axis_characters:
+                self._axis_locks[axis_u] = True
+
+            else:
+                raise ValueError(f"undefined sfen character on locks:`{axis_u}`")
+
+        # TODO 手数の解析
         pass
 
 
@@ -1097,6 +1221,7 @@ class Board():
         白石： o
         """
         global _pc_to_str
+        global _axis_characters
 
         buffer = []
         spaces = 0
@@ -1135,7 +1260,7 @@ class Board():
 
         # 筋（段）の符号、またはロック
         locked = False
-        for axis_code in ['1', '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f']:
+        for axis_code in _axis_characters:
             if self._axis_locks[axis_code]:
                 buffer.append(axis_code)
                 locked = True
