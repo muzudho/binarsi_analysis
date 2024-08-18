@@ -244,7 +244,7 @@ class Operator():
         op = self._code
 
         # ノット（単項演算子 New）
-        if op == 'n':
+        if op in ['nH', 'nL', 'n']:
             if stone == PC_BLACK:
                 return PC_WHITE
             
@@ -400,7 +400,7 @@ class Board():
         """（サブ部分として）盤をクリアーする"""
         # 各マス
         self._squares = [PC_EMPTY] * BOARD_AREA
-        # 合法手
+        # 現局面の合法手
         self._legal_moves = []
         # 軸ロック
         self._axis_locks = {
@@ -418,12 +418,19 @@ class Board():
             'e' : False,
             'f' : False,
         }
+        # 棋譜（Move のリスト）
+        self._game_record = []
 
 
     @property
     def legal_moves(self):
         """合法手一覧"""
         return self._legal_moves
+
+    @property
+    def game_record(self):
+        """棋譜"""
+        return self._game_record
 
 
     def clear(self):
@@ -668,9 +675,7 @@ class Board():
 
         # 対象の軸に石が置いてある ---> Shift操作、または Reverse操作
         if self.exists_stone_on_axis(move.axis):
-            # TODO 演算子
-
-            # 変数名を縮める
+            # 演算子の変数名を縮める
             op = move.operator.code
             """
             演算子：
@@ -686,7 +691,7 @@ class Board():
                 on: ONe
             """
 
-            # TODO シフト（単項演算子 shift）
+            # シフト（単項演算子 shift）
             #
             #   オペレーターの機能というより、ボードの機能
             #   このゲームでのシフトは、入力と出力は同じ筋（段）上で行います（inplace）
@@ -728,13 +733,14 @@ class Board():
                         # コピー
                         self._squares[dst_sq] = source_stones[src_rank]
 
-                    # 軸にロックをかける
+                    # Shift 演算なので、軸にロックをかける
                     self._axis_locks[move.axis.to_code()] = True
 
+                    self._game_record.append(move)
                     self.update_legal_moves()
                     return
 
-                # 段を対象にした Shift
+                # 石のある段を対象にした Shift
                 if move.axis.axis_id == RANK_ID:
                     src_dst_rank = move.axis.number
 
@@ -767,19 +773,103 @@ class Board():
                         # コピー
                         self._squares[dst_sq] = source_stones[src_file]
 
-                    # 軸にロックをかける
+                    # 石のある軸への Shift 演算は Shift なので、軸にロックをかける
                     self._axis_locks[move.axis.to_code()] = True
 
+                    self._game_record.append(move)
                     self.update_legal_moves()
                     return
 
                 raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
 
+
+            # TODO 軸上の小さい方の数から、対象の石のある数へ Not の評価を出力する
+            if op == 'nL':
+                # 筋方向
+                if move.axis.axis_id == FILE_ID:
+                    dst_file = move.axis.number
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for rank in range(0, RANK_LEN):
+                        src_sq = Square.file_rank_to_sq(dst_file - 1, rank)
+                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                        # 石のある軸への Not 演算は Reverse なので、軸にロックをかける
+                        self._axis_locks[move.axis.to_code()] = True
+
+                        self._game_record.append(move)
+                        self.update_legal_moves()
+                        return
+
+                # 段方向
+                if move.axis.axis_id == RANK_ID:
+                    dst_rank = move.axis.number
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for file in range(0, FILE_LEN):
+                        src_sq = Square.file_rank_to_sq(file, dst_rank - 1)
+                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                        # 石のある軸への Not 演算は Reverse なので、軸にロックをかける
+                        self._axis_locks[move.axis.to_code()] = True
+
+                        self._game_record.append(move)
+                        self.update_legal_moves()
+                        return
+
+
+            # TODO 軸上の大きい方の数から、対象の数へ Not の評価を出力する
+            if op == 'nH':
+                # 筋方向
+                if move.axis.axis_id == FILE_ID:
+                    dst_file = move.axis.number
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for rank in range(0, RANK_LEN):
+                        src_sq = Square.file_rank_to_sq(dst_file + 1, rank)
+                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                        # 石のある軸への Not 演算は Reverse なので、軸にロックをかける
+                        self._axis_locks[move.axis.to_code()] = True
+
+                        self._game_record.append(move)
+                        self.update_legal_moves()
+                        return
+
+                # 段方向
+                if move.axis.axis_id == RANK_ID:
+                    dst_rank = move.axis.number
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for file in range(0, FILE_LEN):
+                        src_sq = Square.file_rank_to_sq(file, dst_rank + 1)
+                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                        # 石のある軸への Not 演算は Reverse なので、軸にロックをかける
+                        self._axis_locks[move.axis.to_code()] = True
+
+                        self._game_record.append(move)
+                        self.update_legal_moves()
+                        return
+
+
+            raise ValueError(f"undefined operator code:{op}")
+
         # 対象の軸に石が置いてない ---> New操作
         else:
-            # TODO 演算子
-            
-            # 変数名を縮める
+            # 演算子の変数名を縮める
             op = move.operator.code
             """
             演算子：
@@ -827,6 +917,7 @@ class Board():
 
                     # New にはロックがかからない
 
+                    self._game_record.append(move)
                     self.update_legal_moves()
                     return
 
@@ -855,6 +946,7 @@ class Board():
 
                     # New にはロックはかからない
 
+                    self._game_record.append(move)
                     self.update_legal_moves()
                     return
 
@@ -877,6 +969,7 @@ class Board():
                     # 軸にロックをかける
                     self._axis_locks[move.axis.to_code()] = True
 
+                    self._game_record.append(move)
                     self.update_legal_moves()
                     return
 
@@ -896,6 +989,7 @@ class Board():
                     # 軸にロックをかける
                     self._axis_locks[move.axis.to_code()] = True
 
+                    self._game_record.append(move)
                     self.update_legal_moves()
                     return
 
@@ -918,6 +1012,7 @@ class Board():
                     # 軸にロックをかける
                     self._axis_locks[move.axis.to_code()] = True
 
+                    self._game_record.append(move)
                     self.update_legal_moves()
                     return
 
@@ -937,6 +1032,7 @@ class Board():
                     # 軸にロックをかける
                     self._axis_locks[move.axis.to_code()] = True
 
+                    self._game_record.append(move)
                     self.update_legal_moves()
                     return
 
@@ -973,12 +1069,13 @@ class Board():
             if op == 'on':
                 return
 
-            raise ValueError(f"undefined operator code: {ope}")
+            raise ValueError(f"undefined operator code: {op}")
 
 
     def pop(self, move_u):
-        """TODO 一手戻す"""
-        pass
+        """一手戻す"""
+        self._game_record.pop()
+        self.update_legal_moves()
 
 
     def is_gameover(self):
@@ -1168,7 +1265,18 @@ class Board():
 
 
     def as_str(self):
-        """（拡張仕様）盤のテキスト形式"""
+        """（拡張仕様）盤のテキスト形式
+        例：
+                1 2 # # # 6 7
+              +---------------+
+            a |               |
+            b |               |
+            c |     0 0 0     |
+            # |     1 1 0     |
+            e |     1 0 1     |
+            f |               |
+              +---------------+        
+        """
         global _pc_to_str
 
         # 数値を文字列(Str)に変更
