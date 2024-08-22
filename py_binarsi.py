@@ -438,19 +438,18 @@ class Move():
 class BoardEditingRecord():
     """盤面編集記録"""
 
-    def __init__(self, move, captured=[]):
+    def __init__(self, move, stones_before_change=''):
         """初期化
         
         Parameters
         ----------
         move : Move
             指し手
-        captured : list
-            裏返して消えた石。
-            取るわけではないが、 Stockfish 系コンピュータ将棋エンジンのプログラミングを踏襲した変数名
+        stones_before_change : str
+            裏返して消えた石
         """
         self._move = move
-        self._captured = captured
+        self._stones_before_change = stones_before_change
 
 
     @property
@@ -460,11 +459,9 @@ class BoardEditingRecord():
 
 
     @property
-    def captured(self):
-        """裏返して消えた石
-        取るわけではないが、 Stockfish 系コンピュータ将棋エンジンのプログラミングを踏襲した変数名
-        """
-        return self._captured
+    def stones_before_change(self):
+        """裏返して消えた石"""
+        return self._stones_before_change
 
 
 class Board():
@@ -562,26 +559,26 @@ class Board():
             例： `7/7/2o4/7/7/7 b - 0`
 
                     1 2 3 4 5 6 7
-                +---------------+
+                  +---------------+
                 a |               |
                 b |               |
                 c |     0         |
                 d |               |
                 e |               |
                 f |               |
-                +---------------+
+                  +---------------+
 
             例： `xooooxo/xooxxxo/ooxxooo/xooxxox/xoxxxxx/ooxoooo b 1234567abcdef 0`
 
                     # # # # # # #
-                +---------------+
+                  +---------------+
                 # | 1 0 0 0 0 1 0 |
                 # | 1 0 0 1 1 1 0 |
                 # | 0 0 1 1 0 0 0 |
                 # | 1 0 0 1 1 0 1 |
                 # | 1 0 1 1 1 1 1 |
                 # | 0 0 1 0 0 0 0 |
-                +---------------+
+                  +---------------+
         """
         global _axis_characters
 
@@ -778,6 +775,7 @@ class Board():
             	"&7c#"
         """
         move = Move.code_to_move_obj(move_u)
+        stones_before_change = ''
 
         # 対象の軸に石が置いてある ---> Shift操作、または Reverse操作
         if self.exists_stone_on_axis(move.axis):
@@ -810,7 +808,11 @@ class Board():
                         src_dst_sq = Square.file_rank_to_sq(src_dst_file, src_dst_rank)
 
                         # 空欄で上書き
-                        self._squares[src_dst_sq] = PC_EMPTY
+                        stone = self._squares[src_dst_sq]
+                        if stone != PC_EMPTY:
+                            stones_before_change += _pc_to_str[stone]
+                            self._squares[src_dst_sq] = PC_EMPTY
+                    
 
                 # 段を対象にした Clear
                 elif move.axis.axis_id == RANK_ID:
@@ -822,7 +824,10 @@ class Board():
                         src_dst_sq = Square.file_rank_to_sq(src_dst_file, src_dst_rank)
 
                         # 空欄で上書き
-                        self._squares[src_dst_sq] = PC_EMPTY
+                        stone = self._squares[src_dst_sq]
+                        if stone != PC_EMPTY:
+                            stones_before_change += _pc_to_str[stone]
+                            self._squares[src_dst_sq] = PC_EMPTY
                 
                 else:
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
@@ -836,7 +841,8 @@ class Board():
 
                 self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(BoardEditingRecord(
-                    move=move))
+                    move=move,
+                    stones_before_change=stones_before_change))
                 self.update_legal_moves()
                 return
 
@@ -928,7 +934,8 @@ class Board():
 
                 self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(BoardEditingRecord(
-                    move=move))
+                    move=move,
+                    stones_before_change=stones_before_change))
                 self.update_legal_moves()
                 return
 
@@ -946,7 +953,9 @@ class Board():
                         dst_sq = Square.file_rank_to_sq(dst_file, rank)
 
                         stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+                        if stone != PC_EMPTY:
+                            stones_before_change += _pc_to_str[stone]
+                            self._squares[dst_sq] = move.operator.unary_operate(stone)
 
                 # 段方向
                 elif move.axis.axis_id == RANK_ID:
@@ -958,7 +967,9 @@ class Board():
                         dst_sq = Square.file_rank_to_sq(file, dst_rank)
 
                         stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+                        if stone != PC_EMPTY:
+                            stones_before_change += _pc_to_str[stone]
+                            self._squares[dst_sq] = move.operator.unary_operate(stone)
                 
                 else:
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
@@ -972,7 +983,8 @@ class Board():
 
                 self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(BoardEditingRecord(
-                    move=move))
+                    move=move,
+                    stones_before_change=stones_before_change))
                 self.update_legal_moves()
                 return
 
@@ -989,7 +1001,9 @@ class Board():
                         dst_sq = Square.file_rank_to_sq(dst_file, rank)
 
                         stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+                        if stone != PC_EMPTY:
+                            stones_before_change += _pc_to_str[stone]
+                            self._squares[dst_sq] = move.operator.unary_operate(stone)
 
                 # 段方向
                 elif move.axis.axis_id == RANK_ID:
@@ -1001,7 +1015,9 @@ class Board():
                         dst_sq = Square.file_rank_to_sq(file, dst_rank)
 
                         stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+                        if stone != PC_EMPTY:
+                            stones_before_change += _pc_to_str[stone]
+                            self._squares[dst_sq] = move.operator.unary_operate(stone)
 
                 else:
                     raise ValueError(f"undefined operator code:{op}")
@@ -1015,7 +1031,8 @@ class Board():
 
                 self._axis_locks[move.axis.to_code()] = new_lock
                 self._board_editing_history.append(BoardEditingRecord(
-                    move=move))
+                    move=move,
+                    stones_before_change=stones_before_change))
                 self.update_legal_moves()
                 return
 
@@ -1590,3 +1607,15 @@ class Board():
         buffer.append(f' moves {moves_u}')
 
         return ''.join(buffer)
+
+
+    def as_stones_before_change(self):
+
+        list1 = []
+        for board_editing_record in self._board_editing_history:
+            if len(board_editing_record.stones_before_change) < 1:
+                list1.append('-')
+            else:
+                list1.append(board_editing_record.stones_before_change)
+
+        return ' '.join(list1)

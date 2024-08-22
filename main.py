@@ -286,6 +286,7 @@ class UsiEngine():
     def print_sfen(self):
         """SFEN を出力"""
         print(f"sfen {self._board.as_sfen()}")
+        print(f"stones_before_change {self._board.as_stones_before_change()}")
 
 
 if __name__ == '__main__':
