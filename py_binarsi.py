@@ -2128,8 +2128,8 @@ class Board():
             if rank != RANK_LEN - 1:
                 buffer.append('/')
 
-        # TODO 添付局面図の手番
-        # --------------------
+        # 添付局面図の手番
+        # ---------------
 
         # TODO 現在の盤面からのSFEN表示
         if from_present:
@@ -2151,12 +2151,14 @@ class Board():
         if not locked:
             buffer.append('-')
 
+
         # 添付局面図は何手目のものか
         # ------------------------
 
-        # TODO 現在の盤面からのSFEN表示
+        # 現在の盤面からのSFEN表示
         if from_present:
-            buffer.append(' 1')
+            game_record_history = self.to_game_record_history()
+            buffer.append(f' {len(game_record_history)}')
 
         # 初期盤面からのSFEN表示
         else:
