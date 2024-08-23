@@ -1,6 +1,6 @@
 import datetime
 import random
-from py_binarsi import Move, Board
+from py_binarsi import Move, MoveHelper, Board
 
 
 class UsiEngine():
@@ -249,12 +249,10 @@ class UsiEngine():
 example: inverse 4n -""")
             return
 
-
-
         move_u = arguments[0]
         code = Move.code_to_obj(move_u)
         stones_before_change = arguments[1]
-        inverse_move = self._board.let_inverse_move(code, stones_before_change)
+        inverse_move = MoveHelper.let_inverse_move(code, stones_before_change)
 
         if inverse_move is None:
             print(f"[let_inverse_move] 未実装： {inverse_move=}")

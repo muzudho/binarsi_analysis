@@ -411,6 +411,9 @@ class Move():
     盤面編集履歴での例：
         "&7c#"
 
+    アンドゥ操作での例：
+        "4c#$01" - TODO 変更前の石の連情報を、$記号の後ろに付加する
+
     盤面編集フラグ、出力軸（axis）、演算子（operator）
         ※演算子にロックフラグ含む
     """
@@ -469,6 +472,155 @@ class Move():
 
     def to_code(self):
         return f"{self.axis.to_code()}{self.operator.code}"
+
+
+class MoveHelper():
+    """指し手の計算"""
+
+    @staticmethod
+    def let_inverse_move(move, stones_before_change):
+        """逆操作を算出する
+
+        Parameters
+        ----------
+        move : str
+            順操作
+        stones_before_change : str
+            操作する前の連の状態
+
+        Returns
+        -------
+        inverse_move : Move
+            逆操作
+        """
+
+        # 変数名を縮める
+        op = move.operator.stem_u
+        axis = move.axis
+
+        # TODO 逆操作 カットザエッジ
+        if op == 'c':
+            # カットザエッジされた軸に、消された石を戻す
+            print("[逆操作] c")
+
+            # move = ""
+
+            # if stones_before_change != '':
+            #     # TODO 指し手に＄記号を付加し、その後ろに変更前の石の連の情報を付加する
+            #     move += f"${stones_before_change}"
+
+            return None
+
+
+        # TODO 逆操作 0ビットシフト
+        elif op == 's0':
+            print("[逆操作] s0")
+            return None
+
+
+        # TODO 逆操作 1ビットシフト
+        elif op == 's1':
+            print("[逆操作] s1")
+            return None
+
+
+        # TODO 逆操作 2ビットシフト
+        elif op == 's2':
+            print("[逆操作] s2")
+            return None
+
+
+        # TODO 逆操作 3ビットシフト
+        elif op == 's3':
+            print("[逆操作] s3")
+            return None
+
+
+        # TODO 逆操作 4ビットシフト
+        elif op == 's4':
+            print("[逆操作] s4")
+            return None
+
+
+        # TODO 逆操作 5ビットシフト
+        elif op == 's5':
+            print("[逆操作] s5")
+            return None
+
+
+        # TODO 逆操作 6ビットシフト
+        elif op == 's6':
+            print("[逆操作] s6")
+            return None
+
+
+        # ノット・ニュー --逆操作--> カットザエッジ＃
+        elif op == 'n':
+            return Move.code_to_obj(f"{axis.to_code()}c#")
+
+
+        # TODO 逆操作 ノットＬ
+        elif op == 'nL':
+            print("[逆操作] nL")
+            return None
+
+
+        # TODO 逆操作 ノットＨ
+        elif op == 'nH':
+            print("[逆操作] nH")
+            return None
+
+
+        # TODO 逆操作 ゼロ
+        elif op == 'ze':
+            print("[逆操作] ze")
+            return None
+
+
+        # TODO 逆操作 ノア
+        elif op == 'no':
+            print("[逆操作] no")
+            return None
+
+
+        # TODO 逆操作 エクソア
+        elif op == 'xo':
+            print("[逆操作] xo")
+            return None
+
+
+        # TODO 逆操作 ナンド
+        elif op == 'na':
+            print("[逆操作] na")
+            return None
+
+
+        # TODO 逆操作 アンド
+        elif op == 'a':
+            print("[逆操作] a")
+            return None
+
+
+        # TODO 逆操作 エクスノア
+        elif op == 'xn':
+            print("[逆操作] xn")
+            return None
+
+
+        # TODO 逆操作 オア
+        elif op == 'o':
+            print("[逆操作] o")
+            return None
+
+
+        # TODO 逆操作 ワン
+        elif op == 'on':
+            print("[逆操作] on")
+            return None
+
+
+        else:
+            raise ValueError(f"undefined operator:{op}")
 
 
 class BoardEditingRecord():
@@ -1345,146 +1497,15 @@ class Board():
 
     def pop(self):
         """TODO 一手戻す"""
-        self._board_editing_history.pop()
+        # 逆操作を算出
+        latest_edit = self._board_editing_history.pop()
+        inverse_move = MoveHelper.let_inverse_move(
+            move=latest_edit.move,
+            stones_before_change=latest_edit.stones_before_change)
+
+        # TODO 盤面編集として、逆操作を実行
+        self.push_usi(f"&{inverse_move.to_code()}")
         self.update_legal_moves()
-
-
-    def let_inverse_move(self, move, stones_before_change):
-        """逆操作を算出する
-
-        Parameters
-        ----------
-        move : str
-            順操作
-        stones_before_change : str
-            操作する前の連の状態
-
-        Returns
-        -------
-        inverse_move : Move
-            逆操作
-        """
-
-        # 変数名を縮める
-        op = move.operator.stem_u
-        axis = move.axis
-
-        # TODO pop カットザエッジ
-        if op == 'c':
-            # カットザエッジされた軸に、消された石を戻す
-            print("[pop] c")
-            return None
-
-
-        # TODO pop 0ビットシフト
-        elif op == 's0':
-            print("[pop] s0")
-            return None
-
-
-        # TODO pop 1ビットシフト
-        elif op == 's1':
-            print("[pop] s1")
-            return None
-
-
-        # TODO pop 2ビットシフト
-        elif op == 's2':
-            print("[pop] s2")
-            return None
-
-
-        # TODO pop 3ビットシフト
-        elif op == 's3':
-            print("[pop] s3")
-            return None
-
-
-        # TODO pop 4ビットシフト
-        elif op == 's4':
-            print("[pop] s4")
-            return None
-
-
-        # TODO pop 5ビットシフト
-        elif op == 's5':
-            print("[pop] s5")
-            return None
-
-
-        # TODO pop 6ビットシフト
-        elif op == 's6':
-            print("[pop] s6")
-            return None
-
-
-        # ノット・ニュー --逆操作--> カットザエッジ＃
-        elif op == 'n':
-            return Move.code_to_obj(f"{axis.to_code()}c#")
-
-
-        # TODO pop ノットＬ
-        elif op == 'nL':
-            print("[pop] nL")
-            return None
-
-
-        # TODO pop ノットＨ
-        elif op == 'nH':
-            print("[pop] nH")
-            return None
-
-
-        # TODO pop ゼロ
-        elif op == 'ze':
-            print("[pop] ze")
-            return None
-
-
-        # TODO pop ノア
-        elif op == 'no':
-            print("[pop] no")
-            return None
-
-
-        # TODO pop エクソア
-        elif op == 'xo':
-            print("[pop] xo")
-            return None
-
-
-        # TODO pop ナンド
-        elif op == 'na':
-            print("[pop] na")
-            return None
-
-
-        # TODO pop アンド
-        elif op == 'a':
-            print("[pop] a")
-            return None
-
-
-        # TODO pop エクスノア
-        elif op == 'xn':
-            print("[pop] xn")
-            return None
-
-
-        # TODO pop オア
-        elif op == 'o':
-            print("[pop] o")
-            return None
-
-
-        # TODO pop ワン
-        elif op == 'on':
-            print("[pop] on")
-            return None
-
-
-        else:
-            raise ValueError(f"undefined operator:{op}")
 
 
     def is_gameover(self):
