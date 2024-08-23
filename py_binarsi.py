@@ -1278,7 +1278,7 @@ class Board():
             raise ValueError(f"undefined operator code: {op}")
 
 
-    def pop(self, move_u):
+    def pop(self):
         """一手戻す"""
 
         board_editing_record = self._board_editing_history.pop()
@@ -1292,96 +1292,115 @@ class Board():
         # TODO pop カットザエッジ
         if op == 'c':
             # カットザエッジされた軸に、消された石を戻す
+            print("[pop] c")
             pass
 
 
         # TODO pop 0ビットシフト
         elif op == 's0':
+            print("[pop] s0")
             pass
 
 
         # TODO pop 1ビットシフト
         elif op == 's1':
+            print("[pop] s1")
             pass
 
 
         # TODO pop 2ビットシフト
         elif op == 's2':
+            print("[pop] s2")
             pass
 
 
         # TODO pop 3ビットシフト
         elif op == 's3':
+            print("[pop] s3")
             pass
 
 
         # TODO pop 4ビットシフト
         elif op == 's4':
+            print("[pop] s4")
             pass
 
 
         # TODO pop 5ビットシフト
         elif op == 's5':
+            print("[pop] s5")
             pass
 
 
         # TODO pop 6ビットシフト
         elif op == 's6':
+            print("[pop] s6")
             pass
 
 
         # TODO pop ノット
         elif op == 'n':
+            print("[pop] n")
             pass
 
 
         # TODO pop ノットＬ
         elif op == 'nL':
+            print("[pop] nL")
             pass
 
 
         # TODO pop ノットＨ
         elif op == 'nH':
+            print("[pop] nH")
             pass
 
 
         # TODO pop ゼロ
         elif op == 'ze':
+            print("[pop] ze")
             pass
 
 
         # TODO pop ノア
         elif op == 'no':
+            print("[pop] no")
             pass
 
 
         # TODO pop エクソア
         elif op == 'xo':
+            print("[pop] xo")
             pass
 
 
         # TODO pop ナンド
         elif op == 'na':
+            print("[pop] na")
             pass
 
 
         # TODO pop アンド
         elif op == 'a':
+            print("[pop] a")
             pass
 
 
         # TODO pop エクスノア
         elif op == 'xn':
+            print("[pop] xn")
             pass
 
 
         # TODO pop オア
         elif op == 'o':
+            print("[pop] o")
             pass
 
 
         # TODO pop ワン
         elif op == 'on':
+            print("[pop] on")
             pass
 
 
@@ -1409,10 +1428,88 @@ class Board():
         pass
 
 
+    def get_edges(self):
+        """TODO 辺を返す
+        例えば：
+        
+            1 2 3 4 5 6 7
+          +---------------+
+        a | . . . . . . . |
+        b | . . . . . . . |
+        c | . . 0 1 0 1 . |
+        d | . . 1 0 1 0 . |
+        e | . . . . . . . |
+        f | . . . . . . . |
+          +---------------+
+        
+        上図の場合、 True, 3, 6, c, d の軸オブジェクトを返す
+
+        Returns
+        -------
+        成功フラグ
+        左辺
+        右辺
+        上辺
+        下辺
+        """
+
+        left_file = None
+        right_file = None
+        top_rank = None
+        bottom_rank = None
+
+        # とりあえず各筋について
+        for dst_file in range(0, FILE_LEN):
+            dst_file_axis = Axis(FILE_ID, dst_file)
+
+            # 縦連の場所を調べる
+            (begin, length) = self.get_position_on_axis(dst_file_axis)
+
+            # 石が置いてる段
+            if 0 < length:
+                top_rank = begin
+                bottom_rank = begin + length - 1
+                break
+
+        
+        if top_rank is None:
+            return (False, None, None, None, None)
+
+
+        # とりあえず各段について
+        for dst_rank in range(0, RANK_LEN):
+            dst_rank_axis = Axis(RANK_ID, dst_rank)
+
+            # 横連の場所を調べる
+            (begin, length) = self.get_position_on_axis(dst_rank_axis)
+
+            # 石が置いてる筋
+            if 0 < length:
+                left_file = begin
+                right_file = begin + length - 1
+                break
+
+
+        return (True, left_file, right_file, top_rank, bottom_rank)
+
+
     def update_legal_moves(self):
         """TODO 合法手の一覧生成"""
 
         self._legal_moves = []
+
+        (rect_exists, left_file, right_file, top_rank, bottom_rank) = self.get_edges()
+
+
+        # Cut the edge の合法手判定
+        if rect_exists:
+            if 0 < right_file - left_file:
+                self._legal_moves.append(Move(Axis(FILE_ID, left_file), Operator(f'c')))
+                self._legal_moves.append(Move(Axis(FILE_ID, right_file), Operator(f'c')))
+            
+            if 0 < bottom_rank - right_file:
+                self._legal_moves.append(Move(Axis(FILE_ID, top_rank), Operator(f'c')))
+                self._legal_moves.append(Move(Axis(FILE_ID, bottom_rank), Operator(f'c')))
 
 
         # とりあえず Shift ができる出力筋を探す（Shift に Rev, New は無い）

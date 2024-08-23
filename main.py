@@ -231,6 +231,11 @@ class UsiEngine():
         """
         self._board.pop()
 
+        # 盤表示
+        self.print_board()
+        self.print_sfen()
+        print("") # 空行
+
 
     def print_board(self):
         """盤表示
