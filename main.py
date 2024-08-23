@@ -322,6 +322,7 @@ example: inverse 4n -""")
             code: history
         """
         print("履歴表示　ここから：")
+        print("    凡例： `$` - 上書された石の並びを示す")
 
         for i in range(0, len(self._board.board_editing_history)):
             board_editing_record = self._board.board_editing_history[i]
@@ -331,7 +332,7 @@ example: inverse 4n -""")
             if stones_before_change == '':
                 stones_before_change = '-'
 
-            print(f"    ({i + 1:2}) move:{move.to_code()} stones_before_change:{stones_before_change}")
+            print(f"    ({i + 1:2}) move:{move.to_code()} ${stones_before_change}")
 
         print("履歴表示　ここまで：")
 
