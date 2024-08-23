@@ -756,8 +756,20 @@ class Board():
 
     def subinit(self):
         """（サブ部分として）盤をクリアーする"""
-        # 初期局面の各マス（SFENで初期局面を出力するためのもの）
+
+        # 初期局面の各マス
+        #
+        #   SFENで初期局面を出力するためのもの
+        #
         self._squares_at_init = None
+
+        # 初期局面での手番
+        #
+        #   平手初期局面の先手は必ず黒番（将棋と違って上手、下手が無いので）。
+        #   ただし、途中局面は自由に設定できるので、白番から始めるように変更したいときがある
+        #
+        self._turn_at_init = PC_BLACK
+
         # 現局面の各マス
         self._squares = [PC_EMPTY] * BOARD_AREA
         # 現局面の合法手
@@ -914,11 +926,11 @@ class Board():
             else:
                 raise ValueError(f"undefined sfen character on board:`{ch}`")
 
-        # TODO 手番の解析
+        # 添付盤面での手番
         if parts[1] == 'b':
-            pass
+            self._turn_at_init = PC_BLACK
         elif parts[1] == 'w':
-            pass
+            self._turn_at_init = PC_WHITE
         else:
             raise ValueError(f"undefined sfen character on turn:`{ch}`")
 
@@ -1575,8 +1587,7 @@ class Board():
                 return
 
 
-        # アンド, オア, ゼロ
-        # TODO , ノア, エクソア, ナンド, エクスノア, ワン
+        # アンド, オア, ゼロ, ノア, エクソア, ナンド, エクスノア, ワン
         if op in ['a', 'o', 'ze', 'no', 'xo', 'na', 'xn', 'on']:
             self.copy_stones_on_line_binary(move)
 
@@ -1638,7 +1649,7 @@ class Board():
 
 
     def pop(self):
-        """TODO 一手戻す"""
+        """一手戻す"""
         # 逆操作を算出
         latest_edit = self._board_editing_history[-1]
         inverse_move = MoveHelper.let_inverse_move(
@@ -1677,7 +1688,7 @@ class Board():
 
 
     def get_edges(self):
-        """TODO 辺を返す
+        """辺を返す
         例えば：
         
             1 2 3 4 5 6 7
@@ -1967,22 +1978,22 @@ class Board():
         # オア（OR）の合法手生成
         self.make_legal_moves(operator_u='o')
 
-        # TODO ゼロ（ZERO）の合法手生成
+        # ゼロ（ZERO）の合法手生成
         self.make_legal_moves(operator_u='ze')
 
-        # TODO ノア（NOR）の合法手生成
+        # ノア（NOR）の合法手生成
         self.make_legal_moves(operator_u='no')
 
-        # TODO エクソア（XOR）の合法手生成
+        # エクソア（XOR）の合法手生成
         self.make_legal_moves(operator_u='xo')
 
-        # TODO ナンド（NAND）の合法手生成
+        # ナンド（NAND）の合法手生成
         self.make_legal_moves(operator_u='na')
 
-        # TODO エクスノア（XNOR）の合法手生成
+        # エクスノア（XNOR）の合法手生成
         self.make_legal_moves(operator_u='xn')
 
-        # TODO ワン（ONE）の合法手生成
+        # ワン（ONE）の合法手生成
         self.make_legal_moves(operator_u='on')
 
 
@@ -2131,13 +2142,27 @@ class Board():
         # 添付局面図の手番
         # ---------------
 
-        # TODO 現在の盤面からのSFEN表示
+        # 現在の盤面から。対局棋譜の指し手番号が奇数なら黒番、偶数なら後手番（将棋と違って上手、下手が無いから）
+        # ただし、添付局面が先手だった場合に限る
         if from_present:
-            buffer.append(' b ')
+            game_record_history = self.to_game_record_history()
+            if len(game_record_history) % 2 == 0:
+                if self._turn_at_init == PC_BLACK:
+                    buffer.append(' w ')
+                else:
+                    buffer.append(' b ')
+            else:
+                if self._turn_at_init == PC_BLACK:
+                    buffer.append(' b ')
+                else:
+                    buffer.append(' w ')
 
-        # 初期盤面からのSFEN表示
+        # 初期盤面
         else:
-            buffer.append(' b ')
+            if self._turn_at_init == PC_BLACK:
+                buffer.append(' b ')
+            else:
+                buffer.append(' w ')
 
 
         # 添付局面図の筋（段）の符号、またはロック
@@ -2157,7 +2182,6 @@ class Board():
 
         # 現在の盤面からのSFEN表示
         if from_present:
-            game_record_history = self.to_game_record_history()
             buffer.append(f' {len(game_record_history)}')
 
         # 初期盤面からのSFEN表示
