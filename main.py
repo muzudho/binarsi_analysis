@@ -332,18 +332,30 @@ example: inverse 4n -""")
         """履歴表示
             code: history
         """
-        print("履歴表示　ここから：")
-        print("    凡例： `$` - 上書された石の並びを示す")
+        print("""\
+履歴表示　ここから：
+    番号： (対局棋譜番号|盤面編集番号）
+    凡例： `&` - 対局棋譜ではなく盤面編集の操作を示す
+    　　： `$` - 上書された石の並びを示す""")
+
+        moves_num = 0
 
         for i in range(0, len(self._board.board_editing_history)):
             board_editing_record = self._board.board_editing_history[i]
             move = board_editing_record.move
+
+            if not move.when_edit:
+                moves_num += 1
+                sequence_number_str = f'{moves_num:2}|{i + 1:2}'
+            else:
+                sequence_number_str = f'  |{i + 1:2}'
+
             stones_before_change = board_editing_record.stones_before_change
 
             if stones_before_change == '':
                 stones_before_change = '-'
 
-            print(f"    ({i + 1:2}) move:{move.to_code()} ${stones_before_change}")
+            print(f"    ({sequence_number_str}) move:{move.to_code()} ${stones_before_change}")
 
         print("履歴表示　ここまで：")
 

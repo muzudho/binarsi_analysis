@@ -787,7 +787,10 @@ class Board():
 
     @property
     def legal_moves(self):
-        """合法手一覧"""
+        """合法手一覧
+        
+        moves は、同じ局面での指し手の選択肢方向に長い
+        """
         return self._legal_moves
 
 
@@ -799,8 +802,24 @@ class Board():
 
     @property
     def board_editing_history(self):
-        """盤面編集履歴（対局棋譜のスーパーセット）"""
+        """盤面編集履歴（対局棋譜のスーパーセット）
+
+        history は時間方向に長い
+        """
         return self._board_editing_history
+
+
+    def to_game_record_history(self):
+        """対局棋譜"""
+        history = []
+
+        for record in self._board_editing_history:
+            # 盤面編集用の操作を除外
+            if not record.move.when_edit:
+                history.append(record)
+        
+        return history
+
 
 
     def update_squares_at_init(self):
@@ -1986,14 +2005,26 @@ class Board():
         # １行目表示
         # ---------
 
-        moves_num = len(self._board_editing_history)
+        game_record_history = self.to_game_record_history()
+        moves_num = len(game_record_history)
 
-        if 0 < len(self._board_editing_history):
-            latest_move_str = f"moved {self._board_editing_history[-1].move.to_code()}"
+        edits_num = len(self._board_editing_history)
+        if moves_num != edits_num:
+            edits_num_str = f"| {edits_num} edits "
+        else:
+            edits_num_str = ""
+
+        if 0 < edits_num:
+            latest_move = self._board_editing_history[-1].move
+            if latest_move.when_edit:
+                latest_move_str = f"edited {latest_move.to_code()}"
+            else:
+                latest_move_str = f"moved {latest_move.to_code()}"
         else:
             latest_move_str = 'init'
 
-        print(f"[{moves_num:3} moves | {latest_move_str}]")
+
+        print(f"[{moves_num:3} moves {edits_num_str}| {latest_move_str}]")
 
         # 盤表示
         # ------
@@ -2143,8 +2174,9 @@ class Board():
 
             move_u_list = []
 
-            for board_editing_record in self._board_editing_history:
-                move_u_list.append(board_editing_record.move.to_code())
+            # 盤面編集用の指し手は除外
+            for game_record_item in self.to_game_record_history():
+                move_u_list.append(game_record_item.move.to_code())
 
             moves_u = ' '.join(move_u_list).rstrip()
 
