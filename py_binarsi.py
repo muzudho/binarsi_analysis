@@ -11,6 +11,11 @@ _pc_to_str = {
     2 : '0',
 }
 
+_pc_to_binary = {
+    1: 1,
+    2: 0,
+}
+
 # 軸
 FILE_ID = 1
 RANK_ID = 2
@@ -362,42 +367,53 @@ class Operator():
             軸上の数字が小さい方の石の種類
         right_stone : int
             軸上の数字が大きい方の石の種類
+        
+        Returns
+        -------
+        stone : int
+            PC_BLACK, PC_WHITE のいずれかを返す
         """
+        global _pc_to_binary
+
+        left = _pc_to_binary[left_stone]
+        right = _pc_to_binary[right_stone]
 
         # 変数名を縮める
         stem_u = self._stem_u
 
-        # TODO ゼロ
+        # ゼロ
         if stem_u == 'ze':
-            return
+            # 常に白石を返す
+            return PC_WHITE
         
-        # TODO ノア
+        # ノア
         if stem_u == 'no':
-            return
+            return not(left == 1 or right == 1)
         
-        # TODO エクソア
+        # エクソア
         if stem_u == 'xo':
-            return
+            return (left ^ right) == 1
         
-        # TODO ナンド
+        # ナンド
         if stem_u == 'na':
-            return
+            return not(left == 1 and right == 1)
         
-        # TODO アンド
+        # アンド
         if stem_u == 'a':
-            return
+            return left == 1 and right == 1
         
-        # TODO エクスノア
+        # エクスノア
         if stem_u == 'xn':
-            return
+            return (left ^ right) != 1
         
-        # TODO オア
+        # オア
         if stem_u == 'o':
-            return
+            return left == 1 or right == 1
         
-        # TODO ワン
+        # ワン
         if stem_u == 'on':
-            return
+            # 常に黒石を返す
+            return PC_BLACK
 
         raise ValueError(f"undefined operator  stem_u:{stem_u}  left_stone:{left_stone}  right_stone:{right_stone}")
 
@@ -979,27 +995,27 @@ class Board():
         move = Move.code_to_obj(move_u)
         stones_before_change = ''
 
-        # 対象の軸に石が置いてある ---> Shift操作、または Reverse操作
-        if self.exists_stone_on_axis(move.axis):
-            # 演算子の変数名を縮める
-            op = move.operator.code
-            """
-            演算子：
-                c : Cut the edge
-                s0 ～ s6: Shift
-                n : Not
-                ze: ZEro
-                no: NOr
-                xo: XOr
-                na: NAnd
-                a : And
-                xn: XNor
-                o : Or
-                on: ONe
-            """
+        # 演算子の変数名を縮める
+        op = move.operator.code
+        """
+        演算子：
+            c : Cut the edge
+            s0 ～ s6: Shift
+            n : Not
+            ze: ZEro
+            no: NOr
+            xo: XOr
+            na: NAnd
+            a : And
+            xn: XNor
+            o : Or
+            on: ONe
+        """
 
-            # TODO カットザエッジ演算子
-            if op.startswith('c'):
+        # カットザエッジ演算子
+        if op.startswith('c'):
+            # 対象の軸に石が置いてある ---> Reverse操作
+            if self.exists_stone_on_axis(move.axis):
                 # 筋方向
                 if move.axis.axis_id == FILE_ID:
                     src_dst_file = move.axis.number
@@ -1048,6 +1064,15 @@ class Board():
                 self.update_legal_moves()
                 return
 
+
+            # 対象の軸に石が置いてない ---> イリーガルムーブ
+            else:
+                print("Illegal move")
+                return
+
+
+        # 対象の軸に石が置いてある ---> Shift操作、または Reverse操作
+        if self.exists_stone_on_axis(move.axis):
 
             # シフト（単項演算子 shift）
             #
@@ -1261,18 +1286,13 @@ class Board():
                 on: ONe
             """
 
-            # TODO カットザエッジ演算子
-            if op.startswith('c'):
-                pass
-
-
-            # シフト演算子
+            # （New）シフト演算子
             if op.startswith('s'):
                 # 石が無いところでシフトをするのは禁じ手
                 raise ValueError(f"石が無いところでシフトをするのは禁じ手  op:{op}")
 
 
-            # ノット（単項演算子 New）
+            # （New）ノット（単項演算子）
             if op == 'n':
                 # 入力筋
                 if move.axis.axis_id == FILE_ID:
@@ -1449,9 +1469,69 @@ class Board():
             
             # TODO アンド
             if op == 'a':
-                raise NotImplementedError(f"op:`{op}`")
+                # 入力筋
+                if move.axis.axis_id == FILE_ID:
+                    dst_file = move.axis.number
+                    if dst_file == 0:
+                        src_file = dst_file + 1
+                    elif dst_file == FILE_LEN - 1:
+                        src_file = dst_file - 1
+                    # 左か右で、石が置いてある軸が入力軸
+                    elif self.exists_stone_on_axis(Axis(FILE_ID, dst_file - 1)):
+                        src_file = dst_file - 1
+                    elif self.exists_stone_on_axis(Axis(FILE_ID, dst_file + 1)):
+                        src_file = dst_file + 1
+                    else:
+                        raise ValueError("not operator invalid operation")
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for rank in range(0, RANK_LEN):
+                        src_sq = Square.file_rank_to_sq(src_file, rank)
+                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                # 入力段
+                elif move.axis.axis_id == RANK_ID:
+                    dst_rank = move.axis.number
+                    if dst_rank == 0:
+                        src_rank = dst_rank + 1
+                    elif dst_rank == FILE_LEN - 1:
+                        src_rank = dst_rank - 1
+                    # 上か下で、石が置いてある軸が入力軸
+                    elif self.exists_stone_on_axis(Axis(RANK_ID, dst_rank - 1)):
+                        src_rank = dst_rank - 1
+                    elif self.exists_stone_on_axis(Axis(RANK_ID, dst_rank + 1)):
+                        src_rank = dst_rank + 1
+                    else:
+                        raise ValueError("not operator invalid operation")
+
+                    # 入力軸から、出力軸へ、評価値を出力
+                    for file in range(0, FILE_LEN):
+                        src_sq = Square.file_rank_to_sq(file, src_rank)
+                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
+
+                        stone = self._squares[src_sq]
+                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+
+                else:
+                    raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
+
+
+                if move.operator.force_unlock:
+                    new_lock = False
+                else: 
+                    # 対局中に New 操作しても軸ロックはかからない
+                    new_lock = False
+
+                self._axis_locks[move.axis.to_code()] = new_lock
+                self._board_editing_history.append(BoardEditingRecord(
+                    move=move))
+                self.update_legal_moves()
                 return
-            
+
+
             # TODO エクスノア
             if op == 'xn':
                 raise NotImplementedError(f"op:`{op}`")
@@ -1517,6 +1597,10 @@ class Board():
         inverse_move = MoveHelper.let_inverse_move(
             move=latest_edit.move,
             stones_before_change=latest_edit.stones_before_change)
+
+        if inverse_move is None:
+            print(f"[pop] `{latest_edit.move.to_code()}` に逆操作はありません")
+            return
 
         # 盤面編集として、逆操作を実行
         self.push_usi(f"&{inverse_move.to_code()}")
@@ -1625,9 +1709,9 @@ class Board():
                 self._moves_for_edit.append(Move(Axis(FILE_ID, left_file), Operator(f'c')))
                 self._moves_for_edit.append(Move(Axis(FILE_ID, right_file), Operator(f'c')))
             
-            if 0 < bottom_rank - right_file:
-                self._moves_for_edit.append(Move(Axis(FILE_ID, top_rank), Operator(f'c')))
-                self._moves_for_edit.append(Move(Axis(FILE_ID, bottom_rank), Operator(f'c')))
+            if 0 < bottom_rank - top_rank:
+                self._moves_for_edit.append(Move(Axis(RANK_ID, top_rank), Operator(f'c')))
+                self._moves_for_edit.append(Move(Axis(RANK_ID, bottom_rank), Operator(f'c')))
 
 
         # とりあえず Shift ができる出力筋を探す（Shift に Rev, New は無い）
