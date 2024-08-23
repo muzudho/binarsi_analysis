@@ -1,6 +1,7 @@
 import re
 
 # 石（PieCe）番号
+#   コンピュータ将棋プログラミングの Piece という変数名を踏襲
 PC_EMPTY = 0
 PC_BLACK = 1
 PC_WHITE = 2
@@ -14,6 +15,11 @@ _pc_to_str = {
 _pc_to_binary = {
     1: 1,
     2: 0,
+}
+
+_bool_to_pc = {
+    True: PC_BLACK,
+    False: PC_WHITE,
 }
 
 # 軸
@@ -61,6 +67,10 @@ class Square():
 
     @staticmethod
     def file_rank_to_sq(file, rank):
+
+        if file < 0 or FILE_LEN <= file or rank < 0 or RANK_LEN <= rank:
+            raise ValueError(f"{file=}  {rank=}")
+
         return file * RANK_LEN + rank
 
 
@@ -202,25 +212,25 @@ class Axis():
         raise ValueError(f"axis_id:{self._axis_id}  number:{self._number}")
 
 
-    def lower_axis():
+    def low_axis(self, diff = 1):
         """１つ小さい方の軸"""
-        if self._number < 1:
+        if self._number < diff:
             return None
         
-        return Axis(self._axis_id, self._number - 1)
+        return Axis(self._axis_id, self._number - diff)
 
 
-    def upper_axis():
+    def high_axis(self, diff = 1):
         """１つ大きい方の軸"""
         if self._axis_id == FILE_ID:
-            if self._number < FILE_LEN - 1:
-                return Axis(self._axis_id, self._number + 1)
+            if self._number < FILE_LEN - diff:
+                return Axis(self._axis_id, self._number + diff)
             else:
                 return None
 
         elif self._axis_id == RANK_ID:
-            if self._number < RANK_LEN - 1:
-                return Axis(self._axis_id, self._number + 1)
+            if self._number < RANK_LEN - diff:
+                return Axis(self._axis_id, self._number + diff)
             else:
                 return None
 
@@ -265,19 +275,22 @@ class Operator():
         例： `7c#` - ７筋の全石を取り除き、ロックも外す
     """
 
-    def __init__(self, stem_u, force_unlock=False):
+    def __init__(self, stem_u, parameter_length, force_unlock=False):
         """初期化
         
         Parameters
         ----------
         stem_u : str
             演算子語幹部のUSI書式文字列（軸ロック指定を除く）
+        parameter_length: int
+            引数の個数
         force_unlock : bool
         	強制アンロック
         	True:  強制的にロックを解除する。盤面編集時に利用
         	False: 対局ルールにある動作をする。遊び方に従ってロックがかかるか、遊び方に従ってロックをかけないかのどちらか
         """
         self._stem_u = stem_u
+        self._parameter_length = parameter_length
         self._force_unlock = force_unlock
 
 
@@ -285,14 +298,19 @@ class Operator():
     def stem_u(self):
         return self._stem_u
 
-    
+
+    @property
+    def parameter_length(self):
+        return self._parameter_length
+
+
     @property
     def force_unlock(self):
         return self._force_unlock
 
 
     @staticmethod
-    def code_to_operator(code):
+    def code_to_obj(code):
         """コードからオブジェクトへ変換
         
         Parameters
@@ -311,8 +329,24 @@ class Operator():
         stem_u = result.group(1)
         force_unlock = result.group(2) == '#'
 
+        # 零項演算子（nullary）か？
+        if stem_u in ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 'c']:
+            parameter_length = 0
+
+        # 単項演算子（unarry）か？
+        elif stem_u in ['nH', 'nL', 'n']:
+            parameter_length = 1
+
+        # 二項演算子（binary）か？
+        elif stem_u in ['na', 'no', 'on', 'xn', 'xo', 'ze', 'a', 'o']:
+            parameter_length = 2
+        
+        else:
+            raise ValueError(f"undefined operator: {code=}")
+
         return Operator(
             stem_u=stem_u,
+            parameter_length=parameter_length,
             force_unlock=force_unlock)
 
 
@@ -358,27 +392,27 @@ class Operator():
         raise ValueError(f"undefined operator  stem_u:{self._stem_u}  stone:{stone}")
 
 
-    def binary_operate(self, left_stone, right_stone):
+    def binary_operate(self, left_operand, right_operand):
         """二項演算する
         
         Parameters
         ----------
-        left_stone : int
-            軸上の数字が小さい方の石の種類
-        right_stone : int
-            軸上の数字が大きい方の石の種類
+        left_operand : int
+            左項
+        right_operand : int
+            右項
         
         Returns
         -------
         stone : int
             PC_BLACK, PC_WHITE のいずれかを返す
         """
-        global _pc_to_binary
 
-        left = _pc_to_binary[left_stone]
-        right = _pc_to_binary[right_stone]
+        global _bool_to_pc
 
         # 変数名を縮める
+        l = left_operand
+        r = right_operand
         stem_u = self._stem_u
 
         # ゼロ
@@ -388,34 +422,34 @@ class Operator():
         
         # ノア
         if stem_u == 'no':
-            return not(left == 1 or right == 1)
+            return _bool_to_pc[not(l == 1 or r == 1)]
         
         # エクソア
         if stem_u == 'xo':
-            return (left ^ right) == 1
+            return _bool_to_pc[(l ^ r) == 1]
         
         # ナンド
         if stem_u == 'na':
-            return not(left == 1 and right == 1)
+            return _bool_to_pc[not(l == 1 and r == 1)]
         
         # アンド
         if stem_u == 'a':
-            return left == 1 and right == 1
+            return _bool_to_pc[l == 1 and r == 1]
         
         # エクスノア
         if stem_u == 'xn':
-            return (left ^ right) != 1
+            return _bool_to_pc[(l ^ r) != 1]
         
         # オア
         if stem_u == 'o':
-            return left == 1 or right == 1
+            return _bool_to_pc[l == 1 or r == 1]
         
         # ワン
         if stem_u == 'on':
             # 常に黒石を返す
             return PC_BLACK
 
-        raise ValueError(f"undefined operator  stem_u:{stem_u}  left_stone:{left_stone}  right_stone:{right_stone}")
+        raise ValueError(f"undefined operator  stem_u:{stem_u}  {l=}  {r=}")
 
 
 class Move():
@@ -481,7 +515,7 @@ class Move():
             # 軸
             axis=Axis.code_to_axis(code=result.group(2)),
             # 演算子
-            operator=Operator.code_to_operator(code=result.group(3)),
+            operator=Operator.code_to_obj(code=result.group(3)),
             # 盤面編集フラグ
             when_edit=result.group(1) is not None)
 
@@ -981,6 +1015,145 @@ class Board():
         raise ValueError(f"undefined axis_id:{axis.axis_id}")
 
 
+    def copy_stones_on_line_unary(self, move, overwrite=False):
+        """入力軸 a を単項演算して、 b 軸へ出力
+
+        例えば：
+        
+            1 2 3 4 5 6 7
+          +---------------+
+        a | . . . . . . . |
+        b | . . . . . . . |
+        c | a a a a a a a |
+        d | b b b b b b b |
+        e | . . . . . . . |
+        f | . . . . . . . |
+          +---------------+
+
+        上図の a を単項演算した結果を b へ出力
+        """
+
+        stones_before_change = ''
+
+        # 筋方向
+        if move.axis.axis_id == FILE_ID:
+            for rank in range(0, RANK_LEN):
+
+                dst_sq = Square.file_rank_to_sq(move.axis.number, rank)
+                old_stone = self._squares[dst_sq]
+
+                if overwrite and old_stone != PC_EMPTY:
+                    stones_before_change += _pc_to_str[old_stone]
+
+                self._squares[dst_sq] = move.operator.unary_operate(
+                    stone=self._squares[Square.file_rank_to_sq(move.axis.number + 1, rank)])
+
+            return stones_before_change
+
+
+        # 段方向
+        if move.axis.axis_id == RANK_ID:
+            for file in range(0, FILE_LEN):
+
+                dst_sq = Square.file_rank_to_sq(file, move.axis.number)
+                old_stone = self._squares[dst_sq]
+
+                if overwrite and old_stone != PC_EMPTY:
+                    stones_before_change += _pc_to_str[old_stone]
+
+                self._squares[dst_sq] = move.operator.unary_operate(
+                    stone=self._squares[Square.file_rank_to_sq(file, move.axis.number + 1)])
+
+            return stones_before_change
+
+
+        raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
+
+
+    def copy_stones_on_line_binary(self, move, input_axis_1, input_axis_2, overwrite=False):
+        """入力軸 a, b を二項演算して、 c 軸へ出力
+
+        例えば：
+        
+            1 2 3 4 5 6 7
+          +---------------+
+        a | . . . . . . . |
+        b | . . . . . . . |
+        c | a a a a a a a |
+        d | c c c c c c c |
+        e | b b b b b b b |
+        f | . . . . . . . |
+          +---------------+
+
+        上図の a, b を二項演算した結果を c へ出力
+
+        Parameters
+        ----------
+        move : Move
+            指し手
+        input_axis_1 : Axis
+            入力軸１
+        input_axis_2 : Axis
+            入力軸２
+        """
+
+        global _pc_to_binary
+
+        stones_before_change = ''
+
+        # 筋方向
+        if move.axis.axis_id == FILE_ID:
+            for rank in range(0, RANK_LEN):
+
+                dst_sq = Square.file_rank_to_sq(move.axis.number, rank)
+                old_stone = self._squares[dst_sq]
+
+                if overwrite and old_stone != PC_EMPTY:
+                    stones_before_change += _pc_to_str[old_stone]
+
+                input_stone_at_first = self._squares[Square.file_rank_to_sq(input_axis_1.number, rank)]
+                input_stone_at_second = self._squares[Square.file_rank_to_sq(input_axis_2.number, rank)]
+
+                print(f"筋方向  {rank=}  {input_axis_1.number=}  {input_axis_2.number=}  {input_stone_at_first=}  {input_stone_at_second=}  {dst_sq=}")
+
+                if input_stone_at_first == PC_EMPTY or input_stone_at_second == PC_EMPTY:
+                    continue
+
+                self._squares[dst_sq] = move.operator.binary_operate(
+                    left_operand=_pc_to_binary[input_stone_at_first],
+                    right_operand=_pc_to_binary[input_stone_at_second])
+
+            return stones_before_change
+
+
+        # 段方向
+        if move.axis.axis_id == RANK_ID:
+            for file in range(0, FILE_LEN):
+
+                dst_sq = Square.file_rank_to_sq(file, move.axis.number)
+                old_stone = self._squares[dst_sq]
+
+                if overwrite and old_stone != PC_EMPTY:
+                    stones_before_change += _pc_to_str[old_stone]
+
+                input_stone_at_first = self._squares[Square.file_rank_to_sq(file, input_axis_1.number)]
+                input_stone_at_second = self._squares[Square.file_rank_to_sq(file, input_axis_2.number)]
+
+                print(f"段方向  {file=}  {input_stone_at_first=}  {input_stone_at_second=}")
+
+                if input_stone_at_first == PC_EMPTY or input_stone_at_second == PC_EMPTY:
+                    continue
+
+                self._squares[dst_sq] = move.operator.binary_operate(
+                    left_operand=_pc_to_binary[input_stone_at_first],
+                    right_operand=_pc_to_binary[input_stone_at_second])
+            
+            return stones_before_change
+
+
+        raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
+
+
     def push_usi(self, move_u):
         """一手指す
 
@@ -991,7 +1164,7 @@ class Board():
             	"4n"
             盤面編集時の例：
             	"&7c#"
-        """
+        """        
         move = Move.code_to_obj(move_u)
         stones_before_change = ''
 
@@ -1201,11 +1374,8 @@ class Board():
 
                     # 入力軸から、出力軸へ、評価値を出力
                     for rank in range(0, RANK_LEN):
-                        src_sq = Square.file_rank_to_sq(src_file, rank)
-                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
-
-                        stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+                        stone = self._squares[Square.file_rank_to_sq(src_file, rank)]
+                        self._squares[Square.file_rank_to_sq(dst_file, rank)] = move.operator.unary_operate(stone)
 
                 # 段方向
                 elif move.axis.axis_id == RANK_ID:
@@ -1224,11 +1394,8 @@ class Board():
 
                     # 入力軸から、出力軸へ、評価値を出力
                     for file in range(0, FILE_LEN):
-                        src_sq = Square.file_rank_to_sq(file, src_rank)
-                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
-
-                        stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+                        stone = self._squares[Square.file_rank_to_sq(file, src_rank)]
+                        self._squares[Square.file_rank_to_sq(file, dst_rank)] = move.operator.unary_operate(stone)
 
                 else:
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
@@ -1255,31 +1422,23 @@ class Board():
 
                 # 筋方向
                 if move.axis.axis_id == FILE_ID:
-                    dst_file = move.axis.number
-
                     # 入力軸から、出力軸へ、評価値を出力
                     for rank in range(0, RANK_LEN):
-                        src_sq = Square.file_rank_to_sq(dst_file - 1, rank)
-                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
+                        stone = self._squares[Square.file_rank_to_sq(move.axis.number - 1, rank)]
 
-                        stone = self._squares[src_sq]
                         if stone != PC_EMPTY:
                             stones_before_change += _pc_to_str[stone]
-                            self._squares[dst_sq] = move.operator.unary_operate(stone)
+                            self._squares[Square.file_rank_to_sq(move.axis.number, rank)] = move.operator.unary_operate(stone)
 
                 # 段方向
                 elif move.axis.axis_id == RANK_ID:
-                    dst_rank = move.axis.number
-
                     # 入力軸から、出力軸へ、評価値を出力
                     for file in range(0, FILE_LEN):
-                        src_sq = Square.file_rank_to_sq(file, dst_rank - 1)
-                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
+                        stone = self._squares[Square.file_rank_to_sq(file, move.axis.number - 1)]
 
-                        stone = self._squares[src_sq]
                         if stone != PC_EMPTY:
                             stones_before_change += _pc_to_str[stone]
-                            self._squares[dst_sq] = move.operator.unary_operate(stone)
+                            self._squares[Square.file_rank_to_sq(file, move.axis.number)] = move.operator.unary_operate(stone)
                 
                 else:
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
@@ -1304,29 +1463,17 @@ class Board():
 
                 # 筋方向
                 if move.axis.axis_id == FILE_ID:
-                    dst_file = move.axis.number
-                    src_file = dst_file - 1
-
                     # 入力軸から、出力軸へ、評価値を出力
                     for rank in range(0, RANK_LEN):
-                        src_sq = Square.file_rank_to_sq(src_file, rank)
-                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
-
-                        stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+                        stone = self._squares[Square.file_rank_to_sq(dst_file - 1, rank)]
+                        self._squares[Square.file_rank_to_sq(move.axis.number, rank)] = move.operator.unary_operate(stone)
 
                 # 段方向
                 elif move.axis.axis_id == RANK_ID:
-                    dst_rank = move.axis.number
-                    src_rank = dst_rank - 1
-
                     # 入力軸から、出力軸へ、評価値を出力
                     for file in range(0, FILE_LEN):
-                        src_sq = Square.file_rank_to_sq(file, src_rank)
-                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
-
-                        stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
+                        stone = self._squares[Square.file_rank_to_sq(file, dst_rank - 1)]
+                        self._squares[Square.file_rank_to_sq(file, move.axis.number)] = move.operator.unary_operate(stone)
 
                 else:
                     raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
@@ -1353,31 +1500,24 @@ class Board():
 
                 # 筋方向
                 if move.axis.axis_id == FILE_ID:
-                    dst_file = move.axis.number
 
                     # 入力軸から、出力軸へ、評価値を出力
                     for rank in range(0, RANK_LEN):
-                        src_sq = Square.file_rank_to_sq(dst_file + 1, rank)
-                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
+                        stone = self._squares[Square.file_rank_to_sq(move.axis.number + 1, rank)]
 
-                        stone = self._squares[src_sq]
                         if stone != PC_EMPTY:
                             stones_before_change += _pc_to_str[stone]
-                            self._squares[dst_sq] = move.operator.unary_operate(stone)
+                            self._squares[Square.file_rank_to_sq(move.axis.number, rank)] = move.operator.unary_operate(stone)
 
                 # 段方向
                 elif move.axis.axis_id == RANK_ID:
-                    dst_rank = move.axis.number
-
                     # 入力軸から、出力軸へ、評価値を出力
                     for file in range(0, FILE_LEN):
-                        src_sq = Square.file_rank_to_sq(file, dst_rank + 1)
-                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
+                        stone = self._squares[Square.file_rank_to_sq(file, move.axis.number + 1)]
 
-                        stone = self._squares[src_sq]
                         if stone != PC_EMPTY:
                             stones_before_change += _pc_to_str[stone]
-                            self._squares[dst_sq] = move.operator.unary_operate(stone)
+                            self._squares[Square.file_rank_to_sq(file, move.axis.number)] = move.operator.unary_operate(stone)
 
                 else:
                     raise ValueError(f"undefined operator code:{op}")
@@ -1400,35 +1540,8 @@ class Board():
             # 対象の軸に石が置いてない ---> New 操作
             else:
 
-                # 筋方向
-                if move.axis.axis_id == FILE_ID:
-                    dst_file = move.axis.number
-                    src_file = dst_file + 1
-
-                    # 入力軸から、出力軸へ、評価値を出力
-                    for rank in range(0, RANK_LEN):
-                        src_sq = Square.file_rank_to_sq(src_file, rank)
-                        dst_sq = Square.file_rank_to_sq(dst_file, rank)
-
-                        stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
-
-                # 段方向
-                elif move.axis.axis_id == RANK_ID:
-                    dst_rank = move.axis.number
-                    src_rank = dst_rank + 1
-
-                    # 入力軸から、出力軸へ、評価値を出力
-                    for file in range(0, FILE_LEN):
-                        src_sq = Square.file_rank_to_sq(file, src_rank)
-                        dst_sq = Square.file_rank_to_sq(file, dst_rank)
-
-                        stone = self._squares[src_sq]
-                        self._squares[dst_sq] = move.operator.unary_operate(stone)
-
-                else:
-                    raise ValueError(f"undefined axis_id:{move.axis.axis_id}")
-
+                self.copy_stones_on_line_unary(
+                    axis_id=move.axis.axis_id)
 
                 if move.operator.force_unlock:
                     new_lock = False
@@ -1443,45 +1556,150 @@ class Board():
                 return
 
 
+        # アンド
+        if op == 'a':
+
+            (first_axis, second_axis) = self.get_input_axes_by_binary_operation(move.axis)
+
+            # 対象の軸に石が置いてある --> Reverse 操作
+            if self.exists_stone_on_axis(move.axis):
+
+                print(f"[push_usi] 対象の軸に石が置いてある  {move.axis.number=}  {first_axis.number=}  {second_axis.number=}")
+
+                self.copy_stones_on_line_binary(
+                    move=move,
+                    input_axis_1=first_axis,
+                    input_axis_2=second_axis,
+                    overwrite=True)
+
+            # 対象の軸に石が置いてない ---> New 操作
+            else:
+
+                print(f"[push_usi] 対象の軸に石が置いてない  {move.axis.number=}  {first_axis.number=}  {second_axis.number=}")
+
+                self.copy_stones_on_line_binary(
+                    move=move,
+                    input_axis_1=first_axis,
+                    input_axis_2=second_axis)
+
+
+            if move.operator.force_unlock:
+                new_lock = False
+            else: 
+                # 石のある軸への And 演算は Reverse なので、軸ロックがかかる
+                new_lock = True
+
+            self._axis_locks[move.axis.to_code()] = new_lock
+            self._board_editing_history.append(BoardEditingRecord(
+                move=move))
+            self.update_legal_moves()
+            return
+
+
         # TODO ゼロ
         if op == 'ze':
+
+            # 対象の軸に石が置いてある --> Reverse 操作
+            if self.exists_stone_on_axis(move.axis):
+                pass
+
+            # 対象の軸に石が置いてない ---> New 操作
+            else:
+                pass
+
             raise NotImplementedError(f"op:`{op}`")
             return
         
+
         # TODO ノア
         if op == 'no':
-            raise NotImplementedError(f"op:`{op}`")
-            return
-        
-        # TODO エクソア
-        if op == 'xo':
-            raise NotImplementedError(f"op:`{op}`")
-            return
-        
-        # TODO ナンド
-        if op == 'na':
-            raise NotImplementedError(f"op:`{op}`")
-            return
-        
-        # TODO アンド
-        if op == 'a':
+
+            # 対象の軸に石が置いてある --> Reverse 操作
+            if self.exists_stone_on_axis(move.axis):
+                pass
+
+            # 対象の軸に石が置いてない ---> New 操作
+            else:
+                pass
+
             raise NotImplementedError(f"op:`{op}`")
             return
 
-        # TODO エクスノア
-        if op == 'xn':
+
+        # TODO エクソア
+        if op == 'xo':
+
+            # 対象の軸に石が置いてある --> Reverse 操作
+            if self.exists_stone_on_axis(move.axis):
+                pass
+
+            # 対象の軸に石が置いてない ---> New 操作
+            else:
+                pass
+
             raise NotImplementedError(f"op:`{op}`")
             return
+
+
+        # TODO ナンド
+        if op == 'na':
+
+            # 対象の軸に石が置いてある --> Reverse 操作
+            if self.exists_stone_on_axis(move.axis):
+                pass
+
+            # 対象の軸に石が置いてない ---> New 操作
+            else:
+                pass
+
+            raise NotImplementedError(f"op:`{op}`")
+            return
+
+
+        # TODO エクスノア
+        if op == 'xn':
+
+            # 対象の軸に石が置いてある --> Reverse 操作
+            if self.exists_stone_on_axis(move.axis):
+                pass
+
+            # 対象の軸に石が置いてない ---> New 操作
+            else:
+                pass
+
+            raise NotImplementedError(f"op:`{op}`")
+            return
+        
         
         # TODO オア
         if op == 'o':
+
+            # 対象の軸に石が置いてある --> Reverse 操作
+            if self.exists_stone_on_axis(move.axis):
+                pass
+
+            # 対象の軸に石が置いてない ---> New 操作
+            else:
+                pass
+
             raise NotImplementedError(f"op:`{op}`")
             return
-        
+
+
         # TODO ワン
         if op == 'on':
+
+            # 対象の軸に石が置いてある --> Reverse 操作
+            if self.exists_stone_on_axis(move.axis):
+                pass
+
+            # 対象の軸に石が置いてない ---> New 操作
+            else:
+                pass
+
             raise NotImplementedError(f"op:`{op}`")
             return
+
 
         raise ValueError(f"undefined operator code: {op}")
 
@@ -1497,13 +1715,13 @@ class Board():
 
         # 筋方向
         if space_axis.axis_id == FILE_ID:
-            left_axis = space_axis.lower_axis()
+            left_axis = space_axis.low_axis()
             if left_axis is not None:
                 (begin, length) = self.get_position_on_axis(left_axis)
                 if 0 < length:
                     return left_axis
 
-            right_axis = space_axis.upper_axis()
+            right_axis = space_axis.high_axis()
             if right_axis is not None:
                 (begin, length) = self.get_position_on_axis(right_axis)
                 if 0 < length:
@@ -1511,13 +1729,13 @@ class Board():
 
         # 段方向
         if space_axis.axis_id == RANK_ID:
-            top_axis = space_axis.lower_axis()
+            top_axis = space_axis.low_axis()
             if top_axis is not None:
                 (begin, length) = self.get_position_on_axis(top_axis)
                 if 0 < length:
                     return top_axis
 
-            bottom_axis = space_axis.upper_axis()
+            bottom_axis = space_axis.high_axis()
             if bottom_axis is not None:
                 (begin, length) = self.get_position_on_axis(bottom_axis)
                 if 0 < length:
@@ -1630,8 +1848,54 @@ class Board():
         return (True, left_file, right_file, top_rank, bottom_rank)
 
 
+    def get_input_axes_by_binary_operation(self, target_axis):
+        """二項演算するときの入力軸２つ"""
+
+        # 対象軸にロックが掛かっていたら、二項演算禁止
+        if self._axis_locks[target_axis.to_code()]:
+            return (None, None)
+
+
+        # 筋方向
+        if target_axis.axis_id == FILE_ID:
+            axis_length = FILE_LEN
+
+        # 段方向
+        elif target_axis.axis_id == RANK_ID:
+            axis_length = RANK_LEN
+
+        else:
+            raise ValueError(f"undefined axis: {target_axis.axis_id=}")
+
+
+        # 対称軸に石が置いてあるなら
+        if self.exists_stone_on_axis(target_axis):
+            # ロウ、ハイの両方に石が置いてある必要がある
+            if 0 < target_axis.number and target_axis.number < axis_length - 1:
+                low_axis = target_axis.low_axis()
+                high_axis = target_axis.high_axis()
+                if self.exists_stone_on_axis(low_axis) and self.exists_stone_on_axis(high_axis):
+                    return (low_axis, high_axis)
+
+        # 対象軸に石が置いてないなら
+        else:
+            # ロウの方に２つ続けて石が置いているか？
+            if 1 < target_axis.number:
+                first_axis = target_axis.low_axis()
+                second_axis = target_axis.low_axis(diff=2)
+                if self.exists_stone_on_axis(first_axis) and self.exists_stone_on_axis(second_axis):
+                    return (first_axis, second_axis)
+            
+            # ハイの方に２つ続けて石が置いているか？
+            if target_axis.number < axis_length - 2:
+                first_axis = target_axis.high_axis()
+                second_axis = target_axis.high_axis(diff=2)
+                if self.exists_stone_on_axis(first_axis) and self.exists_stone_on_axis(second_axis):
+                    return (first_axis, second_axis)
+
+
     def update_legal_moves(self):
-        """TODO 合法手の一覧生成"""
+        """合法手の一覧生成"""
 
         self._legal_moves = []
         self._moves_for_edit = []
@@ -1639,18 +1903,19 @@ class Board():
         (rect_exists, left_file, right_file, top_rank, bottom_rank) = self.get_edges()
 
 
-        # （盤面編集用） Cut the edge の合法手判定
+        # カットザエッジ（Cut the edge）の合法手生成（盤面編集用）
         if rect_exists:
             if 0 < right_file - left_file:
-                self._moves_for_edit.append(Move(Axis(FILE_ID, left_file), Operator(f'c')))
-                self._moves_for_edit.append(Move(Axis(FILE_ID, right_file), Operator(f'c')))
+                self._moves_for_edit.append(Move(Axis(FILE_ID, left_file), Operator.code_to_obj('c')))
+                self._moves_for_edit.append(Move(Axis(FILE_ID, right_file), Operator.code_to_obj('c')))
             
             if 0 < bottom_rank - top_rank:
-                self._moves_for_edit.append(Move(Axis(RANK_ID, top_rank), Operator(f'c')))
-                self._moves_for_edit.append(Move(Axis(RANK_ID, bottom_rank), Operator(f'c')))
+                self._moves_for_edit.append(Move(Axis(RANK_ID, top_rank), Operator.code_to_obj('c')))
+                self._moves_for_edit.append(Move(Axis(RANK_ID, bottom_rank), Operator.code_to_obj('c')))
 
 
-        # とりあえず Shift ができる出力筋を探す（Shift に Rev, New は無い）
+        # シフト（Shift）の合法手生成
+        # 筋方向
         for dst_file in range(0, FILE_LEN):
             dst_file_axis = Axis(FILE_ID, dst_file)
 
@@ -1681,10 +1946,10 @@ class Board():
                 # 枝が増えてしまうのを防ぐ
 
                 for i in range(1, length):
-                    self._legal_moves.append(Move(dst_file_axis, Operator(f's{i}')))
+                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj(f's{i}')))
 
 
-        # とりあえず Shift ができる出力段を探す（Shift に Rev, New は無い）
+        # 段方向
         for dst_rank in range(0, RANK_LEN):
             dst_rank_axis = Axis(RANK_ID, dst_rank)
 
@@ -1699,10 +1964,11 @@ class Board():
                 # Shift できる
                 # ゼロビットシフトは禁止する
                 for i in range(1, length):
-                    self._legal_moves.append(Move(dst_rank_axis, Operator(f's{i}')))
+                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj(f's{i}')))
 
 
-        # とりあえず Not ができる出力筋を探す
+        # ノット（Not）の合法手生成
+        # 筋方向
         for dst_file in range(0, FILE_LEN):
             dst_file_axis = Axis(FILE_ID, dst_file)
 
@@ -1713,35 +1979,27 @@ class Board():
                 if self._axis_locks[dst_file_axis.to_code()]:
                     continue
 
-                if 0 < dst_file:
-                    lower_src_file_axis = Axis(FILE_ID, dst_file - 1)
-                    if self.exists_stone_on_axis(lower_src_file_axis):
-                        # 軸上で小さい方にある石を Not して Reverse できる
-                        self._legal_moves.append(Move(dst_file_axis, Operator('nL')))
+                if 0 < dst_file and self.exists_stone_on_axis(dst_file_axis.low_axis()):
+                    # 軸上で小さい方にある石を Not して Reverse できる
+                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj('nL')))
 
-                if dst_file < FILE_LEN - 1:
-                    higher_src_file_axis = Axis(FILE_ID, dst_file + 1)
-                    if self.exists_stone_on_axis(higher_src_file_axis):
-                        # 軸上で大きい方にある石を Not して Reverse できる
-                        self._legal_moves.append(Move(dst_file_axis, Operator('nH')))
+                if dst_file < FILE_LEN - 1 and self.exists_stone_on_axis(dst_file_axis.high_axis()):
+                    # 軸上で大きい方にある石を Not して Reverse できる
+                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj('nH')))
 
             # 石が置いてない軸
             else:
                 # 隣のどちらかに石が置いているか？
-                if 0 < dst_file:
-                    younger_src_file_axis = Axis(FILE_ID, dst_file - 1)
-                    if self.exists_stone_on_axis(younger_src_file_axis):
-                        # Not で New できる
-                        self._legal_moves.append(Move(dst_file_axis, Operator('n')))
+                if 0 < dst_file and self.exists_stone_on_axis(dst_file_axis.low_axis()):
+                    # Not で New できる
+                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj('n')))
 
-                if dst_file < FILE_LEN - 1:
-                    elder_src_file_axis = Axis(FILE_ID, dst_file + 1)
-                    if self.exists_stone_on_axis(elder_src_file_axis):
-                        # Not で New できる
-                        self._legal_moves.append(Move(dst_file_axis, Operator('n')))
+                if dst_file < FILE_LEN - 1 and self.exists_stone_on_axis(dst_file_axis.high_axis()):
+                    # Not で New できる
+                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj('n')))
 
 
-        # とりあえず Not ができる出力段を探す
+        # 段方向
         for dst_rank in range(0, RANK_LEN):
             dst_rank_axis = Axis(RANK_ID, dst_rank)
 
@@ -1752,64 +2010,90 @@ class Board():
                 if self._axis_locks[dst_rank_axis.to_code()]:
                     continue
 
-                if 0 < dst_rank:
-                    lower_src_rank_axis = Axis(RANK_ID, dst_rank - 1)
-                    if self.exists_stone_on_axis(lower_src_rank_axis):
-                        # 軸上で小さい方にある石を Not して Reverse できる
-                        self._legal_moves.append(Move(dst_rank_axis, Operator('nL')))
+                if 0 < dst_rank and self.exists_stone_on_axis(dst_rank_axis.low_axis()):
+                    # 軸上で小さい方にある石を Not して Reverse できる
+                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('nL')))
 
-                if dst_rank < RANK_LEN - 1:
-                    higher_src_rank_axis = Axis(RANK_ID, dst_rank + 1)
-                    if self.exists_stone_on_axis(higher_src_rank_axis):
-                        # 軸上で大きい方にある石を Not して Reverse できる
-                        self._legal_moves.append(Move(dst_rank_axis, Operator('nH')))
+                if dst_rank < RANK_LEN - 1 and self.exists_stone_on_axis(dst_rank_axis.high_axis()):
+                    # 軸上で大きい方にある石を Not して Reverse できる
+                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('nH')))
 
             # 石が置いてない軸
             else:
                 # 隣のどちらかに石が置いているか？
-                if 0 < dst_rank:
-                    younger_src_rank_axis = Axis(RANK_ID, dst_rank - 1)
-                    if self.exists_stone_on_axis(younger_src_rank_axis):
-                        # Not で New できる
-                        self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
+                if 0 < dst_rank and self.exists_stone_on_axis(dst_rank_axis.low_axis()):
+                    # Not で New できる
+                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('n')))
 
-                if dst_rank < RANK_LEN - 1:
-                    elder_src_rank_axis = Axis(RANK_ID, dst_rank + 1)
-                    if self.exists_stone_on_axis(elder_src_rank_axis):
-                        # Not で New できる
-                        self._legal_moves.append(Move(dst_rank_axis, Operator('n')))
+                if dst_rank < RANK_LEN - 1 and self.exists_stone_on_axis(dst_rank_axis.high_axis()):
+                    # Not で New できる
+                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('n')))
 
-        # TODO とりあえず ZERO ができる出力筋を探す(Rev)(New)
 
-        # TODO とりあえず ZERO ができる出力段を探す(Rev)(New)
+        # TODO アンド（AND）の合法手生成
+        # 筋方向
+        for dst_file in range(0, FILE_LEN):
+            dst_file_axis = Axis(FILE_ID, dst_file)
 
-        # TODO とりあえず NOR ができる出力筋を探す(Rev)(New)
+            # 石が置いてある軸
+            if self.exists_stone_on_axis(dst_file_axis):
 
-        # TODO とりあえず NOR ができる出力段を探す(Rev)(New)
+                # 軸にロックが掛かっていたら Not の Reverse は禁止
+                if self._axis_locks[dst_file_axis.to_code()]:
+                    continue
 
-        # TODO とりあえず XOR ができる出力筋を探す(Rev)(New)
+                # ロウ、ハイの両方に石が置いてある必要がある
+                if 0 < dst_file and dst_file < FILE_LEN - 1 and self.exists_stone_on_axis(dst_file_axis.low_axis()) and self.exists_stone_on_axis(dst_file_axis.high_axis()):
+                    # 対象軸上にある石を And して Reverse できる
+                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj('a')))
 
-        # TODO とりあえず XOR ができる出力段を探す(Rev)(New)
+            # 石が置いてない軸
+            else:
+                # 隣のどちらかに２つ続けて石が置いているか？
+                if ((1 < dst_file and self.exists_stone_on_axis(dst_file_axis.low_axis()) and self.exists_stone_on_axis(dst_file_axis.low_axis(diff=2))) or
+                    (dst_file < FILE_LEN - 2 and self.exists_stone_on_axis(dst_file_axis.high_axis()) and self.exists_stone_on_axis(dst_file_axis.high_axis(diff=2)))):
+                    # And で New できる
+                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj('a')))
 
-        # TODO とりあえず NAND ができる出力筋を探す(Rev)(New)
 
-        # TODO とりあえず NAND ができる出力段を探す(Rev)(New)
+        # 段方向
+        for dst_rank in range(0, RANK_LEN):
+            dst_rank_axis = Axis(RANK_ID, dst_rank)
 
-        # TODO とりあえず AND ができる出力筋を探す(Rev)(New)
+            # 石が置いてある軸
+            if self.exists_stone_on_axis(dst_rank_axis):
 
-        # TODO とりあえず AND ができる出力段を探す(Rev)(New)
+                # 軸にロックが掛かっていたら Not の Reverse は禁止
+                if self._axis_locks[dst_rank_axis.to_code()]:
+                    continue
 
-        # TODO とりあえず XNOR ができる出力筋を探す(Rev)(New)
+                # ロウ、ハイの両方に石が置いてある必要がある
+                if 0 < dst_rank and dst_rank < RANK_LEN - 1 and self.exists_stone_on_axis(dst_rank_axis.low_axis()) and self.exists_stone_on_axis(dst_rank_axis.high_axis()):
+                    # 対象軸上にある石を And して Reverse できる
+                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('a')))
 
-        # TODO とりあえず XNOR ができる出力段を探す(Rev)(New)
+            # 石が置いてない軸
+            else:
+                # 隣のどちらかに２つ続けて石が置いているか？
+                if ((1 < dst_rank and self.exists_stone_on_axis(dst_rank_axis.low_axis()) and self.exists_stone_on_axis(dst_rank_axis.low_axis(diff=2))) or
+                    (dst_rank < RANK_LEN - 2 and self.exists_stone_on_axis(dst_rank_axis.high_axis()) and self.exists_stone_on_axis(dst_rank_axis.high_axis(diff=2)))):
+                    # And で New できる
+                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('a')))
 
-        # TODO とりあえず OR ができる出力筋を探す(Rev)(New)
 
-        # TODO とりあえず OR ができる出力段を探す(Rev)(New)
+        # TODO ゼロ（ZERO）の合法手生成
 
-        # TODO とりあえず ONE ができる出力筋を探す(Rev)(New)
+        # TODO ノア（NOR）の合法手生成
 
-        # TODO とりあえず ONE ができる出力段を探す(Rev)(New)
+        # TODO エクソア（XOR）の合法手生成
+
+        # TODO ナンド（NAND）の合法手生成
+
+        # TODO エクスノア（XNOR）の合法手生成
+
+        # TODO オア（OR）の合法手生成
+
+        # TODO ワン（ONE）の合法手生成
 
 
     def as_str(self):
