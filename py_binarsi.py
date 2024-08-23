@@ -1567,8 +1567,9 @@ class Board():
                 return
 
 
-        # アンド,  オア
-        if op in ['a', 'o']:
+        # アンド, オア, ゼロ
+        # TODO , ノア, エクソア, ナンド, エクスノア, ワン
+        if op in ['a', 'o', 'ze', 'no', 'xo', 'na', 'xn', 'on']:
             self.copy_stones_on_line_binary(move)
 
 
@@ -1582,96 +1583,6 @@ class Board():
             self._board_editing_history.append(BoardEditingRecord(
                 move=move))
             self.update_legal_moves()
-            return
-    
-
-        # TODO ゼロ
-        if op == 'ze':
-
-            # 対象の軸に石が置いてある --> Reverse 操作
-            if self.exists_stone_on_axis(move.axis):
-                pass
-
-            # 対象の軸に石が置いてない ---> New 操作
-            else:
-                pass
-
-            raise NotImplementedError(f"op:`{op}`")
-            return
-        
-
-        # TODO ノア
-        if op == 'no':
-
-            # 対象の軸に石が置いてある --> Reverse 操作
-            if self.exists_stone_on_axis(move.axis):
-                pass
-
-            # 対象の軸に石が置いてない ---> New 操作
-            else:
-                pass
-
-            raise NotImplementedError(f"op:`{op}`")
-            return
-
-
-        # TODO エクソア
-        if op == 'xo':
-
-            # 対象の軸に石が置いてある --> Reverse 操作
-            if self.exists_stone_on_axis(move.axis):
-                pass
-
-            # 対象の軸に石が置いてない ---> New 操作
-            else:
-                pass
-
-            raise NotImplementedError(f"op:`{op}`")
-            return
-
-
-        # TODO ナンド
-        if op == 'na':
-
-            # 対象の軸に石が置いてある --> Reverse 操作
-            if self.exists_stone_on_axis(move.axis):
-                pass
-
-            # 対象の軸に石が置いてない ---> New 操作
-            else:
-                pass
-
-            raise NotImplementedError(f"op:`{op}`")
-            return
-
-
-        # TODO エクスノア
-        if op == 'xn':
-
-            # 対象の軸に石が置いてある --> Reverse 操作
-            if self.exists_stone_on_axis(move.axis):
-                pass
-
-            # 対象の軸に石が置いてない ---> New 操作
-            else:
-                pass
-
-            raise NotImplementedError(f"op:`{op}`")
-            return
-
-
-        # TODO ワン
-        if op == 'on':
-
-            # 対象の軸に石が置いてある --> Reverse 操作
-            if self.exists_stone_on_axis(move.axis):
-                pass
-
-            # 対象の軸に石が置いてない ---> New 操作
-            else:
-                pass
-
-            raise NotImplementedError(f"op:`{op}`")
             return
 
 
@@ -2048,18 +1959,23 @@ class Board():
         # オア（OR）の合法手生成
         self.make_legal_moves(operator_u='o')
 
-
         # TODO ゼロ（ZERO）の合法手生成
+        self.make_legal_moves(operator_u='ze')
 
         # TODO ノア（NOR）の合法手生成
+        self.make_legal_moves(operator_u='no')
 
         # TODO エクソア（XOR）の合法手生成
+        self.make_legal_moves(operator_u='xo')
 
         # TODO ナンド（NAND）の合法手生成
+        self.make_legal_moves(operator_u='na')
 
         # TODO エクスノア（XNOR）の合法手生成
+        self.make_legal_moves(operator_u='xn')
 
         # TODO ワン（ONE）の合法手生成
+        self.make_legal_moves(operator_u='on')
 
 
     def as_str(self):

@@ -297,8 +297,11 @@ example: inverse 4n -""")
         """
         print("合法手一覧表示　ここから：")
 
-        for i in range(0, len(self._board.legal_moves)):
-            move = self._board.legal_moves[i]
+        # コードで降順にソートする
+        move_list = sorted(self._board.legal_moves, key=lambda x:x.to_code())
+
+        for i in range(0, len(move_list)):
+            move = move_list[i]
             print(f"    ({i + 1:2}) move:{move.to_code()}")
 
         print("合法手一覧表示　ここまで：")
