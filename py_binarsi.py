@@ -2055,55 +2055,35 @@ class Board():
                     self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('a')))
 
 
-        # TODO オア（OR）の合法手生成
-        # 筋方向
-        for dst_file in range(0, FILE_LEN):
-            dst_file_axis = Axis(FILE_ID, dst_file)
+        # オア（OR）の合法手生成
+        axis_length_list = [FILE_LEN, RANK_LEN]
+        axis_id_list = [FILE_ID, RANK_ID]   # 筋、段
+        # 筋（段）両用
+        for j in range(0, 1):
+            axis_length = axis_length_list[j]
 
-            # 石が置いてある軸
-            if self.exists_stone_on_axis(dst_file_axis):
+            for i in range(0, axis_length):
+                dst_i_axis = Axis(axis_id_list[j], i)
 
-                # 軸にロックが掛かっていたら Or の Reverse は禁止
-                if self._axis_locks[dst_file_axis.to_code()]:
-                    continue
+                # 石が置いてある軸
+                if self.exists_stone_on_axis(dst_i_axis):
 
-                # ロウ、ハイの両方に石が置いてある必要がある
-                if 0 < dst_file and dst_file < FILE_LEN - 1 and self.exists_stone_on_axis(dst_file_axis.low_axis()) and self.exists_stone_on_axis(dst_file_axis.high_axis()):
-                    # 対象軸上にある石を Or して Reverse できる
-                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj('o')))
+                    # 軸にロックが掛かっていたら Or の Reverse は禁止
+                    if self._axis_locks[dst_i_axis.to_code()]:
+                        continue
 
-            # 石が置いてない軸
-            else:
-                # 隣のどちらかに２つ続けて石が置いているか？
-                if ((1 < dst_file and self.exists_stone_on_axis(dst_file_axis.low_axis()) and self.exists_stone_on_axis(dst_file_axis.low_axis(diff=2))) or
-                    (dst_file < FILE_LEN - 2 and self.exists_stone_on_axis(dst_file_axis.high_axis()) and self.exists_stone_on_axis(dst_file_axis.high_axis(diff=2)))):
-                    # Or で New できる
-                    self._legal_moves.append(Move(dst_file_axis, Operator.code_to_obj('o')))
+                    # ロウ、ハイの両方に石が置いてある必要がある
+                    if 0 < i and i < axis_length - 1 and self.exists_stone_on_axis(dst_i_axis.low_axis()) and self.exists_stone_on_axis(dst_i_axis.high_axis()):
+                        # 対象軸上にある石を Or して Reverse できる
+                        self._legal_moves.append(Move(dst_i_axis, Operator.code_to_obj('o')))
 
-
-        # 段方向
-        for dst_rank in range(0, RANK_LEN):
-            dst_rank_axis = Axis(RANK_ID, dst_rank)
-
-            # 石が置いてある軸
-            if self.exists_stone_on_axis(dst_rank_axis):
-
-                # 軸にロックが掛かっていたら Not の Reverse は禁止
-                if self._axis_locks[dst_rank_axis.to_code()]:
-                    continue
-
-                # ロウ、ハイの両方に石が置いてある必要がある
-                if 0 < dst_rank and dst_rank < RANK_LEN - 1 and self.exists_stone_on_axis(dst_rank_axis.low_axis()) and self.exists_stone_on_axis(dst_rank_axis.high_axis()):
-                    # 対象軸上にある石を Or して Reverse できる
-                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('o')))
-
-            # 石が置いてない軸
-            else:
-                # 隣のどちらかに２つ続けて石が置いているか？
-                if ((1 < dst_rank and self.exists_stone_on_axis(dst_rank_axis.low_axis()) and self.exists_stone_on_axis(dst_rank_axis.low_axis(diff=2))) or
-                    (dst_rank < RANK_LEN - 2 and self.exists_stone_on_axis(dst_rank_axis.high_axis()) and self.exists_stone_on_axis(dst_rank_axis.high_axis(diff=2)))):
-                    # Or で New できる
-                    self._legal_moves.append(Move(dst_rank_axis, Operator.code_to_obj('o')))
+                # 石が置いてない軸
+                else:
+                    # 隣のどちらかに２つ続けて石が置いているか？
+                    if ((1 < i and self.exists_stone_on_axis(dst_i_axis.low_axis()) and self.exists_stone_on_axis(dst_i_axis.low_axis(diff=2))) or
+                        (i < axis_length - 2 and self.exists_stone_on_axis(dst_i_axis.high_axis()) and self.exists_stone_on_axis(dst_i_axis.high_axis(diff=2)))):
+                        # Or で New できる
+                        self._legal_moves.append(Move(dst_i_axis, Operator.code_to_obj('o')))
 
 
         # TODO ゼロ（ZERO）の合法手生成
