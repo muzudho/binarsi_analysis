@@ -158,6 +158,14 @@ class UsiEngine():
         # 指定局面に変更
         elif sfen_u[:5] == 'sfen ':
             self._board.set_sfen(sfen_u[5:])
+        
+        else:
+            raise ValueError(f"unsupported position  {sfen_u=}")
+
+
+        # 初期局面を記憶（SFENで初期局面を出力したいときのためのもの）
+        self._board.update_squares_at_init()
+
 
         # 盤面編集履歴（対局棋譜のスーパーセット）再生
         for move_u in move_u_list:
@@ -233,9 +241,9 @@ class UsiEngine():
         """
         self._board.push_usi(cmd[1])
 
-        # 盤表示
+        # 現在の盤表示
         self.print_board()
-        self.print_sfen()
+        self.print_sfen(from_present=True)
         print("") # 空行
 
 
@@ -278,9 +286,9 @@ example: inverse 4n -""")
         """
         self._board.pop()
 
-        # 盤表示
+        # 現在の盤表示
         self.print_board()
-        self.print_sfen()
+        self.print_sfen(from_present=True)
         print("") # 空行
 
 
@@ -346,9 +354,9 @@ example: inverse 4n -""")
         """
         print("自己対局　ここから：")
 
-        # 盤表示
+        # 現在の盤表示
         self.print_board()
-        self.print_sfen()
+        self.print_sfen(from_present=True)
         print("") # 空行
 
         for i in range(1, 100):
@@ -363,18 +371,26 @@ example: inverse 4n -""")
             # １手指す
             self._board.push_usi(best_move.to_code())
 
-            # 盤表示
+            # 現在の盤表示
             self.print_board()
-            self.print_sfen()
+            self.print_sfen(from_present=True)
             print("") # 空行
 
         print("自己対局　ここまで：")
 
 
-    def print_sfen(self):
-        """SFEN を出力"""
-        print(f"sfen {self._board.as_sfen()}")
-        print(f"stones_before_change {self._board.as_stones_before_change()}")
+    def print_sfen(self, from_present=False):
+        """SFEN を出力
+
+        Parameters
+        ----------
+        from_present : bool
+            現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
+        """
+        print(f"[from beginning] sfen {self._board.as_sfen()}")
+        print(f"                 stones_before_change {self._board.as_stones_before_change()}")
+        print(f"[from present]   sfen {self._board.as_sfen(from_present=True)}")
+        print(f"                 stones_before_change {self._board.as_stones_before_change(from_present=True)}")
 
 
 if __name__ == '__main__':

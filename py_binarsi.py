@@ -756,7 +756,9 @@ class Board():
 
     def subinit(self):
         """（サブ部分として）盤をクリアーする"""
-        # 各マス
+        # 初期局面の各マス（SFENで初期局面を出力するためのもの）
+        self._squares_at_init = None
+        # 現局面の各マス
         self._squares = [PC_EMPTY] * BOARD_AREA
         # 現局面の合法手
         self._legal_moves = []
@@ -801,6 +803,12 @@ class Board():
         return self._board_editing_history
 
 
+    def update_squares_at_init(self):
+        """初期局面を記憶（SFENで初期局面を出力したいときのためのもの）"""
+        if self._squares_at_init is None:
+            self._squares_at_init = list(self._squares)
+
+
     def clear(self):
         """盤をクリアーする"""
         self.subinit()
@@ -817,7 +825,7 @@ class Board():
 
 
     def set_sfen(self, sfen_u):
-        """TODO 指定局面に変更
+        """指定局面に変更
 
         Parameters
         ----------
@@ -2032,12 +2040,17 @@ class Board():
 """
 
 
-    def as_sfen(self):
+    def as_sfen(self, from_present=False):
         """（拡張仕様）盤のSFEN形式
 
         空欄： 数に置き換え
         黒石： x
         白石： o
+
+        Parameters
+        ----------
+        from_present : bool
+            現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
         global _pc_to_str
         global _axis_characters
@@ -2047,10 +2060,19 @@ class Board():
 
         # 局面図
         # ------
+
+        # 現在の盤面からのSFEN表示
+        if from_present:
+            target_squares = self._squares 
+
+        # 初期盤面からのSFEN表示
+        else:
+            target_squares = self._squares_at_init
+
         for rank in range(0, RANK_LEN):
             for file in range(0, FILE_LEN):
                 sq = Square.file_rank_to_sq(file, rank)
-                stone = self._squares[sq]
+                stone = target_squares[sq]
 
                 if stone == PC_EMPTY:
                     spaces += 1
@@ -2077,7 +2099,15 @@ class Board():
 
         # TODO 添付局面図の手番
         # --------------------
-        buffer.append(' b ')
+
+        # TODO 現在の盤面からのSFEN表示
+        if from_present:
+            buffer.append(' b ')
+
+        # 初期盤面からのSFEN表示
+        else:
+            buffer.append(' b ')
+
 
         # 添付局面図の筋（段）の符号、またはロック
         # -------------------------------------
@@ -2090,32 +2120,61 @@ class Board():
         if not locked:
             buffer.append('-')
 
-        # TODO 添付局面図は何手目のものか
-        # -----------------------------
-        buffer.append(' 1')
+        # 添付局面図は何手目のものか
+        # ------------------------
+
+        # TODO 現在の盤面からのSFEN表示
+        if from_present:
+            buffer.append(' 1')
+
+        # 初期盤面からのSFEN表示
+        else:
+            buffer.append(' 1')
 
         # 添付局面図からの指し手
         # ---------------------
 
-        move_u_list = []
+        # 現在の盤面からのSFEN表示
+        if from_present:
+            pass
 
-        for board_editing_record in self._board_editing_history:
-            move_u_list.append(board_editing_record.move.to_code())
+        # 初期盤面からのSFEN表示
+        else:
 
-        moves_u = ' '.join(move_u_list).rstrip()
+            move_u_list = []
 
-        buffer.append(f' moves {moves_u}')
+            for board_editing_record in self._board_editing_history:
+                move_u_list.append(board_editing_record.move.to_code())
+
+            moves_u = ' '.join(move_u_list).rstrip()
+
+            buffer.append(f' moves {moves_u}')
+
 
         return ''.join(buffer)
 
 
-    def as_stones_before_change(self):
+    def as_stones_before_change(self, from_present=False):
+        """棋譜を再生して初めて分かる情報の表示
+
+        Parameters
+        ----------
+        from_present : bool
+            現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
+        """
 
         list1 = []
-        for board_editing_record in self._board_editing_history:
-            if len(board_editing_record.stones_before_change) < 1:
-                list1.append('-')
-            else:
-                list1.append(board_editing_record.stones_before_change)
+
+        # 現在の盤面からのSFEN表示
+        if from_present:
+            pass
+
+        # 初期盤面からのSFEN表示
+        else:
+            for board_editing_record in self._board_editing_history:
+                if len(board_editing_record.stones_before_change) < 1:
+                    list1.append('-')
+                else:
+                    list1.append(board_editing_record.stones_before_change)
 
         return ' '.join(list1)
