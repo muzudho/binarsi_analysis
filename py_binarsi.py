@@ -197,6 +197,31 @@ class Axis():
         raise ValueError(f"axis_id:{self._axis_id}  number:{self._number}")
 
 
+    def lower_axis():
+        """１つ小さい方の軸"""
+        if self._number < 1:
+            return None
+        
+        return Axis(self._axis_id, self._number - 1)
+
+
+    def upper_axis():
+        """１つ大きい方の軸"""
+        if self._axis_id == FILE_ID:
+            if self._number < FILE_LEN - 1:
+                return Axis(self._axis_id, self._number + 1)
+            else:
+                return None
+
+        elif self._axis_id == RANK_ID:
+            if self._number < RANK_LEN - 1:
+                return Axis(self._axis_id, self._number + 1)
+            else:
+                return None
+
+        raise ValueError(f"{self._axis_id=}")
+
+
 class Operator():
     """演算子
 
@@ -426,9 +451,9 @@ class Move():
 
 
     @staticmethod
-    def code_to_move_obj(code):
+    def code_to_obj(code):
 
-        result = re.match(r"^(&)?([1234567abcdef])(.*)$", code)
+        result = re.match(r"^(&)?([1234567abcdef])(.+)$", code)
         if result is None:
             raise ValueError(f"format error.  move_u:`{code}`")
 
@@ -785,7 +810,7 @@ class Board():
             盤面編集時の例：
             	"&7c#"
         """
-        move = Move.code_to_move_obj(move_u)
+        move = Move.code_to_obj(move_u)
         stones_before_change = ''
 
         # 対象の軸に石が置いてある ---> Shift操作、または Reverse操作
@@ -1278,136 +1303,188 @@ class Board():
             raise ValueError(f"undefined operator code: {op}")
 
 
-    def pop(self):
-        """一手戻す"""
+    def get_edge_axis_from_adjacent_space(self, space_axis):
+        """石のない軸の隣の石のある軸を返す
 
-        board_editing_record = self._board_editing_history.pop()
-        latest_move = board_editing_record.move
-        latest_stones_before_change = board_editing_record.stones_before_change
+        Parameters
+        ----------
+        space_axis : Axis
+            石のない軸。ただし、その隣には石があるものとする
+        """
+
+        # 筋方向
+        if space_axis.axis_id == FILE_ID:
+            left_axis = space_axis.lower_axis()
+            if left_axis is not None:
+                (begin, length) = self.get_position_on_axis(left_axis)
+                if 0 < length:
+                    return left_axis
+
+            right_axis = space_axis.upper_axis()
+            if right_axis is not None:
+                (begin, length) = self.get_position_on_axis(right_axis)
+                if 0 < length:
+                    return right_axis
+
+        # 段方向
+        if space_axis.axis_id == RANK_ID:
+            top_axis = space_axis.lower_axis()
+            if top_axis is not None:
+                (begin, length) = self.get_position_on_axis(top_axis)
+                if 0 < length:
+                    return top_axis
+
+            bottom_axis = space_axis.upper_axis()
+            if bottom_axis is not None:
+                (begin, length) = self.get_position_on_axis(bottom_axis)
+                if 0 < length:
+                    return bottom_axis
+
+        None
+
+
+    def pop(self):
+        """TODO 一手戻す"""
+        self._board_editing_history.pop()
+        self.update_legal_moves()
+
+
+    def let_inverse_move(self, move, stones_before_change):
+        """逆操作を算出する
+
+        Parameters
+        ----------
+        move : str
+            順操作
+        stones_before_change : str
+            操作する前の連の状態
+
+        Returns
+        -------
+        inverse_move : Move
+            逆操作
+        """
 
         # 変数名を縮める
-        op = latest_move.operator.stem_u
-        axis = latest_move.axis
+        op = move.operator.stem_u
+        axis = move.axis
 
         # TODO pop カットザエッジ
         if op == 'c':
             # カットザエッジされた軸に、消された石を戻す
             print("[pop] c")
-            pass
+            return None
 
 
         # TODO pop 0ビットシフト
         elif op == 's0':
             print("[pop] s0")
-            pass
+            return None
 
 
         # TODO pop 1ビットシフト
         elif op == 's1':
             print("[pop] s1")
-            pass
+            return None
 
 
         # TODO pop 2ビットシフト
         elif op == 's2':
             print("[pop] s2")
-            pass
+            return None
 
 
         # TODO pop 3ビットシフト
         elif op == 's3':
             print("[pop] s3")
-            pass
+            return None
 
 
         # TODO pop 4ビットシフト
         elif op == 's4':
             print("[pop] s4")
-            pass
+            return None
 
 
         # TODO pop 5ビットシフト
         elif op == 's5':
             print("[pop] s5")
-            pass
+            return None
 
 
         # TODO pop 6ビットシフト
         elif op == 's6':
             print("[pop] s6")
-            pass
+            return None
 
 
-        # TODO pop ノット
+        # ノット・ニュー --逆操作--> カットザエッジ＃
         elif op == 'n':
-            print("[pop] n")
-            pass
+            return Move.code_to_obj(f"{axis.to_code()}c#")
 
 
         # TODO pop ノットＬ
         elif op == 'nL':
             print("[pop] nL")
-            pass
+            return None
 
 
         # TODO pop ノットＨ
         elif op == 'nH':
             print("[pop] nH")
-            pass
+            return None
 
 
         # TODO pop ゼロ
         elif op == 'ze':
             print("[pop] ze")
-            pass
+            return None
 
 
         # TODO pop ノア
         elif op == 'no':
             print("[pop] no")
-            pass
+            return None
 
 
         # TODO pop エクソア
         elif op == 'xo':
             print("[pop] xo")
-            pass
+            return None
 
 
         # TODO pop ナンド
         elif op == 'na':
             print("[pop] na")
-            pass
+            return None
 
 
         # TODO pop アンド
         elif op == 'a':
             print("[pop] a")
-            pass
+            return None
 
 
         # TODO pop エクスノア
         elif op == 'xn':
             print("[pop] xn")
-            pass
+            return None
 
 
         # TODO pop オア
         elif op == 'o':
             print("[pop] o")
-            pass
+            return None
 
 
         # TODO pop ワン
         elif op == 'on':
             print("[pop] on")
-            pass
+            return None
 
 
         else:
             raise ValueError(f"undefined operator:{op}")
-
-        self.update_legal_moves()
 
 
     def is_gameover(self):

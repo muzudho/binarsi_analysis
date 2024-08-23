@@ -1,6 +1,6 @@
 import datetime
 import random
-from py_binarsi import Board
+from py_binarsi import Move, Board
 
 
 class UsiEngine():
@@ -57,33 +57,37 @@ class UsiEngine():
             # 以下、独自拡張
 
             # 一手指す
-            # example: ７六歩
-            #       code: do 7g7f
+            #   code: do 4n
             elif cmd[0] == 'do':
                 self.do(cmd)
 
+            # 逆操作の算出
+            #   code: inverse 4n
+            elif cmd[0] == 'inverse':
+                self.let_inverse_move(cmd[0], cmd[1])
+
             # 一手戻す
-            #       code: undo
+            #   code: undo
             elif cmd[0] == 'undo':
                 self.undo()
 
             # 盤表示
-            #       code: board
+            #   code: board
             elif cmd[0] == 'board':
                 self.print_board()
 
             # 合法手一覧表示
-            #       code: legal_moves
+            #   code: legal_moves
             elif cmd[0] == 'legal_moves':
                 self.print_legal_moves()
 
             # 自己対局
-            #       code: selfmatch
+            #   code: selfmatch
             elif cmd[0] == 'selfmatch':
                 self.self_match()
 
             # SFENを出力
-            #       code: sfen
+            #   code: sfen
             elif cmd[0] == 'sfen':
                 self.print_sfen()
 
@@ -214,8 +218,8 @@ class UsiEngine():
 
         Parameters
         ----------
-        cmd : str
-            例： "do", "4n"
+        cmd : list
+            例： ["do", "4n"]
         """
         self._board.push_usi(cmd[1])
 
@@ -223,6 +227,41 @@ class UsiEngine():
         self.print_board()
         self.print_sfen()
         print("") # 空行
+
+
+    def let_inverse_move(self, name, argument_line):
+        """逆操作の算出
+
+        Parameters
+        ----------
+        name : str
+            例： "inverse"
+        argument_line : str
+            例： "4n -"
+        """
+
+        arguments = argument_line.split(' ')
+
+        if len(arguments) < 2:
+            print(f"""Two argument is required
+1. move
+2. stones before change
+example: inverse 4n -""")
+            return
+
+
+
+        move_u = arguments[0]
+        code = Move.code_to_obj(move_u)
+        stones_before_change = arguments[1]
+        inverse_move = self._board.let_inverse_move(code, stones_before_change)
+
+        if inverse_move is None:
+            print(f"[let_inverse_move] 未実装： {inverse_move=}")
+            return
+
+        # 表示
+        print(f"{move_u} --inverse--> {inverse_move.to_code()}")
 
 
     def undo(self):
