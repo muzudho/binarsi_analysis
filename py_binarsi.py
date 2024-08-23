@@ -471,7 +471,12 @@ class Move():
 
 
     def to_code(self):
-        return f"{self.axis.to_code()}{self.operator.code}"
+        if self._when_edit:
+            edit_mark = '&'
+        else:
+            edit_mark = ''
+
+        return f"{edit_mark}{self.axis.to_code()}{self.operator.code}"
 
 
 class MoveHelper():
@@ -689,6 +694,8 @@ class Board():
         self._squares = [PC_EMPTY] * BOARD_AREA
         # 現局面の合法手
         self._legal_moves = []
+        # 現局面の盤面編集用の手（合法手除く）
+        self._moves_for_edit = []
         # 軸ロック
         self._axis_locks = {
             '1' : False,
@@ -714,6 +721,13 @@ class Board():
     def legal_moves(self):
         """合法手一覧"""
         return self._legal_moves
+
+
+    @property
+    def moves_for_edit(self):
+        """盤面編集用の手（合法手除く）"""
+        return self._moves_for_edit
+
 
     @property
     def board_editing_history(self):
@@ -1248,7 +1262,8 @@ class Board():
             """
 
             # TODO カットザエッジ演算子
-            pass
+            if op.startswith('c'):
+                pass
 
 
             # シフト演算子
@@ -1498,13 +1513,17 @@ class Board():
     def pop(self):
         """TODO 一手戻す"""
         # 逆操作を算出
-        latest_edit = self._board_editing_history.pop()
+        latest_edit = self._board_editing_history[-1]
         inverse_move = MoveHelper.let_inverse_move(
             move=latest_edit.move,
             stones_before_change=latest_edit.stones_before_change)
 
-        # TODO 盤面編集として、逆操作を実行
+        # 盤面編集として、逆操作を実行
         self.push_usi(f"&{inverse_move.to_code()}")
+
+        # 逆操作を履歴から除去
+        self._board_editing_history.pop()
+
         self.update_legal_moves()
 
 
@@ -1595,19 +1614,20 @@ class Board():
         """TODO 合法手の一覧生成"""
 
         self._legal_moves = []
+        self._moves_for_edit = []
 
         (rect_exists, left_file, right_file, top_rank, bottom_rank) = self.get_edges()
 
 
-        # Cut the edge の合法手判定
+        # （盤面編集用） Cut the edge の合法手判定
         if rect_exists:
             if 0 < right_file - left_file:
-                self._legal_moves.append(Move(Axis(FILE_ID, left_file), Operator(f'c')))
-                self._legal_moves.append(Move(Axis(FILE_ID, right_file), Operator(f'c')))
+                self._moves_for_edit.append(Move(Axis(FILE_ID, left_file), Operator(f'c')))
+                self._moves_for_edit.append(Move(Axis(FILE_ID, right_file), Operator(f'c')))
             
             if 0 < bottom_rank - right_file:
-                self._legal_moves.append(Move(Axis(FILE_ID, top_rank), Operator(f'c')))
-                self._legal_moves.append(Move(Axis(FILE_ID, bottom_rank), Operator(f'c')))
+                self._moves_for_edit.append(Move(Axis(FILE_ID, top_rank), Operator(f'c')))
+                self._moves_for_edit.append(Move(Axis(FILE_ID, bottom_rank), Operator(f'c')))
 
 
         # とりあえず Shift ができる出力筋を探す（Shift に Rev, New は無い）

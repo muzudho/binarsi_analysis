@@ -81,6 +81,11 @@ class UsiEngine():
             elif cmd[0] == 'legal_moves':
                 self.print_legal_moves()
 
+            # 編集用の手一覧表示（合法手除く）
+            #   code: moves_for_edit
+            elif cmd[0] == 'moves_for_edit':
+                self.print_moves_for_edit()
+
             # 自己対局
             #   code: selfmatch
             elif cmd[0] == 'selfmatch':
@@ -90,6 +95,11 @@ class UsiEngine():
             #   code: sfen
             elif cmd[0] == 'sfen':
                 self.print_sfen()
+
+            # 操作履歴を出力
+            #   code: history
+            elif cmd[0] == 'history':
+                self.print_history()
 
 
     def usi(self):
@@ -292,6 +302,38 @@ example: inverse 4n -""")
             print(f"    ({i + 1:2}) move:{move.to_code()}")
 
         print("合法手一覧表示　ここまで：")
+
+
+    def print_moves_for_edit(self):
+        """編集用の手一覧表示（合法手除く）
+            code: moves_for_edit
+        """
+        print("編集用の手一覧表示（合法手除く）　ここから：")
+
+        for i in range(0, len(self._board.moves_for_edit)):
+            move = self._board.moves_for_edit[i]
+            print(f"    ({i + 1:2}) move_for_edit:{move.to_code()}")
+
+        print("編集用の手一覧表示（合法手除く）　ここまで：")
+
+
+    def print_history(self):
+        """履歴表示
+            code: history
+        """
+        print("履歴表示　ここから：")
+
+        for i in range(0, len(self._board.board_editing_history)):
+            board_editing_record = self._board.board_editing_history[i]
+            move = board_editing_record.move
+            stones_before_change = board_editing_record.stones_before_change
+
+            if stones_before_change == '':
+                stones_before_change = '-'
+
+            print(f"    ({i + 1:2}) move:{move.to_code()} stones_before_change:{stones_before_change}")
+
+        print("履歴表示　ここまで：")
 
 
     def self_match(self):
