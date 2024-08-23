@@ -202,8 +202,8 @@ class Operator():
 
     例： `4n` - 4筋に Not 演算を用いて New するケース
 
-    演算子：
-        c : Clear 対象軸上の全石を削除
+    主な演算子の語幹：
+        c : Cut the edge 対象軸上の全石を削除
         s : Shift
         n : Not
         ze: ZEro
@@ -249,6 +249,16 @@ class Operator():
         """
         self._stem_u = stem_u
         self._force_unlock = force_unlock
+
+
+    @property
+    def stem_u(self):
+        return self._stem_u
+
+    
+    @property
+    def force_unlock(self):
+        return self._force_unlock
 
 
     @staticmethod
@@ -377,6 +387,7 @@ class Move():
         "&7c#"
 
     盤面編集フラグ、出力軸（axis）、演算子（operator）
+        ※演算子にロックフラグ含む
     """
 
     def __init__(self, axis, operator, when_edit=False):
@@ -783,7 +794,7 @@ class Board():
             op = move.operator.code
             """
             演算子：
-                c : Clear
+                c : Cut the edge
                 s0 ～ s6: Shift
                 n : Not
                 ze: ZEro
@@ -796,9 +807,9 @@ class Board():
                 on: ONe
             """
 
-            # TODO クリアー演算子
+            # TODO カットザエッジ演算子
             if op.startswith('c'):
-                # 筋を対象にした Clear
+                # 筋方向
                 if move.axis.axis_id == FILE_ID:
                     src_dst_file = move.axis.number
 
@@ -814,7 +825,7 @@ class Board():
                             self._squares[src_dst_sq] = PC_EMPTY
                     
 
-                # 段を対象にした Clear
+                # 段方向
                 elif move.axis.axis_id == RANK_ID:
                     src_dst_rank = move.axis.number
 
@@ -836,7 +847,7 @@ class Board():
                 if move.operator.force_unlock:
                     new_lock = False
                 else: 
-                    # Clear を対局中に使うことは想定していない。盤面編集時に石を消すことを想定している。暫定的に Clear を使うと軸ロックがかかるものとする
+                    # カットザエッジを対局中に使うことは想定していない。盤面編集時に石を消すことを想定している。暫定的にカットザエッジを使うと軸ロックがかかるものとする
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
@@ -1046,7 +1057,7 @@ class Board():
             op = move.operator.code
             """
             演算子：
-                c : Clear
+                c : Cut the edge
                 s0 ～ s6: Shift
                 n : Not
                 ze: ZEro
@@ -1059,7 +1070,7 @@ class Board():
                 on: ONe
             """
 
-            # TODO クリアー演算子
+            # TODO カットザエッジ演算子
             pass
 
 
@@ -1269,7 +1280,114 @@ class Board():
 
     def pop(self, move_u):
         """一手戻す"""
-        self._board_editing_history.pop()
+
+        board_editing_record = self._board_editing_history.pop()
+        latest_move = board_editing_record.move
+        latest_stones_before_change = board_editing_record.stones_before_change
+
+        # 変数名を縮める
+        op = latest_move.operator.stem_u
+        axis = latest_move.axis
+
+        # TODO pop カットザエッジ
+        if op == 'c':
+            # カットザエッジされた軸に、消された石を戻す
+            pass
+
+
+        # TODO pop 0ビットシフト
+        elif op == 's0':
+            pass
+
+
+        # TODO pop 1ビットシフト
+        elif op == 's1':
+            pass
+
+
+        # TODO pop 2ビットシフト
+        elif op == 's2':
+            pass
+
+
+        # TODO pop 3ビットシフト
+        elif op == 's3':
+            pass
+
+
+        # TODO pop 4ビットシフト
+        elif op == 's4':
+            pass
+
+
+        # TODO pop 5ビットシフト
+        elif op == 's5':
+            pass
+
+
+        # TODO pop 6ビットシフト
+        elif op == 's6':
+            pass
+
+
+        # TODO pop ノット
+        elif op == 'n':
+            pass
+
+
+        # TODO pop ノットＬ
+        elif op == 'nL':
+            pass
+
+
+        # TODO pop ノットＨ
+        elif op == 'nH':
+            pass
+
+
+        # TODO pop ゼロ
+        elif op == 'ze':
+            pass
+
+
+        # TODO pop ノア
+        elif op == 'no':
+            pass
+
+
+        # TODO pop エクソア
+        elif op == 'xo':
+            pass
+
+
+        # TODO pop ナンド
+        elif op == 'na':
+            pass
+
+
+        # TODO pop アンド
+        elif op == 'a':
+            pass
+
+
+        # TODO pop エクスノア
+        elif op == 'xn':
+            pass
+
+
+        # TODO pop オア
+        elif op == 'o':
+            pass
+
+
+        # TODO pop ワン
+        elif op == 'on':
+            pass
+
+
+        else:
+            raise ValueError(f"undefined operator:{op}")
+
         self.update_legal_moves()
 
 
