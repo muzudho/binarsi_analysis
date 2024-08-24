@@ -1229,7 +1229,7 @@ class Board():
             input_stone_at_first = self._squares[Square.file_rank_to_sq(input_axis_1.number, i, swap=swap)]
             input_stone_at_second = self._squares[Square.file_rank_to_sq(input_axis_2.number, i, swap=swap)]
 
-            print(f"{move.axis.axis_id=}  {i=}  {input_axis_1.number=}  {input_axis_2.number=}  {input_stone_at_first=}  {input_stone_at_second=}  {dst_sq=}")
+            #print(f"{move.axis.axis_id=}  {i=}  {input_axis_1.number=}  {input_axis_2.number=}  {input_stone_at_first=}  {input_stone_at_second=}  {dst_sq=}")
 
             if input_stone_at_first == PC_EMPTY or input_stone_at_second == PC_EMPTY:
                 continue

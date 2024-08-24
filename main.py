@@ -20,7 +20,8 @@ class UsiEngine():
         while True:
 
             # 入力
-            cmd = input().split(' ', 1)
+            input_str = input()
+            cmd = input_str.split(' ', 1)
 
             # USI握手
             if cmd[0] == 'usi':
@@ -88,8 +89,11 @@ class UsiEngine():
 
             # 自己対局
             #   code: selfmatch
+            #   code: selfmatch 100
+            #
+            #   FIXME position startpos まで打ってから selfmatch を打つことを想定。もっと簡単にできないか？
             elif cmd[0] == 'selfmatch':
-                self.self_match()
+                self.self_match(input_str)
 
             # SFENを出力
             #   code: sfen
@@ -360,20 +364,14 @@ example: inverse 4n -""")
         print("履歴表示　ここまで：")
 
 
-    def self_match(self):
-        """自己対局
-            code: selfmatch
-        """
-        print("自己対局　ここから：")
+    def self_match_once(self, match_count):
+        """自己対局"""
 
-        # 現在の盤表示
-        self.print_board()
-        self.print_sfen(from_present=True)
-        print("") # 空行
+        print(f"{match_count} 局目ここから：")
 
+        # 100手も使わない
         for i in range(1, 100):
 
-            # 対局終了理由をどこかに表示したい。盤とか
             if self._board.is_gameover():
                 print("# gameover")
                 break
@@ -389,7 +387,62 @@ example: inverse 4n -""")
             self.print_sfen(from_present=True)
             print("") # 空行
 
-        print("自己対局　ここまで：")
+        print(f"{match_count} 局目ここまで")
+
+
+    def self_match(self, input_str):
+        """自己対局
+            code: selfmatch
+        
+        Parameters
+        ----------
+        input_str : str
+            コマンド文字列
+        """
+        print("自己対局　ここから：")
+
+        # 現在の盤表示
+        self.print_board()
+        self.print_sfen(from_present=True)
+        print("") # 空行
+
+        # 連続対局回数
+        tokens = input_str.split(' ')
+        if len(tokens) < 2:
+            max_match_count = 1
+        else:
+            max_match_count = int(tokens[1])
+        
+        black_win_count = 0
+        white_win_count = 0
+        no_game_count = 0
+
+        # 連続対局
+        for i in range(0, max_match_count):
+
+            self.usinewgame()
+            self.position(['position', 'startpos'])
+
+            # 自己対局
+            self.self_match_once(match_count=i)
+
+            if self._board.gameover_reason == 'black win':
+                black_win_count += 1
+
+            elif self._board.gameover_reason == 'white win':
+                white_win_count += 1
+            
+            else:
+                no_game_count += 1
+
+        total = black_win_count + white_win_count + no_game_count
+
+        print(f"""\
+自己対局　ここまで：
+    黒勝ち： {black_win_count:6} 黒勝率： {black_win_count/total:3.3f}
+    白勝ち： {white_win_count:6} 白勝率： {white_win_count/total:3.3f}
+    無効　： {no_game_count:6} 無効率： {no_game_count/total:3.3f}
+""")
 
 
     def print_sfen(self, from_present=False):
