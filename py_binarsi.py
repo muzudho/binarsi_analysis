@@ -1373,6 +1373,25 @@ class Board():
             stones_before_change=stones_before_change))
 
 
+    def get_unary_src_way_1(self, way):
+        # 左（上）端なら、右（下）側確定
+        if way.number == 0:
+            return way.number + 1
+
+        # 右（下）端なら、左（上）側確定
+        if way.number == FILE_LEN - 1:
+            return way.number - 1
+        
+        # 左か右（上か下）で、石が置いてある路が入力路
+        if self.exists_stone_on_way(Way(way.axis_id, way.number - 1)):
+            return way.number - 1
+
+        if self.exists_stone_on_way(Way(way.axis_id, way.number + 1)):
+            return way.number + 1
+
+        raise ValueError("not operator invalid operation")
+
+
     def push_usi(self, move_u):
         """一手指す
 
@@ -1531,23 +1550,11 @@ class Board():
                 # 筋（段）方向両用
                 axes_absorber = move.way.absorb_axes()
 
-                dst_j = move.way.number
-                if dst_j == 0:
-                    src_j = dst_j + 1
-                elif dst_j == FILE_LEN - 1:
-                    src_j = dst_j - 1
-                # 左か右（上か下）で、石が置いてある路が入力路
-                elif self.exists_stone_on_way(Way(move.way.axis_id, dst_j - 1)):
-                    src_j = dst_j - 1
-                elif self.exists_stone_on_way(Way(move.way.axis_id, dst_j + 1)):
-                    src_j = dst_j + 1
-                else:
-                    raise ValueError("not operator invalid operation")
-
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=axes_absorber.swap_axes)]
-                    self._squares[Square.file_rank_to_sq(dst_j, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
+                    stone = self._squares[Square.file_rank_to_sq(
+                        self.get_unary_src_way_1(move.way), i, swap=axes_absorber.swap_axes)]
+                    self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
 
                 # 新規作成操作では
                 #   路ロックは掛からない（外れる）
@@ -1565,26 +1572,14 @@ class Board():
                 # 筋（段）方向両用
                 axes_absorber = move.way.absorb_axes()
 
-                dst_j = move.way.number
-                if dst_j == 0:
-                    src_j = dst_j + 1
-                elif dst_j == FILE_LEN - 1:
-                    src_j = dst_j - 1
-                # 左か右（上か下）で、石が置いてある路が入力路
-                elif self.exists_stone_on_way(Way(move.way.axis_id, dst_j - 1)):
-                    src_j = dst_j - 1
-                elif self.exists_stone_on_way(Way(move.way.axis_id, dst_j + 1)):
-                    src_j = dst_j + 1
-                else:
-                    raise ValueError("not operator invalid operation")
-
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=axes_absorber.swap_axes)]
+                    stone = self._squares[Square.file_rank_to_sq(
+                        self.get_unary_src_way_1(move.way), i, swap=axes_absorber.swap_axes)]
 
                     if stone != PC_EMPTY:
                         stones_before_change += _pc_to_str[stone]
-                        self._squares[Square.file_rank_to_sq(dst_j, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
+                        self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
@@ -1605,26 +1600,14 @@ class Board():
                 # 筋（段）方向両用
                 axes_absorber = move.way.absorb_axes()
 
-                dst_j = move.way.number
-                if dst_j == 0:
-                    src_j = dst_j + 1
-                elif dst_j == FILE_LEN - 1:
-                    src_j = dst_j - 1
-                # 左か右（上か下）で、石が置いてある路が入力路
-                elif self.exists_stone_on_way(Way(move.way.axis_id, dst_j - 1)):
-                    src_j = dst_j - 1
-                elif self.exists_stone_on_way(Way(move.way.axis_id, dst_j + 1)):
-                    src_j = dst_j + 1
-                else:
-                    raise ValueError("not operator invalid operation")
-
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=axes_absorber.swap_axes)]
+                    stone = self._squares[Square.file_rank_to_sq(
+                        self.get_unary_src_way_1(move.way), i, swap=axes_absorber.swap_axes)]
 
                     if stone != PC_EMPTY:
                         stones_before_change += _pc_to_str[stone]
-                        self._squares[Square.file_rank_to_sq(dst_j, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
+                        self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
@@ -1914,7 +1897,7 @@ class Board():
     def update_legal_moves(self):
         """合法手の一覧生成"""
 
-        print("[update_legal_moves] 開始")
+        print("[update_legal_moves] 実行")
 
         self._legal_moves = []
         self._moves_for_edit = []
