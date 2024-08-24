@@ -180,7 +180,7 @@ class UsiEngine():
     def go(self):
         """思考開始～最善手返却"""
 
-        if self._board.is_game_over():
+        if self._board.is_gameover():
             """投了局面時"""
 
             # 投了
@@ -196,18 +196,18 @@ class UsiEngine():
             if (matemove := self._board.mate_move_in_1ply()):
                 """一手詰めの指し手があれば、それを取得"""
 
-                best_move = cshogi.move_to_code(matemove)
-                print('info score mate 1 pv {}'.format(best_move), flush=True)
-                print(f'bestmove {best_move}', flush=True)
+                best_move_u = matemove.to_code()
+                print('info score mate 1 pv {}'.format(best_move_u), flush=True)
+                print(f'bestmove {best_move_u}', flush=True)
                 return
 
         # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
 
         # １手指す
-        best_move = cshogi.move_to_code(random.choice(list(self._board.legal_moves)))
+        best_move = random.choice(list(self._board.legal_moves))
 
         print(f"info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move")
-        print(f'bestmove {best_move}', flush=True)
+        print(f'bestmove {best_move.to_code()}', flush=True)
 
 
     def stop(self):

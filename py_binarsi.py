@@ -1297,45 +1297,24 @@ class Board():
 
         stones_before_change = ''
 
-        # 筋方向
-        if move.way.axis_id == FILE_ID:
-            opponent_axis_length = RANK_LEN
-            swap = False
-        
-        # 段方向
-        elif move.way.axis_id == RANK_ID:
-            opponent_axis_length = FILE_LEN
-            swap = True
-
-        else:
-            raise ValueError(f"undefined axis_id  {move.way.axis_id=}")
-
-
         (input_way_1, input_way_2) = self.get_input_ways_by_binary_operation(move.way)
 
+        # 対象の路に石が置いてあれば上書きフラグをOn、そうでなければOff
+        overwrite = self.exists_stone_on_way(move.way)
 
-        # 対象の路に石が置いてある --> Reverse 操作
-        if self.exists_stone_on_way(move.way):
-            print(f"[push_usi] 対象の路に石が置いてある  {move.way.number=}  {input_way_1.number=}  {input_way_2.number=}")
-            overwrite=True
+        # 筋（段）方向両用
+        axes_absorber = move.way.absorb_axes()
 
-        # 対象の路に石が置いてない ---> New 操作
-        else:
-            print(f"[push_usi] 対象の路に石が置いてない  {move.way.number=}  {input_way_1.number=}  {input_way_2.number=}")
-            overwrite=False
+        for i in range(0, axes_absorber.opponent_axis_length):
 
-
-        # 筋（段）両用
-        for i in range(0, opponent_axis_length):
-
-            dst_sq = Square.file_rank_to_sq(move.way.number, i, swap=swap)
+            dst_sq = Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)
             old_stone = self._squares[dst_sq]
 
             if overwrite and old_stone != PC_EMPTY:
                 stones_before_change += _pc_to_str[old_stone]
 
-            input_stone_at_first = self._squares[Square.file_rank_to_sq(input_way_1.number, i, swap=swap)]
-            input_stone_at_second = self._squares[Square.file_rank_to_sq(input_way_2.number, i, swap=swap)]
+            input_stone_at_first = self._squares[Square.file_rank_to_sq(input_way_1.number, i, swap=axes_absorber.swap_axes)]
+            input_stone_at_second = self._squares[Square.file_rank_to_sq(input_way_2.number, i, swap=axes_absorber.swap_axes)]
 
             #print(f"{move.way.axis_id=}  {i=}  {input_way_1.number=}  {input_way_2.number=}  {input_stone_at_first=}  {input_stone_at_second=}  {dst_sq=}")
 
@@ -1403,17 +1382,16 @@ class Board():
         # カットザエッジ演算子
         if op.startswith('c'):
 
-            # 対象の路に石が置いてある ---> Reverse操作
+            # 対象の路に石が置いてある
             if self.exists_stone_on_way(move.way):
 
                 # 筋（段）方向両用
                 axes_absorber = move.way.absorb_axes()
                 (begin, length) = self.get_position_on_way(move.way)
 
+                # 盤面更新 --> 空欄で上書き
                 for src_dst_i in range(begin, begin+length):
                     src_dst_sq = Square.file_rank_to_sq(move.way.number, src_dst_i, swap=axes_absorber.swap_axes)
-
-                    # 空欄で上書き
                     stone = self._squares[src_dst_sq]
                     if stone != PC_EMPTY:
                         stones_before_change += _pc_to_str[stone]
@@ -1434,18 +1412,22 @@ class Board():
 
             #print(f"Edit operator  move_u={move.to_code()}  way_u={move.way.to_code()}  {move.stones_before_change=}")
 
+            # 盤面更新前
+            exists_stone_on_way_before_change = self.exists_stone_on_way(move.way)
+
+            # 盤面更新
             stones_before_change = self.set_stones_on_way(
                 target_way=move.way,
                 stones_str=move.stones_before_change)
 
-            # 対象の路に石が置いてある
-            if self.exists_stone_on_way(move.way):
+            # もともとは、対象の路に石が置いてあった
+            if exists_stone_on_way_before_change:
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
                 self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
                 return
 
-            # 対象の路に石が置いてない
+            # もともとは、対象の路に石が置いてなかった
             else:
                 # 新規作成操作では
                 #   路ロックは掛からない（外れる）
@@ -1630,16 +1612,21 @@ class Board():
 
         # アンド, オア, ゼロ, ノア, エクソア, ナンド, エクスノア, ワン
         if op in ['a', 'o', 'ze', 'no', 'xo', 'na', 'xn', 'on']:
+
+            # 盤面更新前
+            exists_stone_on_way_before_change = self.exists_stone_on_way(move.way)
+
+            # 盤面更新
             stones_before_change = self.copy_stones_on_line_binary(move)
 
-            # 対象の路に石が置いてある
+            # もともとは、対象の路に石が置いてあった
             if self.exists_stone_on_way(move.way):
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
                 self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
                 return
 
-            # 対象の路に石が置いてない
+            # もともとは、対象の路に石が置いてなかった
             else:
                 # 新規作成操作では
                 #   路ロックは掛からない（外れる）
