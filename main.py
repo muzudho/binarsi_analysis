@@ -319,7 +319,8 @@ class UsiEngine():
         """
         print("""\
 LEGAL MOVES
------------""")
+-----------
+    (Distinct|All)""")
 
         # 冗長な指し手を省く
         self._board.distinct_legal_moves()
@@ -327,17 +328,24 @@ LEGAL MOVES
         # コードで降順にソートする
         move_list = sorted(self._board.legal_moves, key=lambda x:x.to_code())
 
+        # 冗長な指し手を省いた通し番号
+        j = 0
+
         for i in range(0, len(move_list)):
             move = move_list[i]
 
             #print(f"    <{i+1:2}>  {move.to_code()}  {move.same_move_u=}")
 
             if move.same_move_u != '':
-                same_move_str = f' | same_move {move.same_move_u}'
+                same_move_str = f' | same {move.same_move_u}'
+                num_str = f'  |{i+1:2}'
+
             else:
                 same_move_str = ''
+                num_str = f'{j+1:2}|{i+1:2}'
+                j += 1
 
-            print(f"    ({i+1:2}) do {move.to_code()}{same_move_str}")
+            print(f"    ({num_str}) do {move.to_code()}{same_move_str}")
 
         print("""\
 -----------
