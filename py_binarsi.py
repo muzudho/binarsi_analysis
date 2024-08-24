@@ -480,11 +480,10 @@ class Move():
     アンドゥ操作での例：
         "4c#$01" - TODO 変更前の石の連情報を、$記号の後ろに付加する
 
-    盤面編集フラグ、出力軸（axis）、演算子（operator）
-        ※演算子にロックフラグ含む
+    盤面編集フラグ、出力軸（axis）、演算子（operator）、軸ロック解除フラグ（axis_unlock）、変更前の石の状態（stones_before_change）
     """
 
-    def __init__(self, axis, operator, when_edit=False):
+    def __init__(self, axis, operator, is_axis_unlock=False, stones_before_change='', when_edit=False):
         """初期化
         
         Parameters
@@ -493,11 +492,17 @@ class Move():
             軸オブジェクト
         operator : str
             演算子
+        is_axis_unlock : bool
+            軸ロック解除フラグ
+        stones_before_change : str
+            変更前の石の状態。自明の場合は空文字列
         when_edit : bool
             盤面編集か？
         """
         self._axis = axis
         self._operator = operator
+        self._is_axis_unlock = is_axis_unlock
+        self._stones_before_change = stones_before_change
         self._when_edit = when_edit
 
 
@@ -514,6 +519,18 @@ class Move():
 
 
     @property
+    def is_axis_unlock(self):
+        """軸ロック解除フラグ"""
+        return self._is_axis_unlock
+
+
+    @property
+    def stones_before_change(self):
+        """変更前の石の状態。自明なら空文字列"""
+        return self._stones_before_change
+
+
+    @property
     def when_edit(self):
         """盤面編集か？"""
         return self._when_edit
@@ -522,9 +539,22 @@ class Move():
     @staticmethod
     def code_to_obj(code):
 
-        result = re.match(r"^(&)?([1234567abcdef])(.+)$", code)
+        result = re.match(r"^(&)?([1234567abcdef])(.+)(#)?($.+)?$", code)
         if result is None:
             raise ValueError(f"format error.  move_u:`{code}`")
+
+
+        # 軸ロック解除フラグ
+        if result.group(4) == '#':
+            is_axis_unlock = True
+        else:
+            is_axis_unlock = False
+
+
+        # 変更前の石の状態
+        stones_before_change_str = result.group(5)
+        if stones_before_change_str is None:
+            stones_before_change_str = ''
 
 
         return Move(
@@ -532,17 +562,34 @@ class Move():
             axis=Axis.code_to_axis(code=result.group(2)),
             # 演算子
             operator=Operator.code_to_obj(code=result.group(3)),
+            # 軸ロック解除フラグ
+            is_axis_unlock=is_axis_unlock,
+            # 変更前の石の状態
+            stones_before_change=stones_before_change_str,
             # 盤面編集フラグ
             when_edit=result.group(1) is not None)
 
 
     def to_code(self):
+        # 盤面編集フラグ
         if self._when_edit:
             edit_mark = '&'
         else:
             edit_mark = ''
 
-        return f"{edit_mark}{self.axis.to_code()}{self.operator.code}"
+        # 軸ロック解除フラグ
+        if self._is_axis_unlock:
+            axis_unlock_str = '#'
+        else:
+            axis_unlock_str = ''
+
+        # 変更前の石の状態
+        if self._stones_before_change == '':
+            stones_before_change_str = ''
+        else:
+            stones_before_change_str = f'${self._stones_before_change}'
+
+        return f"{edit_mark}{self.axis.to_code()}{self.operator.code}{axis_unlock_str}{stones_before_change_str}"
 
 
 class MoveHelper():
