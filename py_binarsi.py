@@ -694,7 +694,7 @@ class MoveHelper():
             raise ValueError(f"undefined operator:{op}")
 
 
-class BoardEditingRecord():
+class BoardEditingItem():
     """盤面編集記録"""
 
     def __init__(self, move, stones_before_change=''):
@@ -721,6 +721,34 @@ class BoardEditingRecord():
     def stones_before_change(self):
         """裏返して消えた石"""
         return self._stones_before_change
+
+
+class BoardEditingHistory():
+    """盤面編集履歴"""
+
+    def __init__(self):
+        # 盤面編集履歴（対局棋譜を含む）
+        self._items = []
+
+        # 対局棋譜に限定
+        self._game_items = []
+
+
+    @property
+    def items(self):
+        return self._items
+
+
+    @property
+    def game_items(self):
+        return self._game_items
+
+
+    def append(self, board_editing_item):
+        self._items.append(board_editing_item)
+
+        if not board_editing_item.move.when_edit:
+            self._game_items.append(board_editing_item)
 
 
 class Board():
@@ -796,13 +824,14 @@ class Board():
             'f' : False,
         }
 
-        # 盤面編集履歴（Move のリスト）
-        #       対局棋譜のスーパーセット
-        self._board_editing_history = []
+        # 盤面編集履歴（対局棋譜を含む）
+        self._board_editing_history = BoardEditingHistory()
 
         # 終局しているか？
         self._is_gameover = False
 
+        # 勝利条件をクリアーしたのが何手目か
+        self._cleared_targets = [-1, -1, -1, -1, -1, -1]
 
     @property
     def legal_moves(self):
@@ -826,19 +855,6 @@ class Board():
         history は時間方向に長い
         """
         return self._board_editing_history
-
-
-    def to_game_record_history(self):
-        """対局棋譜"""
-        history = []
-
-        for record in self._board_editing_history:
-            # 盤面編集用の操作を除外
-            if not record.move.when_edit:
-                history.append(record)
-        
-        return history
-
 
 
     def update_squares_at_init(self):
@@ -1279,7 +1295,7 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingRecord(
+                self._board_editing_history.append(BoardEditingItem(
                     move=move,
                     stones_before_change=stones_before_change))
                 self.update_legal_moves()
@@ -1357,7 +1373,7 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingRecord(
+                self._board_editing_history.append(BoardEditingItem(
                     move=move,
                     stones_before_change=stones_before_change))
                 self.update_legal_moves()
@@ -1420,7 +1436,7 @@ class Board():
                     new_lock = False
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingRecord(
+                self._board_editing_history.append(BoardEditingItem(
                     move=move))
                 self.update_legal_moves()
                 return
@@ -1471,7 +1487,7 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingRecord(
+                self._board_editing_history.append(BoardEditingItem(
                     move=move,
                     stones_before_change=stones_before_change))
                 self.update_legal_moves()
@@ -1517,7 +1533,7 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingRecord(
+                self._board_editing_history.append(BoardEditingItem(
                     move=move))
                 self.update_legal_moves()
                 return
@@ -1568,7 +1584,7 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingRecord(
+                self._board_editing_history.append(BoardEditingItem(
                     move=move,
                     stones_before_change=stones_before_change))
                 self.update_legal_moves()
@@ -1588,7 +1604,7 @@ class Board():
                     new_lock = True
 
                 self._axis_locks[move.axis.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingRecord(
+                self._board_editing_history.append(BoardEditingItem(
                     move=move))
                 self.update_legal_moves()
                 return
@@ -1606,7 +1622,7 @@ class Board():
                 new_lock = True
 
             self._axis_locks[move.axis.to_code()] = new_lock
-            self._board_editing_history.append(BoardEditingRecord(
+            self._board_editing_history.append(BoardEditingItem(
                 move=move))
             self.update_legal_moves()
             return
@@ -2015,7 +2031,15 @@ class Board():
             self._is_gameover = True
             return
 
-        # TODO ３つのタスクを完了した
+        # TODO アンドゥに注意
+        # TODO クリアー条件　黒番１
+        # TODO クリアー条件　黒番２
+        # TODO クリアー条件　黒番３
+        # TODO クリアー条件　黒番４
+        # TODO クリアー条件　黒番５
+        # TODO クリアー条件　黒番６
+
+        # TODO プレイヤーが３つのタスクを完了した
 
         # TODO 投了している
 
@@ -2042,17 +2066,16 @@ class Board():
         # １行目表示
         # ---------
 
-        game_record_history = self.to_game_record_history()
-        moves_num = len(game_record_history)
+        moves_num = len(self._board_editing_history.game_items)
 
-        edits_num = len(self._board_editing_history)
+        edits_num = len(self._board_editing_history.items)
         if moves_num != edits_num:
             edits_num_str = f"| {edits_num} edits "
         else:
             edits_num_str = ""
 
         if 0 < edits_num:
-            latest_move = self._board_editing_history[-1].move
+            latest_move = self._board_editing_history.items[-1].move
             if latest_move.when_edit:
                 latest_move_str = f"edited {latest_move.to_code()}"
             else:
@@ -2176,8 +2199,7 @@ class Board():
         # 現在の盤面から。対局棋譜の指し手番号が奇数なら黒番、偶数なら後手番（将棋と違って上手、下手が無いから）
         # ただし、添付局面が先手だった場合に限る
         if from_present:
-            game_record_history = self.to_game_record_history()
-            if len(game_record_history) % 2 == 0:
+            if len(self._board_editing_history.game_items) % 2 == 0:
                 if self._turn_at_init == PC_BLACK:
                     buffer.append(' w ')
                 else:
@@ -2213,7 +2235,7 @@ class Board():
 
         # 現在の盤面からのSFEN表示
         if from_present:
-            buffer.append(f' {len(game_record_history)}')
+            buffer.append(f' {len(self._board_editing_history.game_items)}')
 
         # 初期盤面からのSFEN表示
         else:
@@ -2231,8 +2253,8 @@ class Board():
 
             move_u_list = []
 
-            # 盤面編集用の指し手は除外
-            for game_record_item in self.to_game_record_history():
+            # 対局棋譜
+            for game_record_item in self._board_editing_history.game_items:
                 move_u_list.append(game_record_item.move.to_code())
 
             moves_u = ' '.join(move_u_list).rstrip()
@@ -2260,10 +2282,10 @@ class Board():
 
         # 初期盤面からのSFEN表示
         else:
-            for board_editing_record in self._board_editing_history:
-                if len(board_editing_record.stones_before_change) < 1:
+            for board_editing_item in self._board_editing_history.game_items:
+                if len(board_editing_item.stones_before_change) < 1:
                     list1.append('-')
                 else:
-                    list1.append(board_editing_record.stones_before_change)
+                    list1.append(board_editing_item.stones_before_change)
 
         return ' '.join(list1)

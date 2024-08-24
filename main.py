@@ -341,8 +341,8 @@ example: inverse 4n -""")
         moves_num = 0
 
         for i in range(0, len(self._board.board_editing_history)):
-            board_editing_record = self._board.board_editing_history[i]
-            move = board_editing_record.move
+            board_editing_item = self._board.board_editing_history.items[i]
+            move = board_editing_item.move
 
             if not move.when_edit:
                 moves_num += 1
@@ -350,7 +350,7 @@ example: inverse 4n -""")
             else:
                 sequence_number_str = f'  |{i + 1:2}'
 
-            stones_before_change = board_editing_record.stones_before_change
+            stones_before_change = board_editing_item.stones_before_change
 
             if stones_before_change == '':
                 stones_before_change = '-'
