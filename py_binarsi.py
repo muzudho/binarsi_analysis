@@ -303,6 +303,7 @@ class Operator():
 
     主な演算子の語幹：
         c : Cut the edge 対象路上の全石を削除
+        e : Edit
         s : Shift
         n : Not
         ze: ZEro
@@ -381,7 +382,7 @@ class Operator():
         #
         #   文字数が短い方が先にマッチしてしまうかもしれないので、短い文字列は右に置くように並び順に注意
         #
-        result = re.match(r"^(na|nH|nL|no|on|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|n|o)(#)?$", code)
+        result = re.match(r"^(na|nH|nL|no|on|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|e|n|o)(#)?$", code)
         if result is None:
             raise ValueError(f"format error.  operator_u:`{code}`")
 
@@ -389,7 +390,7 @@ class Operator():
         force_unlock = result.group(2) == '#'
 
         # 零項演算子（nullary）か？
-        if stem_u in ['s1', 's2', 's3', 's4', 's5', 's6', 'c']:
+        if stem_u in ['s1', 's2', 's3', 's4', 's5', 's6', 'c', 'e']:
             parameter_length = 0
 
         # 単項演算子（unarry）か？
@@ -582,7 +583,7 @@ class Move():
     @staticmethod
     def code_to_obj(code):
 
-        result = re.match(r"^(&)?([1234567abcdef])(.+)(#)?($.+)?$", code)
+        result = re.match(r"^(&)?([1234567abcdef])(na|nH|nL|no|on|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|e|n|o)(#)?(\$[.01]+)?$", code)
         if result is None:
             raise ValueError(f"format error.  move_u:`{code}`")
 
@@ -598,6 +599,9 @@ class Move():
         stones_before_change_str = result.group(5)
         if stones_before_change_str is None:
             stones_before_change_str = ''
+        else:
+            # 頭の `$` を外す
+            stones_before_change_str = stones_before_change_str[1:]
 
 
         return Move(
@@ -672,6 +676,13 @@ class MoveHelper():
             #     # TODO 指し手に＄記号を付加し、その後ろに変更前の石の連の情報を付加する
             #     move += f"${stones_before_change}"
 
+            # TODO 任意の石列を置く命令が必要になるのでは？
+            return None
+
+
+        # TODO 逆操作 エディット
+        if op == 'e':
+            print(f"[逆操作] e  move_u:{move.to_code()}")
             return None
 
 
@@ -1323,6 +1334,7 @@ class Board():
         """
         演算子：
             c : Cut the edge
+            e : Edit
             s1 ～ s6: Shift
             n : Not
             ze: ZEro
@@ -1373,6 +1385,16 @@ class Board():
             else:
                 print("Illegal move")
                 return
+
+
+        # TODO エディット演算子
+        if op.startswith('e'):
+
+            print(f"Edit operator  move_u={move.to_code()}  way_u={move.way.to_code()}  {move.stones_before_change=}")
+
+            # 対象の路に石が置いてあるか、そうでないかに関わらず同じ動きをします
+
+            return
 
 
         # シフト（単項演算子 shift）
