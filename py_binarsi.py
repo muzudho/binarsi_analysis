@@ -705,7 +705,7 @@ class MoveHelper():
             return None
 
 
-        # 逆操作　シフト
+        # シフト
         if op in ['s1', 's2', 's3', 's4', 's5', 's6']:
             (begin, length) = board.get_position_on_way(way)
 
@@ -745,7 +745,7 @@ class MoveHelper():
         # ノットＬ --Inverse--> エディット＃
         # ノットＨ --Inverse--> エディット＃
         if op in ['nL', 'nH']:
-            # TODO {路}e#${石} 要テスト
+            # {路}e#${石}
             if stones_before_change == '':
                 raise ValueError(f"stones error  {op=}  {move.option_stones=}  {stones_before_change=}")
 
@@ -2381,20 +2381,20 @@ class Board():
         for i in range(0, len(self._legal_moves)):
             move = self._legal_moves[i]
 
-            # TODO とりあえず、シフト演算だけ調べる
-            if move.operator.code not in ['s1', 's2', 's3', 's4', 's5', 's6']:
+            # TODO とりあえず、逆操作が実装されている演算だけ調べる
+            if move.operator.code not in ['nH', 'nL', 's1', 's2', 's3', 's4', 's5', 's6']:
                 continue
 
-            # TODO 試しに一手指してみる
+            # 試しに一手指してみる
             #print(f"試しに一手指してみる  {move.to_code()=}")
             self.push_usi(move.to_code())
             #self._board.update_legal_moves()
 
-            # TODO 一般的に長さが短い方の形式の SFEN を記憶
+            # 一般的に長さが短い方の形式の SFEN を記憶
             sfen = self.as_sfen(from_present=True)
             #print(f"一般的に長さが短い方の形式の SFEN を記憶  {sfen=}")
             
-            # TODO 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
+            # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
             if sfen in sfen_memory_dict.keys():
                 same_move_u = sfen_memory_dict[sfen]
                 #print(f"既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}")
@@ -2406,13 +2406,13 @@ class Board():
                 self._legal_moves[i] = replaced_move
                 #print(f"格納し直した  {self._legal_moves[i].to_code()}  {self._legal_moves[i].same_move_u=}")
             
-            # TODO 重複していなければ、一時記憶する
+            # 重複していなければ、一時記憶する
             else:
                 move_u = move.to_code()
                 #print(f"重複していないので、一時記憶する  {move_u=}")
                 sfen_memory_dict[sfen] = move_u
             
-            # TODO 一手戻す
+            # 一手戻す
             #print(f"一手戻す")
             self.pop()
             #self.update_legal_moves()
