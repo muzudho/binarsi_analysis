@@ -180,6 +180,7 @@ class UsiEngine():
         # 盤面編集履歴（対局棋譜のスーパーセット）再生
         for move_u in move_u_list:
             self._board.push_usi(move_u)
+            self._board.update_legal_moves()
 
 
     def go(self):
@@ -209,6 +210,8 @@ class UsiEngine():
         # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
 
         # 冗長な指し手を省く
+        self._board.distinct_legal_moves()
+
         move_list = []
 
         for move in self._board.legal_moves:
@@ -258,6 +261,7 @@ class UsiEngine():
             例： ["do", "4n"]
         """
         self._board.push_usi(cmd[1])
+        self._board.update_legal_moves()
 
         # 現在の盤表示
         self.print_board()
@@ -294,6 +298,7 @@ class UsiEngine():
             code: undo
         """
         self._board.pop()
+        self.update_legal_moves()
 
         # 現在の盤表示
         self.print_board()
@@ -316,12 +321,23 @@ class UsiEngine():
 LEGAL MOVES
 -----------""")
 
+        # 冗長な指し手を省く
+        self._board.distinct_legal_moves()
+
         # コードで降順にソートする
         move_list = sorted(self._board.legal_moves, key=lambda x:x.to_code())
 
         for i in range(0, len(move_list)):
             move = move_list[i]
-            print(f"    ({i + 1:2}) do {move.to_code()}")
+
+            #print(f"    <{i+1:2}>  {move.to_code()}  {move.same_move_u=}")
+
+            if move.same_move_u != '':
+                same_move_str = f' | same_move {move.same_move_u}'
+            else:
+                same_move_str = ''
+
+            print(f"    ({i+1:2}) do {move.to_code()}{same_move_str}")
 
         print("""\
 -----------
@@ -424,6 +440,7 @@ CLEAR TARGETS
 
             # １手指す
             self._board.push_usi(best_move.to_code())
+            self._board.update_legal_moves()
 
             # 現在の盤表示
             self.print_board()

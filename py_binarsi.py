@@ -836,11 +836,11 @@ class BoardEditingHistory():
     """盤面編集履歴"""
 
     def __init__(self):
-        # 盤面編集履歴（対局棋譜を含む）
+        # これが元データ（対局棋譜を含む）
         self._items = []
 
-        # 対局棋譜に限定
-        self._game_items = []
+        # これはキャッシュ。対局棋譜に限定
+        self._cached_game_items = None
 
 
     @property
@@ -850,14 +850,31 @@ class BoardEditingHistory():
 
     @property
     def game_items(self):
-        return self._game_items
+        if self._cached_game_items is None:
+            self._cached_game_items = []
+            for item in self._items:
+                if not item.move.when_edit:
+                    self._cached_game_items.append(item)
+
+        return self._cached_game_items
 
 
-    def append(self, board_editing_item):
-        self._items.append(board_editing_item)
+    def append(self, item):
+        """要素を追加"""
+        self._items.append(item)
 
-        if not board_editing_item.move.when_edit:
-            self._game_items.append(board_editing_item)
+        # キャッシュを破棄
+        self._cached_game_items = None
+
+
+    def pop(self):
+        """要素を削除"""
+        item = self._items.pop()
+
+        # キャッシュを破棄
+        self._cached_game_items = None
+
+        return item
 
 
 class Board():
@@ -1354,7 +1371,6 @@ class Board():
         self._board_editing_history.append(BoardEditingItem(
             move=move,
             stones_before_change=stones_before_change))
-        self.update_legal_moves()
 
 
     def push_usi(self, move_u):
@@ -1705,18 +1721,17 @@ class Board():
         inverse_move_for_edit = inverse_move.to_edit_mode()
         inverse_move_for_edit_u = inverse_move_for_edit.to_code()
 
-        print(f"[pop] 盤面編集として、逆操作を実行  {inverse_move_for_edit_u=}  {inverse_move_for_edit.is_way_unlock=}")
+        #print(f"[pop] 盤面編集として、逆操作を実行  {inverse_move_for_edit_u=}  {inverse_move_for_edit.is_way_unlock=}")
         self.push_usi(inverse_move_for_edit_u)
+        #self._board.update_legal_moves()
 
         # さっきの逆操作を履歴から除去
-        popped_item = self._board_editing_history.items.pop()
-        print(f"[pop] 逆操作を履歴から除去  {popped_item.move.to_code()=}")
+        popped_item = self._board_editing_history.pop()
+        #print(f"[pop] 逆操作を履歴から除去  {popped_item.move.to_code()=}")
 
         # 最後の指し手も履歴から除去
-        popped_item = self._board_editing_history.items.pop()
-        print(f"[pop] 最後の指し手も履歴から除去  {popped_item.move.to_code()=}")
-
-        self.update_legal_moves()
+        popped_item = self._board_editing_history.pop()
+        #print(f"[pop] 最後の指し手も履歴から除去  {popped_item.move.to_code()=}")
 
 
     def is_gameover(self):
@@ -1899,6 +1914,8 @@ class Board():
     def update_legal_moves(self):
         """合法手の一覧生成"""
 
+        print("[update_legal_moves] 開始")
+
         self._legal_moves = []
         self._moves_for_edit = []
 
@@ -1934,8 +1951,6 @@ class Board():
         # ゼロビットシフトは禁止する
         # 枝が増えてしまうのを防ぐ
 
-        sfen_memory_dict = {}
-
         # 筋（段）方向両用
         for way_u in _way_characters:
             way = Way.code_to_obj(way_u)
@@ -1951,25 +1966,6 @@ class Board():
                 # Shift できる
                 for i in range(1, length):
                     move = Move(way, Operator.code_to_obj(f's{i}'))
-
-                    ## TODO 試しに一手指してみる
-                    #print(f"試しに一手指してみる  {move.to_code()=}")
-                    #self.push_usi(move.to_code())
-                    #
-                    ## TODO 一般的に長さが短い方の形式の SFEN を記憶
-                    #sfen = self.as_sfen(from_present=True)
-                    #
-                    ## TODO 既に記憶している SFEN と重複すれば、シフトした結果が同じだ。ただし、合法手ではある
-                    #if sfen in sfen_memory_dict.keys():
-                    #    move = move.replaced_by_same(sfen_memory_dict[sfen])
-                    #
-                    #else:
-                    #    # TODO SFEN と指し手コードを記憶する
-                    #    sfen_memory_dict[sfen] = move.to_code()
-                    #
-                    ## TODO 一手戻す
-                    #print(f"一手戻す")
-                    #self.pop()
 
                     # 合法手として記憶
                     self._legal_moves.append(move)
@@ -2364,6 +2360,51 @@ class Board():
 
         # 終局していない
         self._gameover_reason = ''
+
+
+    def distinct_legal_moves(self):
+        """指してみると結果が同じになる指し手は、印をつけたい"""
+
+        sfen_memory_dict = {}
+
+        for i in range(0, len(self._legal_moves)):
+            move = self._legal_moves[i]
+
+            # TODO とりあえず、シフト演算だけ調べる
+            if move.operator.code not in ['s1', 's2', 's3', 's4', 's5', 's6']:
+                continue
+
+            # TODO 試しに一手指してみる
+            #print(f"試しに一手指してみる  {move.to_code()=}")
+            self.push_usi(move.to_code())
+            #self._board.update_legal_moves()
+
+            # TODO 一般的に長さが短い方の形式の SFEN を記憶
+            sfen = self.as_sfen(from_present=True)
+            #print(f"一般的に長さが短い方の形式の SFEN を記憶  {sfen=}")
+            
+            # TODO 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
+            if sfen in sfen_memory_dict.keys():
+                same_move_u = sfen_memory_dict[sfen]
+                #print(f"既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}")
+                replaced_move = move.replaced_by_same(same_move_u)
+
+                # 格納し直す
+                # FIXME 一手進んだ局面のリーガルムーブを設定しても意味ないのでは？ 一手進んだり、戻ったりするたびにリセットしないように要注意
+                #print(f"格納し直す  {replaced_move.to_code()}  {replaced_move.same_move_u=}")
+                self._legal_moves[i] = replaced_move
+                #print(f"格納し直した  {self._legal_moves[i].to_code()}  {self._legal_moves[i].same_move_u=}")
+            
+            # TODO 重複していなければ、一時記憶する
+            else:
+                move_u = move.to_code()
+                #print(f"重複していないので、一時記憶する  {move_u=}")
+                sfen_memory_dict[sfen] = move_u
+            
+            # TODO 一手戻す
+            #print(f"一手戻す")
+            self.pop()
+            #self.update_legal_moves()
 
 
     def as_str(self):
