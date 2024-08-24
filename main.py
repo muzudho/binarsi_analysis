@@ -307,16 +307,20 @@ example: inverse 4n -""")
         """合法手一覧表示
             code: legal_moves
         """
-        print("合法手一覧表示　ここから：")
+        print("""\
+LEGAL MOVES
+-----------""")
 
         # コードで降順にソートする
         move_list = sorted(self._board.legal_moves, key=lambda x:x.to_code())
 
         for i in range(0, len(move_list)):
             move = move_list[i]
-            print(f"    ({i + 1:2}) move:{move.to_code()}")
+            print(f"    ({i + 1:2}) do {move.to_code()}")
 
-        print("合法手一覧表示　ここまで：")
+        print("""\
+-----------
+""")
 
 
     def print_moves_for_edit(self):
@@ -367,7 +371,7 @@ example: inverse 4n -""")
     def self_match_once(self, match_count):
         """自己対局"""
 
-        print(f"{match_count} 局目ここから：")
+        print(f"{match_count + 1} 局目ここから：")
 
         # 100手も使わない
         for i in range(1, 100):
@@ -387,7 +391,7 @@ example: inverse 4n -""")
             self.print_sfen(from_present=True)
             print("") # 空行
 
-        print(f"{match_count} 局目ここまで")
+        print(f"{match_count + 1} 局目ここまで")
 
 
     def self_match(self, input_str):
