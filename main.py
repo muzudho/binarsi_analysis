@@ -401,9 +401,16 @@ example: inverse 4n -""")
             現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
         print(f"[from beginning] sfen {self._board.as_sfen()}")
-        print(f"                 stones_before_change {self._board.as_stones_before_change()}")
+
+        stone_before_change_str = self._board.as_stones_before_change()
+        if stone_before_change_str != '':
+            print(f"                 stones_before_change {stone_before_change_str}")
+
         print(f"[from present]   sfen {self._board.as_sfen(from_present=True)}")
-        print(f"                 stones_before_change {self._board.as_stones_before_change(from_present=True)}")
+
+        stone_before_change_str = self._board.as_stones_before_change(from_present=True)
+        if stone_before_change_str != '':
+            print(f"                 stones_before_change {stone_before_change_str}")
 
 
 if __name__ == '__main__':

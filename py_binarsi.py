@@ -807,7 +807,7 @@ class Board():
         # 現局面の盤面編集用の手（合法手除く）
         self._moves_for_edit = []
 
-        # 軸ロック
+        # 現局面での軸ロック
         self._axis_locks = {
             '1' : False,
             '2' : False,
@@ -824,14 +824,24 @@ class Board():
             'f' : False,
         }
 
+        # 初期局面での軸ロック
+        self._axis_locks_at_init = dict(self._axis_locks)
+
         # 盤面編集履歴（対局棋譜を含む）
         self._board_editing_history = BoardEditingHistory()
 
-        # 終局しているか？
-        self._is_gameover = False
+        # 終局理由。無ければ空文字列
+        self._gameover_reason = ''
 
         # 勝利条件をクリアーしたのが何手目か
         self._cleared_targets = [-1, -1, -1, -1, -1, -1]
+
+
+    @property
+    def gameover_reason(self):
+        """終局理由"""
+        return self._gameover_reason
+
 
     @property
     def legal_moves(self):
@@ -919,7 +929,8 @@ class Board():
 
         parts = sfen_u.split(' ')
 
-        # 盤面の解析
+        # 盤面
+        # ----
         numeric = 0
         for ch in parts[0]:
             if ch in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
@@ -950,6 +961,7 @@ class Board():
                 raise ValueError(f"undefined sfen character on board:`{ch}`")
 
         # 添付盤面での手番
+        # ---------------
         if parts[1] == 'b':
             self._turn_at_init = PC_BLACK
         elif parts[1] == 'w':
@@ -957,10 +969,12 @@ class Board():
         else:
             raise ValueError(f"undefined sfen character on turn:`{ch}`")
 
-        # ロックの解析
+        # 軸ロック
+        # --------
         for axis_u in parts[2]:
             if axis_u in _axis_characters:
                 self._axis_locks[axis_u] = True
+                self._axis_locks_at_init[axis_u] = True
 
             else:
                 raise ValueError(f"undefined sfen character on locks:`{axis_u}`")
@@ -1694,7 +1708,7 @@ class Board():
 
     def is_gameover(self):
         """終局しているか？"""
-        return self._is_gameover
+        return self._gameover_reason != ''
 
 
     def is_nyugyoku(self):
@@ -2028,7 +2042,7 @@ class Board():
 
         # ステールメートしている
         if len(self._legal_moves) < 1:
-            self._is_gameover = True
+            self._gameover_reason = 'stalemate'
             return
 
         # TODO クリアー条件はアンドゥしたあと消すよう注意
@@ -2290,18 +2304,18 @@ class Board():
 
         # どちらかのプレイヤーが３つのターゲットを完了した
         if self._cleared_targets[0] != -1 and self._cleared_targets[1] != -1 and self._cleared_targets[2] != -1:
-            self._is_gameover = True
+            self._gameover_reason = 'black win'
             return
 
         elif self._cleared_targets[3] != -1 and self._cleared_targets[4] != -1 and self._cleared_targets[5] != -1:
-            self._is_gameover = True
+            self._gameover_reason = 'white win'
             return
 
 
         # TODO 投了している
 
         # 終局していない
-        self._is_gameover = False
+        self._gameover_reason = ''
 
 
     def as_str(self):
@@ -2362,10 +2376,9 @@ class Board():
             cleared_targets_str = ''
 
 
-        # 終局
+        # 終局理由
         if self.is_gameover():
-            # TODO black win とか、 white win, draw とかにしたい
-            gameover_str = ' | gameover'
+            gameover_str = f' | {self.gameover_reason}'
         else:
             gameover_str = ''
 
@@ -2448,8 +2461,11 @@ class Board():
         # 初期盤面からのSFEN表示
         else:
             target_squares = self._squares_at_init
+
+            # usinewgame コマンドの直後に selfmatch をするとこの例外になる
             if target_squares is None:
                 raise ValueError("self._squares_at_init is None")
+
 
         for rank in range(0, RANK_LEN):
             for file in range(0, FILE_LEN):
@@ -2483,20 +2499,24 @@ class Board():
         # ---------------
 
         # 現在の盤面から。対局棋譜の指し手番号が奇数なら黒番、偶数なら後手番（将棋と違って上手、下手が無いから）
+        # 初期局面を 0手目 と数えるとする
         # ただし、添付局面が先手だった場合に限る
         if from_present:
-            if len(self._board_editing_history.game_items) % 2 == 0:
-                if self._turn_at_init == PC_BLACK:
-                    buffer.append(' w ')
-                else:
-                    buffer.append(' b ')
-            else:
-                if self._turn_at_init == PC_BLACK:
+            # 添付局面が先手番のケース
+            if self._turn_at_init == PC_BLACK:
+                if len(self._board_editing_history.game_items) % 2 == 0:
                     buffer.append(' b ')
                 else:
                     buffer.append(' w ')
 
-        # 初期盤面
+            # 添付局面が後手番のケース
+            else:
+                if len(self._board_editing_history.game_items) % 2 == 0:
+                    buffer.append(' w ')
+                else:
+                    buffer.append(' b ')
+
+        # 初期盤面から
         else:
             if self._turn_at_init == PC_BLACK:
                 buffer.append(' b ')
@@ -2507,10 +2527,20 @@ class Board():
         # 添付局面図の筋（段）の符号、またはロック
         # -------------------------------------
         locked = False
-        for axis_code in _axis_characters:
-            if self._axis_locks[axis_code]:
-                buffer.append(axis_code)
-                locked = True
+
+        # 現在の盤面から
+        if from_present:
+            for axis_code in _axis_characters:
+                if self._axis_locks[axis_code]:
+                    buffer.append(axis_code)
+                    locked = True
+
+        # 初期盤面から
+        else:
+            for axis_code in _axis_characters:
+                if self._axis_locks_at_init[axis_code]:
+                    buffer.append(axis_code)
+                    locked = True
 
         if not locked:
             buffer.append('-')
@@ -2526,6 +2556,7 @@ class Board():
         # 初期盤面からのSFEN表示
         else:
             buffer.append(' 1')
+
 
         # 添付局面図からの指し手
         # ---------------------
@@ -2543,12 +2574,21 @@ class Board():
             for game_record_item in self._board_editing_history.game_items:
                 move_u_list.append(game_record_item.move.to_code())
 
-            moves_u = ' '.join(move_u_list).rstrip()
+            if 0 < len(move_u_list):
+                moves_u = ' '.join(move_u_list).rstrip()
+                buffer.append(f' moves {moves_u}')
 
-            buffer.append(f' moves {moves_u}')
+
+        sfen_str = ''.join(buffer)
 
 
-        return ''.join(buffer)
+        # 平手初期局面なら startpos に置換
+        result = re.match(r"^7/7/2o4/7/7/7 b - 1(.*)$", sfen_str)
+        if result:
+            sfen_str = f"startpos{result.group(1)}"
+
+
+        return sfen_str
 
 
     def as_stones_before_change(self, from_present=False):
@@ -2574,4 +2614,7 @@ class Board():
                 else:
                     list1.append(board_editing_item.stones_before_change)
 
-        return ' '.join(list1)
+        if 0 < len(list1):
+            return ' '.join(list1)
+        else:
+            return ''
