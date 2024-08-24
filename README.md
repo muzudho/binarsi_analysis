@@ -42,7 +42,7 @@ f | . . . . . . . |
 
 # ゲームの目的（勝ち方の説明）
 
-勝敗判定は３本制です。  
+勝敗判定は３本先取制です。  
 
 👇　先手は黒番です。以下の３つの図のように、３種類の　棒（同じ石が一列に並んだもの）を作れば勝ちです。  
 一度作った棒は、あとで壊したり、壊されたりしても　すでに作ったものとして判定します。  
@@ -271,7 +271,6 @@ STRUCTURES:
         way = [1, 2, 3, 4, 5, 6, 7, a, b, c, d, e, f]
         operator = [
             # 零項演算子（Nullary operator）
-            s0 = 0-bit rotational logic higher **S**HIFT
             s1 = 1-bit rotational logic higher **S**HIFT
             s2 = 2-bit rotational logic higher **S**HIFT
             s3 = 3-bit rotational logic higher **S**HIFT
