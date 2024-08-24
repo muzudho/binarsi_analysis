@@ -504,7 +504,7 @@ class Move():
         "&7c#"
 
     アンドゥ操作での例：
-        "4c#$01" - TODO 変更前の石の連情報を、$記号の後ろに付加する
+        "4c#$01" - 石の並びを、$記号の後ろに付加することができる
 
     盤面編集フラグ、出力路（way）、演算子（operator）、路ロック解除フラグ（way_unlock）、変更前の石の状態（stones_before_change）
     
@@ -512,7 +512,7 @@ class Move():
         例： `7c#` - ７筋の全石を取り除き、ロックも外す
     """
 
-    def __init__(self, way, operator, is_way_unlock=False, stones_before_change='', when_edit=False, same_move_u=''):
+    def __init__(self, way, operator, is_way_unlock=False, option_stones='', when_edit=False, same_move_u=''):
         """初期化
         
         Parameters
@@ -525,8 +525,8 @@ class Move():
             路ロック解除フラグ
         	True:  強制的に 路ロックを解除する
         	False: 強制的に 路ロックする
-        stones_before_change : str
-            変更前の石の状態。自明の場合は空文字列
+        option_stones : str
+            石の並び。必要なければ空文字列
         when_edit : bool
             盤面編集か？
         same_move_u : str
@@ -535,7 +535,7 @@ class Move():
         self._way = way
         self._operator = operator
         self._is_way_unlock = is_way_unlock
-        self._stones_before_change = stones_before_change
+        self._option_stones = option_stones
         self._when_edit = when_edit
         self._same_move_u = same_move_u
 
@@ -562,9 +562,9 @@ class Move():
 
 
     @property
-    def stones_before_change(self):
-        """変更前の石の状態。自明なら空文字列"""
-        return self._stones_before_change
+    def option_stones(self):
+        """石の並び。必要なければ空文字列"""
+        return self._option_stones
 
 
     @property
@@ -594,13 +594,13 @@ class Move():
             is_way_unlock = False
 
 
-        # 変更前の石の状態
-        stones_before_change_str = result.group(5)
-        if stones_before_change_str is None:
-            stones_before_change_str = ''
+        # 石の並び
+        option_stones_str = result.group(5)
+        if option_stones_str is None:
+            option_stones_str = ''
         else:
             # 頭の `$` を外す
-            stones_before_change_str = stones_before_change_str[1:]
+            option_stones_str = option_stones_str[1:]
 
 
         return Move(
@@ -610,8 +610,8 @@ class Move():
             operator=Operator.code_to_obj(code=result.group(3)),
             # 路ロック解除フラグ
             is_way_unlock=is_way_unlock,
-            # 変更前の石の状態
-            stones_before_change=stones_before_change_str,
+            # 石の並び
+            option_stones=option_stones_str,
             # 盤面編集フラグ
             when_edit=result.group(1) is not None)
 
@@ -629,13 +629,13 @@ class Move():
         else:
             way_unlock_str = ''
 
-        # 変更前の石の状態
-        if self._stones_before_change == '':
-            stones_before_change_str = ''
+        # 石の並び
+        if self._option_stones == '':
+            option_stones_str = ''
         else:
-            stones_before_change_str = f'${self._stones_before_change}'
+            option_stones_str = f'${self._option_stones}'
 
-        return f"{edit_mark}{self.way.to_code()}{self.operator.code}{way_unlock_str}{stones_before_change_str}"
+        return f"{edit_mark}{self.way.to_code()}{self.operator.code}{way_unlock_str}{option_stones_str}"
 
 
     def to_edit_mode(self):
@@ -662,7 +662,7 @@ class MoveHelper():
     """指し手の計算"""
 
     @staticmethod
-    def inverse_move(board, move):
+    def inverse_move(board, move, stones_before_change=''):
         """逆操作を算出する
 
         Parameters
@@ -671,6 +671,8 @@ class MoveHelper():
             盤
         move : str
             順操作
+        stones_before_change : str
+            操作によって上書きされた石の並び。無ければ空文字列
 
         Returns
         -------
@@ -689,9 +691,9 @@ class MoveHelper():
 
             # move = ""
 
-            # if move.stones_before_change != '':
+            # if move.option_stones != '':
             #     # TODO 指し手に＄記号を付加し、その後ろに変更前の石の連の情報を付加する
-            #     move += f"${move.stones_before_change}"
+            #     move += f"${move.option_stones}"
 
             # TODO 任意の石列を置く命令が必要になるのでは？
             return None
@@ -735,21 +737,20 @@ class MoveHelper():
             return Move.code_to_obj(f"{way.to_code()}s{length-shift_bits}#")
 
 
-        # ノット・ニュー --逆操作--> カットザエッジ＃
+        # ノット・ニュー --Inverse--> カットザエッジ＃
         if op == 'n':
             return Move.code_to_obj(f"{way.to_code()}c#")
 
 
-        # TODO 逆操作 ノットＬ
-        if op == 'nL':
-            print("[逆操作] nL")
-            return None
+        # ノットＬ --Inverse--> エディット＃
+        # ノットＨ --Inverse--> エディット＃
+        if op in ['nL', 'nH']:
+            # TODO {路}e#${石} 要テスト
+            if stones_before_change == '':
+                raise ValueError(f"stones error  {op=}  {move.option_stones=}  {stones_before_change=}")
 
-
-        # TODO 逆操作 ノットＨ
-        if op == 'nH':
-            print("[逆操作] nH")
-            return None
+            # stones_before_change と move.option_stones は別物なので要注意
+            return Move.code_to_obj(f"{way.to_code()}e#${stones_before_change}")
 
 
         # TODO 逆操作 ゼロ
@@ -1243,11 +1244,27 @@ class Board():
         """指定の路に、指定の石の列を上書きします"""
 
         stones_before_change = ''
+        stones_str_len = len(stones_str)
 
         # 筋（段）方向両用
         axes_absorber = target_way.absorb_axes()
 
-        for i in range(0, axes_absorber.opponent_axis_length):
+        # 幅いっぱい使う
+        if stones_str_len == axes_absorber.opponent_axis_length:
+            begin = 0
+            end = axes_absorber.opponent_axis_length
+
+        # 置いてある石の位置に合わせる
+        else:
+            (begin, length) = self.get_position_on_way(target_way)
+
+            if length != stones_str_len:
+                raise ValueError(f"length error  {length=}  {stones_str_len=}")
+
+            end = begin + length
+
+
+        for i in range(begin, end):
 
             dst_sq = Square.file_rank_to_sq(target_way.number, i, swap=axes_absorber.swap_axes)
             old_stone = self._squares[dst_sq]
@@ -1255,7 +1272,7 @@ class Board():
             if old_stone != PC_EMPTY:
                 stones_before_change += _pc_to_str[old_stone]
 
-            self._squares[dst_sq] = _str_to_pc[stones_str[i]]
+            self._squares[dst_sq] = _str_to_pc[stones_str[i - begin]]
 
         return stones_before_change
 
@@ -1453,9 +1470,13 @@ class Board():
 
 
         # エディット演算子
+        #
+        #   零項演算子
+        #   既に石があるところに上書きすることを想定している
+        #
         if op.startswith('e'):
 
-            #print(f"Edit operator  move_u={move.to_code()}  way_u={move.way.to_code()}  {move.stones_before_change=}")
+            #print(f"Edit operator  move_u={move.to_code()}  way_u={move.way.to_code()}  {move.option_stones=}")
 
             # 盤面更新前
             exists_stone_on_way_before_change = self.exists_stone_on_way(move.way)
@@ -1463,7 +1484,7 @@ class Board():
             # 盤面更新
             stones_before_change = self.set_stones_on_way(
                 target_way=move.way,
-                stones_str=move.stones_before_change)
+                stones_str=move.option_stones)
 
             # もともとは、対象の路に石が置いてあった
             if exists_stone_on_way_before_change:
@@ -1701,7 +1722,8 @@ class Board():
         # 最後の指し手の逆操作を算出
         inverse_move = MoveHelper.inverse_move(
             board=self,
-            move=latest_edit.move)
+            move=latest_edit.move,
+            stones_before_change=latest_edit.stones_before_change)
 
         if inverse_move is None:
             raise ValueError(f"[pop] {latest_edit.move.to_code()=} に逆操作がなく、pop に失敗しました")

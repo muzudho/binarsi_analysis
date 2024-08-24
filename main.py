@@ -65,8 +65,7 @@ class UsiEngine():
             # 逆操作コードの表示
             #   code: inverse 4n
             elif cmd[0] == 'inverse':
-                self.print_inverse_move(
-                    move_u=cmd[1])
+                self.print_inverse_move(input_str)
 
             # 一手戻す
             #   code: undo
@@ -269,21 +268,31 @@ class UsiEngine():
         print("") # 空行
 
 
-    def print_inverse_move(self, move_u):
+    def print_inverse_move(self, input_str):
         """逆操作コードの表示
 
         Parameters
         ----------
-        move_u : str
+        input_str : str
             指し手コード
-            例： "4n"
-            例： "dn$01"
+            例： "inverse 4n"
+            例： "inverse 3e#0 0"
         """
+
+        tokens = input_str.split(' ')
+
+        move_u = tokens[1]
+
+        if 2 < len(tokens):
+            stones_before_change = tokens[2]
+        else:
+            stones_before_change = ''
 
         move = Move.code_to_obj(move_u)
         inverse_move = MoveHelper.inverse_move(
             board=self._board,
-            move=move)
+            move=move,
+            stones_before_change=stones_before_change)
 
         if inverse_move is None:
             print(f"[print_inverse_move] 未実装： {inverse_move=}")
@@ -298,7 +307,7 @@ class UsiEngine():
             code: undo
         """
         self._board.pop()
-        self.update_legal_moves()
+        self._board.update_legal_moves()
 
         # 現在の盤表示
         self.print_board()
