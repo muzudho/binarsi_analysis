@@ -261,25 +261,18 @@ class UsiEngine():
         name : str
             例： "inverse"
         argument_line : str
-            例： "4n -"
+            例： "4n"
+            例： "dn$01"
         """
 
-        arguments = argument_line.split(' ')
+        # 変数名の変更
+        move_u = argument_line
 
-        if len(arguments) < 2:
-            print(f"""Two argument is required
-1. move
-2. stones before change
-example: inverse 4n -""")
-            return
-
-        move_u = arguments[0]
-        code = Move.code_to_obj(move_u)
-        stones_before_change = arguments[1]
+        move = Move.code_to_obj(move_u)
         inverse_move = MoveHelper.let_inverse_move(
             board=self._board,
-            move=code,
-            stones_before_change=stones_before_change)
+            move=move,
+            stones_before_change=move.stones_before_change)
 
         if inverse_move is None:
             print(f"[let_inverse_move] 未実装： {inverse_move=}")
