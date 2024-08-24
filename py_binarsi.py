@@ -753,52 +753,16 @@ class MoveHelper():
             return Move.code_to_obj(f"{way.to_code()}e#${stones_before_change}")
 
 
-        # TODO 逆操作 ゼロ
-        if op == 'ze':
-            print("[逆操作] ze")
-            return None
+        # 逆操作 アンド、オア、エクソア、ナンド、ノア、エクスノア、ゼロ、ワン
+        if op in ['a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
+            # stones_before_change と move.option_stones は別物なので要注意
 
+            # New
+            if stones_before_change == '':
+                return Move.code_to_obj(f"{way.to_code()}c#")
 
-        # TODO 逆操作 ノア
-        if op == 'no':
-            print("[逆操作] no")
-            return None
-
-
-        # TODO 逆操作 エクソア
-        if op == 'xo':
-            print("[逆操作] xo")
-            return None
-
-
-        # TODO 逆操作 ナンド
-        if op == 'na':
-            print("[逆操作] na")
-            return None
-
-
-        # TODO 逆操作 アンド
-        if op == 'a':
-            print("[逆操作] a")
-            return None
-
-
-        # TODO 逆操作 エクスノア
-        if op == 'xn':
-            print("[逆操作] xn")
-            return None
-
-
-        # TODO 逆操作 オア
-        if op == 'o':
-            print("[逆操作] o")
-            return None
-
-
-        # TODO 逆操作 ワン
-        if op == 'on':
-            print("[逆操作] on")
-            return None
+            # Modify {路}e#${石}
+            return Move.code_to_obj(f"{way.to_code()}e#${stones_before_change}")
 
 
         raise ValueError(f"undefined operator:{op}")
@@ -2382,7 +2346,8 @@ class Board():
             move = self._legal_moves[i]
 
             # TODO とりあえず、逆操作が実装されている演算だけ調べる
-            if move.operator.code not in ['nH', 'nL', 's1', 's2', 's3', 's4', 's5', 's6']:
+            # １～６ビットシフト、ノット、ノットＬ、ノットＨ、アンド、オア、エクソア、ナンド、ノア、エクスノア、ゼロ、ワン
+            if move.operator.code not in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
                 continue
 
             # 試しに一手指してみる
