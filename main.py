@@ -373,8 +373,9 @@ example: inverse 4n -""")
 
         for i in range(1, 100):
 
-            if len(self._board.legal_moves) < 1:
-                print("合法手なし")
+            # 対局終了理由をどこかに表示したい。盤とか
+            if self._board.is_gameover():
+                print("# gameover")
                 break
 
             # １つ選ぶ

@@ -2031,15 +2031,272 @@ class Board():
             self._is_gameover = True
             return
 
-        # TODO アンドゥに注意
-        # TODO クリアー条件　黒番１
-        # TODO クリアー条件　黒番２
-        # TODO クリアー条件　黒番３
-        # TODO クリアー条件　黒番４
-        # TODO クリアー条件　黒番５
-        # TODO クリアー条件　黒番６
+        # TODO クリアー条件はアンドゥしたあと消すよう注意
 
-        # TODO プレイヤーが３つのタスクを完了した
+        # クリアー条件　黒番１　横に３つ 1 が並んでいること
+        #   +-------+
+        #   |       |
+        #   | 1 1 1 |
+        #   |       |
+        #   +-------+
+        def update_cleared_target_1():
+            for rank in range(0, RANK_LEN - 2):
+                for file in range(0, FILE_LEN - 2):
+
+                    sq = Square.file_rank_to_sq(file, rank)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 1, rank)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 2, rank)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    self._cleared_targets[0] = len(self._board_editing_history.game_items)
+                    return
+
+        if self._cleared_targets[0] == -1:
+            update_cleared_target_1()
+
+
+        # クリアー条件　黒番２　斜め（左右反転でも構わない）に４つ 1 が並んでいること
+        #   Sinister Diagonal   Baroque Diagonal
+        #   +---------+         +---------+
+        #   | 1       |         |       1 |
+        #   |   1     |         |     1   |
+        #   |     1   |         |   1     |
+        #   |       1 |         | 1       |
+        #   +---------+         +---------+
+        def update_cleared_target_2():
+            # Sinister Diagonal
+            for rank in range(0, RANK_LEN - 3):
+                for file in range(0, FILE_LEN - 3):
+
+                    sq = Square.file_rank_to_sq(file, rank)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 1, rank + 1)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 2, rank + 2)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 3, rank + 3)
+                    if self._squares[sq] == PC_BLACK:
+                        continue
+
+                    self._cleared_targets[1] = len(self._board_editing_history.game_items)
+                    return
+
+            # Baroque Diagonal
+            for rank in reversed(range(3, RANK_LEN)):
+                for file in range(0, FILE_LEN - 3):
+
+                    sq = Square.file_rank_to_sq(file, rank)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 1, rank - 1)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 2, rank - 2)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 3, rank - 3)
+                    if self._squares[sq] == PC_BLACK:
+                        continue
+
+                    self._cleared_targets[1] = len(self._board_editing_history.game_items)
+                    return
+
+        if self._cleared_targets[1] == -1:
+            update_cleared_target_2()
+
+
+        # クリアー条件　黒番３　縦に５つ 1 が並んでいること
+        #   +-----------+
+        #   |     1     |
+        #   |     1     |
+        #   |     1     |
+        #   |     1     |
+        #   |     1     |
+        #   +-----------+
+        def update_cleared_target_3():
+            for file in range(0, FILE_LEN - 4):
+                for rank in range(0, RANK_LEN - 4):
+
+                    sq = Square.file_rank_to_sq(file, rank)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file, rank + 1)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file, rank + 2)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file, rank + 3)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file, rank + 4)
+                    if self._squares[sq] != PC_BLACK:
+                        continue
+
+                    self._cleared_targets[2] = len(self._board_editing_history.game_items)
+                    return
+
+        if self._cleared_targets[2] == -1:
+            update_cleared_target_3()
+
+
+
+        # クリアー条件　白番１　縦に３つ 0 が並んでいること
+        #   +-------+
+        #   |   0   |
+        #   |   0   |
+        #   |   0   |
+        #   +-------+
+        def update_cleared_target_4():
+            for file in range(0, FILE_LEN - 2):
+                for rank in range(0, RANK_LEN - 2):
+
+                    sq = Square.file_rank_to_sq(file, rank)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file, rank + 1)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file, rank + 2)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    self._cleared_targets[3] = len(self._board_editing_history.game_items)
+                    return
+
+        if self._cleared_targets[3] == -1:
+            update_cleared_target_4()
+
+
+        # クリアー条件　白番２　斜め（左右反転でも構わない）に４つ 0 が並んでいること
+        #   Sinister Diagonal   Baroque Diagonal
+        #   +---------+         +---------+
+        #   | 0       |         |       0 |
+        #   |   0     |         |     0   |
+        #   |     0   |         |   0     |
+        #   |       0 |         | 0       |
+        #   +---------+         +---------+
+        def update_cleared_target_5():
+            # Sinister Diagonal
+            for rank in range(0, RANK_LEN - 3):
+                for file in range(0, FILE_LEN - 3):
+
+                    sq = Square.file_rank_to_sq(file, rank)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 1, rank + 1)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 2, rank + 2)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 3, rank + 3)
+                    if self._squares[sq] == PC_WHITE:
+                        continue
+
+                    self._cleared_targets[4] = len(self._board_editing_history.game_items)
+                    return
+
+            # Baroque Diagonal
+            for rank in reversed(range(3, RANK_LEN)):
+                for file in range(0, FILE_LEN - 3):
+
+                    sq = Square.file_rank_to_sq(file, rank)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 1, rank - 1)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 2, rank - 2)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 3, rank - 3)
+                    if self._squares[sq] == PC_WHITE:
+                        continue
+
+                    self._cleared_targets[4] = len(self._board_editing_history.game_items)
+                    return
+
+        if self._cleared_targets[4] == -1:
+            update_cleared_target_5()
+
+
+        # クリアー条件　白番３　横に５つ 0 が並んでいること
+        #   +-----------+
+        #   |           |
+        #   |           |
+        #   | 0 0 0 0 0 |
+        #   |           |
+        #   |           |
+        #   +-----------+
+        def update_cleared_target_6():
+            for rank in range(0, RANK_LEN - 4):
+                for file in range(0, FILE_LEN - 4):
+
+                    sq = Square.file_rank_to_sq(file, rank)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 1, rank)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 2, rank)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 3, rank)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    sq = Square.file_rank_to_sq(file + 4, rank)
+                    if self._squares[sq] != PC_WHITE:
+                        continue
+
+                    self._cleared_targets[5] = len(self._board_editing_history.game_items)
+                    return
+
+        if self._cleared_targets[5] == -1:
+            update_cleared_target_6()
+
+
+        # どちらかのプレイヤーが３つのターゲットを完了した
+        if self._cleared_targets[0] != -1 and self._cleared_targets[1] != -1 and self._cleared_targets[2] != -1:
+            self._is_gameover = True
+            return
+
+        elif self._cleared_targets[3] != -1 and self._cleared_targets[4] != -1 and self._cleared_targets[5] != -1:
+            self._is_gameover = True
+            return
+
 
         # TODO 投了している
 
@@ -2083,13 +2340,38 @@ class Board():
         else:
             latest_move_str = 'init'
 
+
+        # クリアーターゲット状況
+        cleared_targets_list = []
+        if self._cleared_targets[0] != -1:
+            cleared_targets_list.append('b3')
+        if self._cleared_targets[1] != -1:
+            cleared_targets_list.append('b4')
+        if self._cleared_targets[2] != -1:
+            cleared_targets_list.append('b5')
+        if self._cleared_targets[3] != -1:
+            cleared_targets_list.append('w3')
+        if self._cleared_targets[4] != -1:
+            cleared_targets_list.append('w4')
+        if self._cleared_targets[5] != -1:
+            cleared_targets_list.append('w5')
+
+        if 0 < len(cleared_targets_list):
+            cleared_targets_str = f" | {' '.join(cleared_targets_list)}"
+        else:
+            cleared_targets_str = ''
+
+
+        # 終局
         if self.is_gameover():
+            # TODO black win とか、 white win, draw とかにしたい
             gameover_str = ' | gameover'
         else:
             gameover_str = ''
 
 
-        print(f"[{moves_num:2} moves {edits_num_str}| {latest_move_str}{gameover_str}]")
+        print(f"[{moves_num:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str}{gameover_str}]")
+
 
         # 盤表示
         # ------
@@ -2160,10 +2442,14 @@ class Board():
         # 現在の盤面からのSFEN表示
         if from_present:
             target_squares = self._squares 
+            if target_squares is None:
+                raise ValueError("self._squares is None")
 
         # 初期盤面からのSFEN表示
         else:
             target_squares = self._squares_at_init
+            if target_squares is None:
+                raise ValueError("self._squares_at_init is None")
 
         for rank in range(0, RANK_LEN):
             for file in range(0, FILE_LEN):
