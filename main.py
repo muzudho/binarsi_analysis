@@ -346,14 +346,15 @@ LEGAL MOVES
             code: history
         """
         print("""\
-履歴表示　ここから：
+HISTORY
+-------
     番号： (対局棋譜番号|盤面編集番号）
     凡例： `&` - 対局棋譜ではなく盤面編集の操作を示す
     　　： `$` - 上書された石の並びを示す""")
 
         moves_num = 0
 
-        for i in range(0, len(self._board.board_editing_history)):
+        for i in range(0, len(self._board.board_editing_history.items)):
             board_editing_item = self._board.board_editing_history.items[i]
             move = board_editing_item.move
 
@@ -370,7 +371,9 @@ LEGAL MOVES
 
             print(f"    ({sequence_number_str}) move:{move.to_code()} ${stones_before_change}")
 
-        print("履歴表示　ここまで：")
+        print("""\
+-------
+""")
 
 
     def self_match_once(self, match_count):

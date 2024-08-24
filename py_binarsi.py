@@ -13,6 +13,12 @@ _pc_to_str = {
     2 : '0',
 }
 
+_str_to_pc = {
+    '.' : 0,
+    '1' : 1,
+    '0' : 2,
+}
+
 _pc_to_binary = {
     1: 1,
     2: 0,
@@ -1199,6 +1205,27 @@ class Board():
         raise ValueError(f"undefined axis_id:{way.axis_id}")
 
 
+    def set_stones_on_way(self, target_way, stones_str):
+        """指定の路に、指定の石の列を上書きします"""
+
+        stones_before_change = ''
+
+        # 筋（段）方向両用
+        axes_absorber = target_way.absorb_axes()
+
+        for i in range(0, axes_absorber.opponent_axis_length):
+
+            dst_sq = Square.file_rank_to_sq(target_way.number, i, swap=axes_absorber.swap_axes)
+            old_stone = self._squares[dst_sq]
+
+            if old_stone != PC_EMPTY:
+                stones_before_change += _pc_to_str[old_stone]
+
+            self._squares[dst_sq] = _str_to_pc[stones_str[i]]
+
+        return stones_before_change
+
+
     def copy_stones_on_line_unary(self, move, overwrite=False):
         """入力路 a を単項演算して、 b 路へ出力
 
@@ -1387,13 +1414,28 @@ class Board():
                 return
 
 
-        # TODO エディット演算子
+        # エディット演算子
         if op.startswith('e'):
 
-            print(f"Edit operator  move_u={move.to_code()}  way_u={move.way.to_code()}  {move.stones_before_change=}")
+            #print(f"Edit operator  move_u={move.to_code()}  way_u={move.way.to_code()}  {move.stones_before_change=}")
 
             # 対象の路に石が置いてあるか、そうでないかに関わらず同じ動きをします
+            stones_before_change = self.set_stones_on_way(
+                target_way=move.way,
+                stones_str=move.stones_before_change)
 
+
+            if move.operator.force_unlock:
+                new_lock = False
+            else: 
+                # エディット演算子を対局中に使うことは想定していない。暫定的にエディットを使うと路ロックがかかるものとする
+                new_lock = True
+
+            self._way_locks[move.way.to_code()] = new_lock
+            self._board_editing_history.append(BoardEditingItem(
+                move=move,
+                stones_before_change=stones_before_change))
+            self.update_legal_moves()
             return
 
 
