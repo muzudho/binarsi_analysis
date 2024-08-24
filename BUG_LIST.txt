@@ -1,0 +1,29 @@
+[ 2 moves | moved 5o | next black]
+    1 2 3 4 # 6 7
+  +---------------+
+a |               |
+b |               |
+c |     0 1 1     |
+d |               |
+e |               |
+f |               |
+  +---------------+
+[from beginning] sfen startpos moves 4n 5o
+                 stones_before_change - -
+[from present]   sfen 7/7/2oxx2/7/7/7 b 5 2
+
+do 4nH
+[ 3 moves | moved 4nH | next white]
+    1 2 3 # # 6 7
+  +---------------+
+a |               |
+b |               |
+c |     0 1 1     |
+d |               |
+e |               |
+f |               |
+  +---------------+
+[from beginning] sfen startpos moves 4n 5o 4nH
+                 stones_before_change - - 0
+[from present]   sfen 7/7/2oxx2/7/7/7 b 45 3
+

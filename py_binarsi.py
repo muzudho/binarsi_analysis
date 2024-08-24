@@ -6,8 +6,9 @@ PC_EMPTY = 0
 PC_BLACK = 1
 PC_WHITE = 2
 
+# 盤面表示用文字列。SFENにも使用
 _pc_to_str = {
-    0 : ' ',
+    0 : '.',
     1 : '1',
     2 : '0',
 }
@@ -408,7 +409,7 @@ class Operator():
             if stone == PC_EMPTY:
                 return PC_EMPTY
         
-        raise ValueError(f"undefined operator  stem_u:{self._stem_u}  stone:{stone}")
+        raise ValueError(f"undefined operator  {self._stem_u=}  {stone=}")
 
 
     def binary_operate(self, left_operand, right_operand):
@@ -634,114 +635,113 @@ class MoveHelper():
 
 
         # TODO 逆操作 0ビットシフト
-        elif op == 's0':
+        if op == 's0':
             print("[逆操作] s0")
             return None
 
 
         # TODO 逆操作 1ビットシフト
-        elif op == 's1':
+        if op == 's1':
             print("[逆操作] s1")
             return None
 
 
         # TODO 逆操作 2ビットシフト
-        elif op == 's2':
+        if op == 's2':
             print("[逆操作] s2")
             return None
 
 
         # TODO 逆操作 3ビットシフト
-        elif op == 's3':
+        if op == 's3':
             print("[逆操作] s3")
             return None
 
 
         # TODO 逆操作 4ビットシフト
-        elif op == 's4':
+        if op == 's4':
             print("[逆操作] s4")
             return None
 
 
         # TODO 逆操作 5ビットシフト
-        elif op == 's5':
+        if op == 's5':
             print("[逆操作] s5")
             return None
 
 
         # TODO 逆操作 6ビットシフト
-        elif op == 's6':
+        if op == 's6':
             print("[逆操作] s6")
             return None
 
 
         # ノット・ニュー --逆操作--> カットザエッジ＃
-        elif op == 'n':
+        if op == 'n':
             return Move.code_to_obj(f"{way.to_code()}c#")
 
 
         # TODO 逆操作 ノットＬ
-        elif op == 'nL':
+        if op == 'nL':
             print("[逆操作] nL")
             return None
 
 
         # TODO 逆操作 ノットＨ
-        elif op == 'nH':
+        if op == 'nH':
             print("[逆操作] nH")
             return None
 
 
         # TODO 逆操作 ゼロ
-        elif op == 'ze':
+        if op == 'ze':
             print("[逆操作] ze")
             return None
 
 
         # TODO 逆操作 ノア
-        elif op == 'no':
+        if op == 'no':
             print("[逆操作] no")
             return None
 
 
         # TODO 逆操作 エクソア
-        elif op == 'xo':
+        if op == 'xo':
             print("[逆操作] xo")
             return None
 
 
         # TODO 逆操作 ナンド
-        elif op == 'na':
+        if op == 'na':
             print("[逆操作] na")
             return None
 
 
         # TODO 逆操作 アンド
-        elif op == 'a':
+        if op == 'a':
             print("[逆操作] a")
             return None
 
 
         # TODO 逆操作 エクスノア
-        elif op == 'xn':
+        if op == 'xn':
             print("[逆操作] xn")
             return None
 
 
         # TODO 逆操作 オア
-        elif op == 'o':
+        if op == 'o':
             print("[逆操作] o")
             return None
 
 
         # TODO 逆操作 ワン
-        elif op == 'on':
+        if op == 'on':
             print("[逆操作] on")
             return None
 
 
-        else:
-            raise ValueError(f"undefined operator:{op}")
+        raise ValueError(f"undefined operator:{op}")
 
 
 class BoardEditingItem():
@@ -1179,37 +1179,31 @@ class Board():
 
         # 筋方向
         if move.way.axis_id == FILE_ID:
-            for rank in range(0, RANK_LEN):
-
-                dst_sq = Square.file_rank_to_sq(move.way.number, rank)
-                old_stone = self._squares[dst_sq]
-
-                if overwrite and old_stone != PC_EMPTY:
-                    stones_before_change += _pc_to_str[old_stone]
-
-                self._squares[dst_sq] = move.operator.unary_operate(
-                    stone=self._squares[Square.file_rank_to_sq(move.way.number + 1, rank)])
-
-            return stones_before_change
-
+            way_swap = False
+            opponent_axis_length = RANK_LEN
 
         # 段方向
-        if move.way.axis_id == RANK_ID:
-            for file in range(0, FILE_LEN):
+        elif move.way.axis_id == RANK_ID:
+            way_swap = True
+            opponent_axis_length = FILE_LEN
 
-                dst_sq = Square.file_rank_to_sq(file, move.way.number)
-                old_stone = self._squares[dst_sq]
-
-                if overwrite and old_stone != PC_EMPTY:
-                    stones_before_change += _pc_to_str[old_stone]
-
-                self._squares[dst_sq] = move.operator.unary_operate(
-                    stone=self._squares[Square.file_rank_to_sq(file, move.way.number + 1)])
-
-            return stones_before_change
+        else:
+            raise ValueError(f"undefined axis_id  {move.way.axis_id=}")
 
 
-        raise ValueError(f"undefined axis_id:{move.way.axis_id}")
+        # 筋（段）方向両用
+        for i in range(0, opponent_axis_length):
+
+            dst_sq = Square.file_rank_to_sq(move.way.number, i, swap=way_swap)
+            old_stone = self._squares[dst_sq]
+
+            if overwrite and old_stone != PC_EMPTY:
+                stones_before_change += _pc_to_str[old_stone]
+
+            self._squares[dst_sq] = move.operator.unary_operate(
+                stone=self._squares[Square.file_rank_to_sq(move.way.number + 1, i, swap=way_swap)])
+
+        return stones_before_change
 
 
     def copy_stones_on_line_binary(self, move):
@@ -1241,12 +1235,12 @@ class Board():
 
         # 筋方向
         if move.way.axis_id == FILE_ID:
-            opponent_way_length = RANK_LEN
+            opponent_axis_length = RANK_LEN
             swap = False
         
         # 段方向
         elif move.way.axis_id == RANK_ID:
-            opponent_way_length = FILE_LEN
+            opponent_axis_length = FILE_LEN
             swap = True
 
         else:
@@ -1268,7 +1262,7 @@ class Board():
 
 
         # 筋（段）両用
-        for i in range(0, opponent_way_length):
+        for i in range(0, opponent_axis_length):
 
             dst_sq = Square.file_rank_to_sq(move.way.number, i, swap=swap)
             old_stone = self._squares[dst_sq]
@@ -1386,12 +1380,12 @@ class Board():
                 # 筋方向
                 if move.way.axis_id == FILE_ID:
                     way_swap = False
-                    opponent_way_length = RANK_LEN
+                    opponent_axis_length = RANK_LEN
                 
                 # 段方向
                 elif move.way.axis_id == RANK_ID:
                     way_swap = True
-                    opponent_way_length = FILE_LEN
+                    opponent_axis_length = FILE_LEN
                 
                 else:
                     raise ValueError(f"undefined axis_id  {move.way.axis_id=}")
@@ -1410,8 +1404,8 @@ class Board():
                 #       石を移す先の配列のインデックスの求め方は以下の通り
                 #       dst_index = (src_index - begin + bit_shift) % length + begin
 
-                source_stones = [PC_EMPTY] * opponent_way_length
-                for i in range(0, opponent_way_length):
+                source_stones = [PC_EMPTY] * opponent_axis_length
+                for i in range(0, opponent_axis_length):
                     src_sq = Square.file_rank_to_sq(move.way.number, i, swap=way_swap)
                     stone = self._squares[src_sq]
                     source_stones[i] = stone
@@ -1463,12 +1457,12 @@ class Board():
                 # 筋方向
                 if move.way.axis_id == FILE_ID:
                     way_swap = False
-                    opponent_way_length = RANK_LEN
+                    opponent_axis_length = RANK_LEN
                 
                 # 段方向
                 elif move.way.axis_id == RANK_ID:
                     way_swap = True
-                    opponent_way_length = FILE_LEN
+                    opponent_axis_length = FILE_LEN
                 
                 else:
                     raise ValueError(f"undefined axis_id  {move.way.axis_id=}")
@@ -1488,7 +1482,7 @@ class Board():
                     raise ValueError("not operator invalid operation")
 
                 # 入力路から、出力路へ、評価値を出力
-                for i in range(0, opponent_way_length):
+                for i in range(0, opponent_axis_length):
                     stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=way_swap)]
                     self._squares[Square.file_rank_to_sq(dst_j, i, swap=way_swap)] = move.operator.unary_operate(stone)
 
@@ -1514,12 +1508,12 @@ class Board():
                 # 筋方向
                 if move.way.axis_id == FILE_ID:
                     way_swap = False
-                    opponent_way_length = RANK_LEN
+                    opponent_axis_length = RANK_LEN
                 
                 # 段方向
                 elif move.way.axis_id == RANK_ID:
                     way_swap = True
-                    opponent_way_length = FILE_LEN
+                    opponent_axis_length = FILE_LEN
 
                 # 筋（段）方向両用
                 dst_j = move.way.number
@@ -1536,7 +1530,7 @@ class Board():
                     raise ValueError("not operator invalid operation")
 
                 # 入力路から、出力路へ、評価値を出力
-                for i in range(0, opponent_way_length):
+                for i in range(0, opponent_axis_length):
                     stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=way_swap)]
 
                     if stone != PC_EMPTY:
@@ -1563,12 +1557,12 @@ class Board():
                 # 筋方向
                 if move.way.axis_id == FILE_ID:
                     way_swap = False
-                    opponent_way_length = RANK_LEN
+                    opponent_axis_length = RANK_LEN
                 
                 # 段方向
                 elif move.way.axis_id == RANK_ID:
                     way_swap = True
-                    opponent_way_length = FILE_LEN
+                    opponent_axis_length = FILE_LEN
 
                 # 筋（段）方向両用
                 dst_j = move.way.number
@@ -1585,7 +1579,7 @@ class Board():
                     raise ValueError("not operator invalid operation")
 
                 # 入力路から、出力路へ、評価値を出力
-                for i in range(0, opponent_way_length):
+                for i in range(0, opponent_axis_length):
                     stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=way_swap)]
                     self._squares[Square.file_rank_to_sq(dst_j, i, swap=way_swap)] = move.operator.unary_operate(stone)
 
@@ -1611,12 +1605,12 @@ class Board():
                 # 筋方向
                 if move.way.axis_id == FILE_ID:
                     way_swap = False
-                    opponent_way_length = RANK_LEN
+                    opponent_axis_length = RANK_LEN
                 
                 # 段方向
                 elif move.way.axis_id == RANK_ID:
                     way_swap = True
-                    opponent_way_length = FILE_LEN
+                    opponent_axis_length = FILE_LEN
 
                 # 筋（段）方向両用
                 dst_j = move.way.number
@@ -1633,7 +1627,7 @@ class Board():
                     raise ValueError("not operator invalid operation")
 
                 # 入力路から、出力路へ、評価値を出力
-                for i in range(0, opponent_way_length):
+                for i in range(0, opponent_axis_length):
                     stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=way_swap)]
 
                     if stone != PC_EMPTY:
@@ -1849,11 +1843,11 @@ class Board():
 
         # 筋方向
         if target_way.axis_id == FILE_ID:
-            opponent_way_length = FILE_LEN
+            opponent_axis_length = FILE_LEN
 
         # 段方向
         elif target_way.axis_id == RANK_ID:
-            opponent_way_length = RANK_LEN
+            opponent_axis_length = RANK_LEN
 
         else:
             raise ValueError(f"undefined way: {target_way.axis_id=}")
@@ -1862,7 +1856,7 @@ class Board():
         # 対称路に石が置いてあるなら
         if self.exists_stone_on_way(target_way):
             # ロウ、ハイの両方に石が置いてある必要がある
-            if 0 < target_way.number and target_way.number < opponent_way_length - 1:
+            if 0 < target_way.number and target_way.number < opponent_axis_length - 1:
                 low_way = target_way.low_way()
                 high_way = target_way.high_way()
                 if self.exists_stone_on_way(low_way) and self.exists_stone_on_way(high_way):
@@ -1878,7 +1872,7 @@ class Board():
                     return (first_way, second_way)
             
             # ハイの方に２つ続けて石が置いているか？
-            if target_way.number < opponent_way_length - 2:
+            if target_way.number < opponent_axis_length - 2:
                 first_way = target_way.high_way()
                 second_way = target_way.high_way(diff=2)
                 if self.exists_stone_on_way(first_way) and self.exists_stone_on_way(second_way):
@@ -1893,13 +1887,13 @@ class Board():
             演算子コード
             例： 'o'
         """
-        opponent_way_length_list = [FILE_LEN, RANK_LEN]
+        opponent_axis_length_list = [FILE_LEN, RANK_LEN]
         axis_id_list = [FILE_ID, RANK_ID]   # 筋、段
         # 筋（段）両用
         for j in range(0, 1):
-            opponent_way_length = opponent_way_length_list[j]
+            opponent_axis_length = opponent_axis_length_list[j]
 
-            for i in range(0, opponent_way_length):
+            for i in range(0, opponent_axis_length):
                 dst_i_way = Way(axis_id_list[j], i)
 
                 # 石が置いてある路
@@ -1910,7 +1904,7 @@ class Board():
                         continue
 
                     # ロウ、ハイの両方に石が置いてある必要がある
-                    if 0 < i and i < opponent_way_length - 1 and self.exists_stone_on_way(dst_i_way.low_way()) and self.exists_stone_on_way(dst_i_way.high_way()):
+                    if 0 < i and i < opponent_axis_length - 1 and self.exists_stone_on_way(dst_i_way.low_way()) and self.exists_stone_on_way(dst_i_way.high_way()):
                         # 対象路上にある石を Or して Reverse できる
                         self._legal_moves.append(Move(dst_i_way, Operator.code_to_obj(operator_u)))
 
@@ -1918,7 +1912,7 @@ class Board():
                 else:
                     # 隣のどちらかに２つ続けて石が置いているか？
                     if ((1 < i and self.exists_stone_on_way(dst_i_way.low_way()) and self.exists_stone_on_way(dst_i_way.low_way(diff=2))) or
-                        (i < opponent_way_length - 2 and self.exists_stone_on_way(dst_i_way.high_way()) and self.exists_stone_on_way(dst_i_way.high_way(diff=2)))):
+                        (i < opponent_axis_length - 2 and self.exists_stone_on_way(dst_i_way.high_way()) and self.exists_stone_on_way(dst_i_way.high_way(diff=2)))):
                         # Or で New できる
                         self._legal_moves.append(Move(dst_i_way, Operator.code_to_obj(operator_u)))
 
@@ -2456,7 +2450,7 @@ class Board():
         # 盤表示
         # ------
 
-        # 数値を文字列(Str)に変更
+        # 数値を表示用文字列(Str)に変更
         s = [' '] * BOARD_AREA
         for sq in range(0, BOARD_AREA):
             s[sq] = _pc_to_str[self._squares[sq]]
@@ -2543,7 +2537,6 @@ class Board():
         from_present : bool
             現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
-        global _pc_to_str
         global _way_characters
 
         buffer = []
