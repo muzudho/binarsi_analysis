@@ -1373,7 +1373,7 @@ class Board():
             stones_before_change=stones_before_change))
 
 
-    def get_unary_src_way_1(self, way):
+    def get_unary_src_way_1_number(self, way):
         # 左（上）端なら、右（下）側確定
         if way.number == 0:
             return way.number + 1
@@ -1552,9 +1552,9 @@ class Board():
 
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    stone = self._squares[Square.file_rank_to_sq(
-                        self.get_unary_src_way_1(move.way), i, swap=axes_absorber.swap_axes)]
-                    self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
+                    src_stone = self._squares[Square.file_rank_to_sq(
+                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes)]
+                    self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(src_stone)
 
                 # 新規作成操作では
                 #   路ロックは掛からない（外れる）
@@ -1574,12 +1574,15 @@ class Board():
 
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    stone = self._squares[Square.file_rank_to_sq(
-                        self.get_unary_src_way_1(move.way), i, swap=axes_absorber.swap_axes)]
+                    src_stone = self._squares[Square.file_rank_to_sq(
+                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes)]
 
-                    if stone != PC_EMPTY:
-                        stones_before_change += _pc_to_str[stone]
-                        self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
+                    if src_stone != PC_EMPTY:
+                        dst_stone = self._squares[Square.file_rank_to_sq(
+                            move.way.number, i, swap=axes_absorber.swap_axes)]
+
+                        stones_before_change += _pc_to_str[dst_stone]
+                        self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(src_stone)
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
@@ -1602,12 +1605,15 @@ class Board():
 
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    stone = self._squares[Square.file_rank_to_sq(
-                        self.get_unary_src_way_1(move.way), i, swap=axes_absorber.swap_axes)]
+                    src_stone = self._squares[Square.file_rank_to_sq(
+                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes)]
 
-                    if stone != PC_EMPTY:
-                        stones_before_change += _pc_to_str[stone]
-                        self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
+                    if src_stone != PC_EMPTY:
+                        dst_stone = self._squares[Square.file_rank_to_sq(
+                            move.way.number, i, swap=axes_absorber.swap_axes)]
+
+                        stones_before_change += _pc_to_str[dst_stone]
+                        self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(src_stone)
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
