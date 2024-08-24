@@ -2303,11 +2303,24 @@ class Board():
 
 
         # どちらかのプレイヤーが３つのターゲットを完了した
+        is_black_win = False
+        is_white_win = False
         if self._cleared_targets[0] != -1 and self._cleared_targets[1] != -1 and self._cleared_targets[2] != -1:
+            is_black_win = True
+
+        if self._cleared_targets[3] != -1 and self._cleared_targets[4] != -1 and self._cleared_targets[5] != -1:
+            is_white_win = True
+
+        if is_black_win and is_white_win:
+            # TODO 同着になる手は禁じ手
+            self._gameover_reason = 'draw (illegal move)'
+            return
+
+        if is_black_win:
             self._gameover_reason = 'black win'
             return
 
-        elif self._cleared_targets[3] != -1 and self._cleared_targets[4] != -1 and self._cleared_targets[5] != -1:
+        if is_white_win:
             self._gameover_reason = 'white win'
             return
 
@@ -2376,14 +2389,18 @@ class Board():
             cleared_targets_str = ''
 
 
-        # 終局理由
+        # 次の手番、または、終局理由
         if self.is_gameover():
-            gameover_str = f' | {self.gameover_reason}'
+            next_turn_str = self.gameover_reason
         else:
-            gameover_str = ''
+            next_turn = self.get_next_turn(from_present=True)
+            if next_turn == PC_BLACK:
+                next_turn_str = 'next black'
+            else:
+                next_turn_str = 'next white'
 
 
-        print(f"[{moves_num:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str}{gameover_str}]")
+        print(f"[{moves_num:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str} | {next_turn_str}]")
 
 
         # 盤表示
@@ -2429,6 +2446,39 @@ class Board():
 {a['f']} | {s[5]} {s[11]} {s[17]} {s[23]} {s[29]} {s[35]} {s[41]} |
   +---------------+\
 """
+
+
+    def get_next_turn(self, from_present=False):
+        """手番を取得
+
+        現在の盤面から。対局棋譜の指し手番号が奇数なら黒番、偶数なら後手番（将棋と違って上手、下手が無いから）
+        ただし、添付局面が先手だった場合
+
+        Parameters
+        ----------
+        from_present : bool
+            現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
+        """
+
+        if from_present:
+            # 添付局面が先手番のケース
+            if self._turn_at_init == PC_BLACK:
+                if len(self._board_editing_history.game_items) % 2 == 0:
+                    return PC_BLACK
+                
+                return PC_WHITE
+
+            # 添付局面が後手番のケース
+            if len(self._board_editing_history.game_items) % 2 == 0:
+                return PC_WHITE
+
+            return PC_BLACK
+
+        # 初期盤面から
+        if self._turn_at_init == PC_BLACK:
+            return PC_BLACK
+        
+        return PC_WHITE
 
 
     def as_sfen(self, from_present=False):
@@ -2495,34 +2545,17 @@ class Board():
             if rank != RANK_LEN - 1:
                 buffer.append('/')
 
+
         # 添付局面図の手番
         # ---------------
-
-        # 現在の盤面から。対局棋譜の指し手番号が奇数なら黒番、偶数なら後手番（将棋と違って上手、下手が無いから）
-        # 初期局面を 0手目 と数えるとする
-        # ただし、添付局面が先手だった場合に限る
-        if from_present:
-            # 添付局面が先手番のケース
-            if self._turn_at_init == PC_BLACK:
-                if len(self._board_editing_history.game_items) % 2 == 0:
-                    buffer.append(' b ')
-                else:
-                    buffer.append(' w ')
-
-            # 添付局面が後手番のケース
-            else:
-                if len(self._board_editing_history.game_items) % 2 == 0:
-                    buffer.append(' w ')
-                else:
-                    buffer.append(' b ')
-
-        # 初期盤面から
+        next_turn = self.get_next_turn()
+        if next_turn == PC_BLACK:
+            buffer.append(' b ')
+        elif next_turn == PC_WHITE:
+            buffer.append(' w ')
         else:
-            if self._turn_at_init == PC_BLACK:
-                buffer.append(' b ')
-            else:
-                buffer.append(' w ')
-
+            raise ValueError(f"undefined next turn  {next_turn=}")
+        
 
         # 添付局面図の筋（段）の符号、またはロック
         # -------------------------------------
