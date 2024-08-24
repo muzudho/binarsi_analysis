@@ -61,6 +61,9 @@ _num_to_rank = {
 # 路の符号
 _way_characters = ['1', '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f']
 
+# クリアーターゲットの数
+CLEAR_TARGETS_LEN = 6
+
 
 class Square():
     """マス"""
@@ -939,7 +942,13 @@ class Board():
         self._gameover_reason = ''
 
         # 勝利条件をクリアーしたのが何手目か
-        self._cleared_targets = [-1, -1, -1, -1, -1, -1]
+        self._clear_targets = [-1, -1, -1, -1, -1, -1]
+
+
+    @property
+    def clear_targets(self):
+        """クリアーターゲット"""
+        return self._clear_targets
 
 
     @property
@@ -1828,13 +1837,15 @@ class Board():
                     return (first_way, second_way)
 
 
-    def make_legal_moves(self, operator_u):
+    def make_legal_moves(self, operator_u, for_edit_mode=False):
         """
         Parameters
         ----------
         operator_u : str
             演算子コード
             例： 'o'
+        for_edit_mode : bool
+            盤面編集用
         """
         opponent_axis_length_list = [FILE_LEN, RANK_LEN]
         axis_id_list = [FILE_ID, RANK_ID]   # 筋、段
@@ -1855,7 +1866,11 @@ class Board():
                     # ロウ、ハイの両方に石が置いてある必要がある
                     if 0 < i and i < opponent_axis_length - 1 and self.exists_stone_on_way(dst_i_way.low_way()) and self.exists_stone_on_way(dst_i_way.high_way()):
                         # 対象路上にある石を Or して Reverse できる
-                        self._legal_moves.append(Move(dst_i_way, Operator.code_to_obj(operator_u)))
+                        move = Move(dst_i_way, Operator.code_to_obj(operator_u))
+                        if for_edit_mode:
+                            self._moves_for_edit.append(move)
+                        else:
+                            self._legal_moves.append(move)
 
                 # 石が置いてない路
                 else:
@@ -1863,7 +1878,11 @@ class Board():
                     if ((1 < i and self.exists_stone_on_way(dst_i_way.low_way()) and self.exists_stone_on_way(dst_i_way.low_way(diff=2))) or
                         (i < opponent_axis_length - 2 and self.exists_stone_on_way(dst_i_way.high_way()) and self.exists_stone_on_way(dst_i_way.high_way(diff=2)))):
                         # Or で New できる
-                        self._legal_moves.append(Move(dst_i_way, Operator.code_to_obj(operator_u)))
+                        move = Move(dst_i_way, Operator.code_to_obj(operator_u))
+                        if for_edit_mode:
+                            self._moves_for_edit.append(move)
+                        else:
+                            self._legal_moves.append(move)
 
 
     def update_legal_moves(self):
@@ -2009,7 +2028,7 @@ class Board():
         self.make_legal_moves(operator_u='o')
 
         # ゼロ（ZERO）の合法手生成
-        self.make_legal_moves(operator_u='ze')
+        self.make_legal_moves(operator_u='ze', for_edit_mode=True)
 
         # ノア（NOR）の合法手生成
         self.make_legal_moves(operator_u='no')
@@ -2024,7 +2043,7 @@ class Board():
         self.make_legal_moves(operator_u='xn')
 
         # ワン（ONE）の合法手生成
-        self.make_legal_moves(operator_u='on')
+        self.make_legal_moves(operator_u='on', for_edit_mode=True)
 
         # 終局判定を更新
         self.update_gameover()
@@ -2041,12 +2060,14 @@ class Board():
         # TODO クリアー条件はアンドゥしたあと消すよう注意
 
         # クリアー条件　黒番１　横に３つ 1 が並んでいること
-        #   +-------+
-        #   |       |
-        #   | 1 1 1 |
-        #   |       |
-        #   +-------+
-        def update_cleared_target_1():
+        #   +-----------+
+        #   | . . . . . |
+        #   | . . . . . |
+        #   | . 1 1 1 . |
+        #   | . . . . . |
+        #   | . . . . . |
+        #   +-----------+
+        def update_clear_target_1():
             for rank in range(0, RANK_LEN - 2):
                 for file in range(0, FILE_LEN - 2):
 
@@ -2062,22 +2083,23 @@ class Board():
                     if self._squares[sq] != PC_BLACK:
                         continue
 
-                    self._cleared_targets[0] = len(self._board_editing_history.game_items)
+                    self._clear_targets[0] = len(self._board_editing_history.game_items)
                     return
 
-        if self._cleared_targets[0] == -1:
-            update_cleared_target_1()
+        if self._clear_targets[0] == -1:
+            update_clear_target_1()
 
 
         # クリアー条件　黒番２　斜め（左右反転でも構わない）に４つ 1 が並んでいること
         #   Sinister Diagonal   Baroque Diagonal
-        #   +---------+         +---------+
-        #   | 1       |         |       1 |
-        #   |   1     |         |     1   |
-        #   |     1   |         |   1     |
-        #   |       1 |         | 1       |
-        #   +---------+         +---------+
-        def update_cleared_target_2():
+        #   +-----------+       +-----------+
+        #   | 1 . . . . |       | . . . . 1 |
+        #   | . 1 . . . |       | . . . 1 . |
+        #   | . . 1 . . |       | . . 1 . . |
+        #   | . . . 1 . |       | . 1 . . . |
+        #   | . . . . . |       | . . . . . |
+        #   +-----------+       +-----------+
+        def update_clear_target_2():
             # Sinister Diagonal
             for rank in range(0, RANK_LEN - 3):
                 for file in range(0, FILE_LEN - 3):
@@ -2098,7 +2120,7 @@ class Board():
                     if self._squares[sq] == PC_BLACK:
                         continue
 
-                    self._cleared_targets[1] = len(self._board_editing_history.game_items)
+                    self._clear_targets[1] = len(self._board_editing_history.game_items)
                     return
 
             # Baroque Diagonal
@@ -2121,22 +2143,22 @@ class Board():
                     if self._squares[sq] == PC_BLACK:
                         continue
 
-                    self._cleared_targets[1] = len(self._board_editing_history.game_items)
+                    self._clear_targets[1] = len(self._board_editing_history.game_items)
                     return
 
-        if self._cleared_targets[1] == -1:
-            update_cleared_target_2()
+        if self._clear_targets[1] == -1:
+            update_clear_target_2()
 
 
         # クリアー条件　黒番３　縦に５つ 1 が並んでいること
         #   +-----------+
-        #   |     1     |
-        #   |     1     |
-        #   |     1     |
-        #   |     1     |
-        #   |     1     |
+        #   | . . 1 . . |
+        #   | . . 1 . . |
+        #   | . . 1 . . |
+        #   | . . 1 . . |
+        #   | . . 1 . . |
         #   +-----------+
-        def update_cleared_target_3():
+        def update_clear_target_3():
             for file in range(0, FILE_LEN - 4):
                 for rank in range(0, RANK_LEN - 4):
 
@@ -2160,21 +2182,23 @@ class Board():
                     if self._squares[sq] != PC_BLACK:
                         continue
 
-                    self._cleared_targets[2] = len(self._board_editing_history.game_items)
+                    self._clear_targets[2] = len(self._board_editing_history.game_items)
                     return
 
-        if self._cleared_targets[2] == -1:
-            update_cleared_target_3()
+        if self._clear_targets[2] == -1:
+            update_clear_target_3()
 
 
 
         # クリアー条件　白番１　縦に３つ 0 が並んでいること
-        #   +-------+
-        #   |   0   |
-        #   |   0   |
-        #   |   0   |
-        #   +-------+
-        def update_cleared_target_4():
+        #   +-----------+
+        #   | . . . . . |
+        #   | . . 0 . . |
+        #   | . . 0 . . |
+        #   | . . 0 . . |
+        #   | . . . . . |
+        #   +-----------+
+        def update_clear_target_4():
             for file in range(0, FILE_LEN - 2):
                 for rank in range(0, RANK_LEN - 2):
 
@@ -2190,22 +2214,23 @@ class Board():
                     if self._squares[sq] != PC_WHITE:
                         continue
 
-                    self._cleared_targets[3] = len(self._board_editing_history.game_items)
+                    self._clear_targets[3] = len(self._board_editing_history.game_items)
                     return
 
-        if self._cleared_targets[3] == -1:
-            update_cleared_target_4()
+        if self._clear_targets[3] == -1:
+            update_clear_target_4()
 
 
         # クリアー条件　白番２　斜め（左右反転でも構わない）に４つ 0 が並んでいること
         #   Sinister Diagonal   Baroque Diagonal
-        #   +---------+         +---------+
-        #   | 0       |         |       0 |
-        #   |   0     |         |     0   |
-        #   |     0   |         |   0     |
-        #   |       0 |         | 0       |
-        #   +---------+         +---------+
-        def update_cleared_target_5():
+        #   +-----------+       +-----------+
+        #   | 0 . . . . |       | . . . . 0 |
+        #   | . 0 . . . |       | . . . 0 . |
+        #   | . . 0 . . |       | . . 0 . . |
+        #   | . . . 0 . |       | . 0 . . . |
+        #   | . . . . . |       | . . . . . |
+        #   +-----------+       +-----------+
+        def update_clear_target_5():
             # Sinister Diagonal
             for rank in range(0, RANK_LEN - 3):
                 for file in range(0, FILE_LEN - 3):
@@ -2226,7 +2251,7 @@ class Board():
                     if self._squares[sq] == PC_WHITE:
                         continue
 
-                    self._cleared_targets[4] = len(self._board_editing_history.game_items)
+                    self._clear_targets[4] = len(self._board_editing_history.game_items)
                     return
 
             # Baroque Diagonal
@@ -2249,22 +2274,22 @@ class Board():
                     if self._squares[sq] == PC_WHITE:
                         continue
 
-                    self._cleared_targets[4] = len(self._board_editing_history.game_items)
+                    self._clear_targets[4] = len(self._board_editing_history.game_items)
                     return
 
-        if self._cleared_targets[4] == -1:
-            update_cleared_target_5()
+        if self._clear_targets[4] == -1:
+            update_clear_target_5()
 
 
         # クリアー条件　白番３　横に５つ 0 が並んでいること
         #   +-----------+
-        #   |           |
-        #   |           |
+        #   | . . . . . |
+        #   | . . . . . |
         #   | 0 0 0 0 0 |
-        #   |           |
-        #   |           |
+        #   | . . . . . |
+        #   | . . . . . |
         #   +-----------+
-        def update_cleared_target_6():
+        def update_clear_target_6():
             for rank in range(0, RANK_LEN - 4):
                 for file in range(0, FILE_LEN - 4):
 
@@ -2288,20 +2313,20 @@ class Board():
                     if self._squares[sq] != PC_WHITE:
                         continue
 
-                    self._cleared_targets[5] = len(self._board_editing_history.game_items)
+                    self._clear_targets[5] = len(self._board_editing_history.game_items)
                     return
 
-        if self._cleared_targets[5] == -1:
-            update_cleared_target_6()
+        if self._clear_targets[5] == -1:
+            update_clear_target_6()
 
 
         # どちらかのプレイヤーが３つのターゲットを完了した
         is_black_win = False
         is_white_win = False
-        if self._cleared_targets[0] != -1 and self._cleared_targets[1] != -1 and self._cleared_targets[2] != -1:
+        if self._clear_targets[0] != -1 and self._clear_targets[1] != -1 and self._clear_targets[2] != -1:
             is_black_win = True
 
-        if self._cleared_targets[3] != -1 and self._cleared_targets[4] != -1 and self._cleared_targets[5] != -1:
+        if self._clear_targets[3] != -1 and self._clear_targets[4] != -1 and self._clear_targets[5] != -1:
             is_white_win = True
 
         if is_black_win and is_white_win:
@@ -2330,12 +2355,12 @@ class Board():
             [ 2 moves | moved 3s1]
                 1 2 # 4 5 6 7
               +---------------+
-            a |               |
-            b |               |
-            c |     1         |
-            d |     0         |
-            e |               |
-            f |               |
+            a | . . . . . . . |
+            b | . . . . . . . |
+            c | . . 1 . . . . |
+            d | . . 0 . . . . |
+            e | . . . . . . . |
+            f | . . . . . . . |
               +---------------+
         """
         global _pc_to_str
@@ -2362,22 +2387,22 @@ class Board():
 
 
         # クリアーターゲット状況
-        cleared_targets_list = []
-        if self._cleared_targets[0] != -1:
-            cleared_targets_list.append('b3')
-        if self._cleared_targets[1] != -1:
-            cleared_targets_list.append('b4')
-        if self._cleared_targets[2] != -1:
-            cleared_targets_list.append('b5')
-        if self._cleared_targets[3] != -1:
-            cleared_targets_list.append('w3')
-        if self._cleared_targets[4] != -1:
-            cleared_targets_list.append('w4')
-        if self._cleared_targets[5] != -1:
-            cleared_targets_list.append('w5')
+        clear_targets_list = []
+        if self._clear_targets[0] != -1:
+            clear_targets_list.append('b3')
+        if self._clear_targets[1] != -1:
+            clear_targets_list.append('b4')
+        if self._clear_targets[2] != -1:
+            clear_targets_list.append('b5')
+        if self._clear_targets[3] != -1:
+            clear_targets_list.append('w3')
+        if self._clear_targets[4] != -1:
+            clear_targets_list.append('w4')
+        if self._clear_targets[5] != -1:
+            clear_targets_list.append('w5')
 
-        if 0 < len(cleared_targets_list):
-            cleared_targets_str = f" | {' '.join(cleared_targets_list)}"
+        if 0 < len(clear_targets_list):
+            cleared_targets_str = f" | {' '.join(clear_targets_list)}"
         else:
             cleared_targets_str = ''
 

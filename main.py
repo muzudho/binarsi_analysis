@@ -1,6 +1,6 @@
 import datetime
 import random
-from py_binarsi import Move, MoveHelper, Board
+from py_binarsi import CLEAR_TARGETS_LEN, Move, MoveHelper, Board
 
 
 class UsiEngine():
@@ -105,6 +105,11 @@ class UsiEngine():
             #   code: history
             elif cmd[0] == 'history':
                 self.print_history()
+
+            # クリアーターゲットを出力
+            #   code: clear_targets
+            elif cmd[0] == 'clear_targets':
+                self.print_clear_targets()
 
 
     def usi(self):
@@ -361,6 +366,37 @@ HISTORY
         print("""\
 -------
 """)
+
+
+    def print_clear_targets(self):
+        """クリアーターゲットの一覧表示"""
+
+        # Top と Bottom
+        disp1 = ['             '] * CLEAR_TARGETS_LEN
+        disp2 = ['    WANTED   '] * CLEAR_TARGETS_LEN
+
+        for i in range(0, CLEAR_TARGETS_LEN):
+            if self._board._clear_targets[i] != -1:
+                disp1[i] = '   CLEARED   '
+                disp2[i] = '             '
+
+        print(f"""\
+CLEAR TARGETS
+-------------
+
+     [b3]           [b4]           [b5]           [w3]           [w4]           [w5]
++-----------+  +-----------+  +-----------+  +-----------+  +-----------+  +-----------+
+| . . . . . |  | 1 . . . . |  | . . 1 . . |  | . . . . . |  | 0 . . . . |  | . . . . . |
+| . . . . . |  | . 1 . . . |  | . . 1 . . |  | . . 0 . . |  | . 0 . . . |  | . . . . . |
+| . 1 1 1 . |  | . . 1 . . |  | . . 1 . . |  | . . 0 . . |  | . . 0 . . |  | 0 0 0 0 0 |
+| . . . . . |  | . . . 1 . |  | . . 1 . . |  | . . 0 . . |  | . . . 0 . |  | . . . . . |
+| . . . . . |  | . . . . . |  | . . 1 . . |  | . . . . . |  | . . . . . |  | . . . . . |
++-----------+  +-----------+  +-----------+  +-----------+  +-----------+  +-----------+
+{disp1[0]:13}  {disp1[1]:13}  {disp1[2]:13}  {disp1[3]:13}  {disp1[4]:13}  {disp1[5]:13}
+{disp2[0]:13}  {disp2[1]:13}  {disp2[2]:13}  {disp2[3]:13}  {disp2[4]:13}  {disp2[5]:13}
+-------------
+""")
+        pass
 
 
     def self_match_once(self, match_count):
