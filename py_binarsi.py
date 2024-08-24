@@ -772,10 +772,13 @@ class Board():
 
         # 現局面の各マス
         self._squares = [PC_EMPTY] * BOARD_AREA
+
         # 現局面の合法手
         self._legal_moves = []
+
         # 現局面の盤面編集用の手（合法手除く）
         self._moves_for_edit = []
+
         # 軸ロック
         self._axis_locks = {
             '1' : False,
@@ -792,9 +795,13 @@ class Board():
             'e' : False,
             'f' : False,
         }
+
         # 盤面編集履歴（Move のリスト）
         #       対局棋譜のスーパーセット
         self._board_editing_history = []
+
+        # 終局しているか？
+        self._is_gameover = False
 
 
     @property
@@ -1670,8 +1677,8 @@ class Board():
 
 
     def is_gameover(self):
-        """TODO 終局しているか？"""
-        pass
+        """終局しているか？"""
+        return self._is_gameover
 
 
     def is_nyugyoku(self):
@@ -1996,11 +2003,30 @@ class Board():
         # ワン（ONE）の合法手生成
         self.make_legal_moves(operator_u='on')
 
+        # 終局判定を更新
+        self.update_gameover()
+
+
+    def update_gameover(self):
+        """終局判定を更新"""
+
+        # ステールメートしている
+        if len(self._legal_moves) < 1:
+            self._is_gameover = True
+            return
+
+        # TODO ３つのタスクを完了した
+
+        # TODO 投了している
+
+        # 終局していない
+        self._is_gameover = False
+
 
     def as_str(self):
         """（拡張仕様）盤のテキスト形式
         例：
-            [  2 moves | moved 3s1]
+            [ 2 moves | moved 3s1]
                 1 2 # 4 5 6 7
               +---------------+
             a |               |
@@ -2034,8 +2060,13 @@ class Board():
         else:
             latest_move_str = 'init'
 
+        if self.is_gameover():
+            gameover_str = ' | gameover'
+        else:
+            gameover_str = ''
 
-        print(f"[{moves_num:3} moves {edits_num_str}| {latest_move_str}]")
+
+        print(f"[{moves_num:2} moves {edits_num_str}| {latest_move_str}{gameover_str}]")
 
         # 盤表示
         # ------
