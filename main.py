@@ -208,8 +208,16 @@ class UsiEngine():
 
         # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
 
+        # 冗長な指し手を省く
+        move_list = []
+
+        for move in self._board.legal_moves:
+            if move.same_move_u == '':
+                move_list.append(move)
+
+
         # １手指す
-        best_move = random.choice(list(self._board.legal_moves))
+        best_move = random.choice(move_list)
 
         print(f"info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move")
         print(f'bestmove {best_move.to_code()}', flush=True)

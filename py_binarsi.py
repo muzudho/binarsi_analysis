@@ -178,7 +178,7 @@ class Way():
     例： '1',  '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f'
     """
 
-    _code_to_way_obj = None
+    _code_to_obj = None
 
     def __init__(self, axis_id, number):
         """初期化
@@ -209,7 +209,7 @@ class Way():
 
 
     @classmethod
-    def code_to_way(clazz, code):
+    def code_to_obj(clazz, code):
         """生成
 
         Parameters
@@ -224,8 +224,8 @@ class Way():
             raise ValueError(f"format error.  way_u:`{code}`")
 
 
-        if clazz._code_to_way_obj is None:
-            clazz._code_to_way_obj = {
+        if clazz._code_to_obj is None:
+            clazz._code_to_obj = {
                 '1': Way(FILE_ID, 0),
                 '2': Way(FILE_ID, 1),
                 '3': Way(FILE_ID, 2),
@@ -242,8 +242,8 @@ class Way():
             }
 
 
-        if code in clazz._code_to_way_obj:
-            return clazz._code_to_way_obj[code]
+        if code in clazz._code_to_obj:
+            return clazz._code_to_obj[code]
 
         raise ValueError(f"not found way.  code:{code}")
 
@@ -341,12 +341,9 @@ class Operator():
         n
         nL
         nH
-    
-    強制的にロックを外したい場合、末尾に `#` を付ける。これは盤面操作のためのもので、対局での使用は想定していない
-        例： `7c#` - ７筋の全石を取り除き、ロックも外す
     """
 
-    def __init__(self, stem_u, parameter_length, force_unlock=False):
+    def __init__(self, stem_u, parameter_length):
         """初期化
         
         Parameters
@@ -355,14 +352,9 @@ class Operator():
             演算子語幹部のUSI書式文字列（路ロック指定を除く）
         parameter_length: int
             引数の個数
-        force_unlock : bool
-        	強制アンロック
-        	True:  強制的にロックを解除する。盤面編集時に利用
-        	False: 対局ルールにある動作をする。遊び方に従ってロックがかかるか、遊び方に従ってロックをかけないかのどちらか
         """
         self._stem_u = stem_u
         self._parameter_length = parameter_length
-        self._force_unlock = force_unlock
 
 
     @property
@@ -375,11 +367,6 @@ class Operator():
         return self._parameter_length
 
 
-    @property
-    def force_unlock(self):
-        return self._force_unlock
-
-
     @staticmethod
     def code_to_obj(code):
         """コードからオブジェクトへ変換
@@ -387,18 +374,17 @@ class Operator():
         Parameters
         ----------
         code : str
-            コード（演算子語幹部、路ロック指定含む）
+            コード（演算子語幹部、路ロック指定は含まない）
         """
         # フォーマットチェック
         #
         #   文字数が短い方が先にマッチしてしまうかもしれないので、短い文字列は右に置くように並び順に注意
         #
-        result = re.match(r"^(na|nH|nL|no|on|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|e|n|o)(#)?$", code)
+        result = re.match(r"^(na|nH|nL|no|on|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|e|n|o)$", code)
         if result is None:
             raise ValueError(f"format error.  operator_u:`{code}`")
 
         stem_u = result.group(1)
-        force_unlock = result.group(2) == '#'
 
         # 零項演算子（nullary）か？
         if stem_u in ['s1', 's2', 's3', 's4', 's5', 's6', 'c', 'e']:
@@ -417,27 +403,12 @@ class Operator():
 
         return Operator(
             stem_u=stem_u,
-            parameter_length=parameter_length,
-            force_unlock=force_unlock)
+            parameter_length=parameter_length)
 
 
     @property
     def code(self):
-        if self._force_unlock:
-            force_unlock_str = '#'
-        else:
-            force_unlock_str = ''
-    
-        return f"{self._stem_u}{force_unlock_str}"
-
-
-    @property
-    def force_unlock(self):
-        """強制アンロック
-        	True:  強制的にロックを解除する。盤面編集時に利用
-        	False: 対局ルールにある動作をする。遊び方に従ってロックがかかるか、遊び方に従ってロックをかけないかのどちらか
-        """
-        return self._force_unlock
+        return self._stem_u
 
 
     def unary_operate(self, stone):
@@ -536,9 +507,12 @@ class Move():
         "4c#$01" - TODO 変更前の石の連情報を、$記号の後ろに付加する
 
     盤面編集フラグ、出力路（way）、演算子（operator）、路ロック解除フラグ（way_unlock）、変更前の石の状態（stones_before_change）
+    
+    強制的にロックを外したい場合、末尾に `#` を付ける。これは盤面操作のためのもので、対局での使用は想定していない
+        例： `7c#` - ７筋の全石を取り除き、ロックも外す
     """
 
-    def __init__(self, way, operator, is_way_unlock=False, stones_before_change='', when_edit=False):
+    def __init__(self, way, operator, is_way_unlock=False, stones_before_change='', when_edit=False, same_move_u=''):
         """初期化
         
         Parameters
@@ -549,16 +523,21 @@ class Move():
             演算子
         is_way_unlock : bool
             路ロック解除フラグ
+        	True:  強制的に 路ロックを解除する
+        	False: 強制的に 路ロックする
         stones_before_change : str
             変更前の石の状態。自明の場合は空文字列
         when_edit : bool
             盤面編集か？
+        same_move_u : str
+            この指し手を指した結果は、他の合法手と同じ結果になる。合法手ではあるが、解析では省きたい
         """
         self._way = way
         self._operator = operator
         self._is_way_unlock = is_way_unlock
         self._stones_before_change = stones_before_change
         self._when_edit = when_edit
+        self._same_move_u = same_move_u
 
 
     @property
@@ -575,7 +554,10 @@ class Move():
 
     @property
     def is_way_unlock(self):
-        """路ロック解除フラグ"""
+        """路ロック解除フラグ
+        True:  強制的に 路ロックを解除する
+        False: 強制的に 路ロックする
+        """
         return self._is_way_unlock
 
 
@@ -589,6 +571,12 @@ class Move():
     def when_edit(self):
         """盤面編集か？"""
         return self._when_edit
+
+
+    @property
+    def same_move_u(self):
+        """この指し手を指した結果は、他の合法手と同じ結果になる。合法手ではあるが、解析では省きたい"""
+        return self._same_move_u
 
 
     @staticmethod
@@ -617,7 +605,7 @@ class Move():
 
         return Move(
             # 路
-            way=Way.code_to_way(code=result.group(2)),
+            way=Way.code_to_obj(code=result.group(2)),
             # 演算子
             operator=Operator.code_to_obj(code=result.group(3)),
             # 路ロック解除フラグ
@@ -654,6 +642,19 @@ class Move():
         """編集モードのフラグを立てたコピー・オブジェクトを返却します"""
         instance = copy.copy(self)
         instance._when_edit = True
+        return instance
+
+
+    def replaced_by_same(self, same_move_u):
+        """冗長フラグを立てたコピー・オブジェクトを返却します
+        
+        Parameters
+        ----------
+        same_move_u : str
+            同じ結果になる既存の指し手のコード
+        """
+        instance = copy.copy(self)
+        instance._same_move_u = same_move_u
         return instance
 
 
@@ -1345,7 +1346,7 @@ class Board():
         move : Move
             指し手。履歴に記憶します
         way_lock : bool
-            路ロック
+            路ロックを掛けるか外すかの２択
         stones_before_change : str
             変更前の石の状態
         """
@@ -1408,7 +1409,7 @@ class Board():
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
-                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
+                self.on_exit_push_usi(move, not move.is_way_unlock, stones_before_change)
                 return
 
             # 対象の路に石が置いてない
@@ -1433,7 +1434,7 @@ class Board():
             if exists_stone_on_way_before_change:
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
-                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
+                self.on_exit_push_usi(move, not move.is_way_unlock, stones_before_change)
                 return
 
             # もともとは、対象の路に石が置いてなかった
@@ -1493,7 +1494,7 @@ class Board():
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
-                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
+                self.on_exit_push_usi(move, not move.is_way_unlock, stones_before_change)
                 return
 
             # 対象の路に石が置いてない
@@ -1571,7 +1572,7 @@ class Board():
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
-                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
+                self.on_exit_push_usi(move, not move.is_way_unlock, stones_before_change)
                 return
 
             # 対象の路に石が置いてない
@@ -1611,7 +1612,7 @@ class Board():
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
-                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
+                self.on_exit_push_usi(move, not move.is_way_unlock, stones_before_change)
                 return
 
             # 対象の路に石が置いてない
@@ -1632,7 +1633,7 @@ class Board():
             if self.exists_stone_on_way(move.way):
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
-                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
+                self.on_exit_push_usi(move, not move.is_way_unlock, stones_before_change)
                 return
 
             # もともとは、対象の路に石が置いてなかった
@@ -1689,21 +1690,31 @@ class Board():
 
     def pop(self):
         """一手戻す"""
-        # 逆操作を算出
+        # 最後の指し手を取得
         latest_edit = self._board_editing_history.items[-1]
+
+        # 最後の指し手の逆操作を算出
         inverse_move = MoveHelper.inverse_move(
             board=self,
             move=latest_edit.move)
 
         if inverse_move is None:
-            print(f"[pop] `{latest_edit.move.to_code()}` に逆操作はありません")
-            return
+            raise ValueError(f"[pop] {latest_edit.move.to_code()=} に逆操作がなく、pop に失敗しました")
 
-        # 盤面編集として、逆操作を実行
-        self.push_usi(inverse_move.to_edit_mode().to_code())
+        # 逆操作には、盤面編集フラグを立てる
+        inverse_move_for_edit = inverse_move.to_edit_mode()
+        inverse_move_for_edit_u = inverse_move_for_edit.to_code()
 
-        # 逆操作を履歴から除去
-        self._board_editing_history.items.pop()
+        print(f"[pop] 盤面編集として、逆操作を実行  {inverse_move_for_edit_u=}  {inverse_move_for_edit.is_way_unlock=}")
+        self.push_usi(inverse_move_for_edit_u)
+
+        # さっきの逆操作を履歴から除去
+        popped_item = self._board_editing_history.items.pop()
+        print(f"[pop] 逆操作を履歴から除去  {popped_item.move.to_code()=}")
+
+        # 最後の指し手も履歴から除去
+        popped_item = self._board_editing_history.items.pop()
+        print(f"[pop] 最後の指し手も履歴から除去  {popped_item.move.to_code()=}")
 
         self.update_legal_moves()
 
@@ -1906,56 +1917,62 @@ class Board():
 
 
         # シフト（Shift）の合法手生成
-        # 筋方向
-        for dst_file in range(0, FILE_LEN):
-            dst_file_way = Way(FILE_ID, dst_file)
+        #
+        # 例えば：
+        # 
+        #     1 2 3 4 5 6 7
+        #   +---------------+
+        # a | . . . . . . . |
+        # b | . . . . . . . |
+        # c | . . 0 1 0 1 . |
+        # d | . . . . . . . |
+        # e | . . . . . . . |
+        # f | . . . . . . . |
+        #   +---------------+
+        # 
+        # 上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
+        # ゼロビットシフトは禁止する
+        # 枝が増えてしまうのを防ぐ
+
+        sfen_memory_dict = {}
+
+        # 筋（段）方向両用
+        for way_u in _way_characters:
+            way = Way.code_to_obj(way_u)
 
             # 路にロックが掛かっていたら Shift は禁止
-            if self._way_locks[dst_file_way.to_code()]:
+            if self._way_locks[way.to_code()]:
                 continue
 
-            (begin, length) = self.get_position_on_way(dst_file_way)
+            (begin, length) = self.get_position_on_way(way)
 
             # 石が置いてる路
             if 0 < length:
                 # Shift できる
-
-                # 例えば：
-                # 
-                #     1 2 3 4 5 6 7
-                #   +---------------+
-                # a | . . . . . . . |
-                # b | . . . . . . . |
-                # c | . . 0 1 0 1 . |
-                # d | . . . . . . . |
-                # e | . . . . . . . |
-                # f | . . . . . . . |
-                #   +---------------+
-                # 
-                # 上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
-                # ゼロビットシフトは禁止する
-                # 枝が増えてしまうのを防ぐ
-
                 for i in range(1, length):
-                    self._legal_moves.append(Move(dst_file_way, Operator.code_to_obj(f's{i}')))
+                    move = Move(way, Operator.code_to_obj(f's{i}'))
 
+                    ## TODO 試しに一手指してみる
+                    #print(f"試しに一手指してみる  {move.to_code()=}")
+                    #self.push_usi(move.to_code())
+                    #
+                    ## TODO 一般的に長さが短い方の形式の SFEN を記憶
+                    #sfen = self.as_sfen(from_present=True)
+                    #
+                    ## TODO 既に記憶している SFEN と重複すれば、シフトした結果が同じだ。ただし、合法手ではある
+                    #if sfen in sfen_memory_dict.keys():
+                    #    move = move.replaced_by_same(sfen_memory_dict[sfen])
+                    #
+                    #else:
+                    #    # TODO SFEN と指し手コードを記憶する
+                    #    sfen_memory_dict[sfen] = move.to_code()
+                    #
+                    ## TODO 一手戻す
+                    #print(f"一手戻す")
+                    #self.pop()
 
-        # 段方向
-        for dst_rank in range(0, RANK_LEN):
-            dst_rank_way = Way(RANK_ID, dst_rank)
-
-            # 路にロックが掛かっていたら Shift は禁止
-            if self._way_locks[dst_rank_way.to_code()]:
-                continue
-
-            (begin, length) = self.get_position_on_way(dst_rank_way)
-
-            # 石が置いてる路
-            if 0 < length:
-                # Shift できる
-                # ゼロビットシフトは禁止する
-                for i in range(1, length):
-                    self._legal_moves.append(Move(dst_rank_way, Operator.code_to_obj(f's{i}')))
+                    # 合法手として記憶
+                    self._legal_moves.append(move)
 
 
         # ノット（Not）の合法手生成
