@@ -1,4 +1,6 @@
 import re
+import copy
+
 
 # 石（PieCe）番号
 #   コンピュータ将棋プログラミングの Piece という変数名を踏襲
@@ -645,11 +647,18 @@ class Move():
         return f"{edit_mark}{self.way.to_code()}{self.operator.code}{way_unlock_str}{stones_before_change_str}"
 
 
+    def to_edit_mode(self):
+        """編集モードのフラグを立てたコピー・オブジェクトを返却します"""
+        instance = copy.copy(self)
+        instance._when_edit = True
+        return instance
+
+
 class MoveHelper():
     """指し手の計算"""
 
     @staticmethod
-    def let_inverse_move(board, move, stones_before_change):
+    def inverse_move(board, move):
         """逆操作を算出する
 
         Parameters
@@ -658,8 +667,6 @@ class MoveHelper():
             盤
         move : str
             順操作
-        stones_before_change : str
-            操作する前の連の状態
 
         Returns
         -------
@@ -678,9 +685,9 @@ class MoveHelper():
 
             # move = ""
 
-            # if stones_before_change != '':
+            # if move.stones_before_change != '':
             #     # TODO 指し手に＄記号を付加し、その後ろに変更前の石の連の情報を付加する
-            #     move += f"${stones_before_change}"
+            #     move += f"${move.stones_before_change}"
 
             # TODO 任意の石列を置く命令が必要になるのでは？
             return None
@@ -1687,21 +1694,20 @@ class Board():
     def pop(self):
         """一手戻す"""
         # 逆操作を算出
-        latest_edit = self._board_editing_history[-1]
-        inverse_move = MoveHelper.let_inverse_move(
-            board=self._board,
-            move=latest_edit.move,
-            stones_before_change=latest_edit.stones_before_change)
+        latest_edit = self._board_editing_history.items[-1]
+        inverse_move = MoveHelper.inverse_move(
+            board=self,
+            move=latest_edit.move)
 
         if inverse_move is None:
             print(f"[pop] `{latest_edit.move.to_code()}` に逆操作はありません")
             return
 
         # 盤面編集として、逆操作を実行
-        self.push_usi(f"&{inverse_move.to_code()}")
+        self.push_usi(inverse_move.to_edit_mode().to_code())
 
         # 逆操作を履歴から除去
-        self._board_editing_history.pop()
+        self._board_editing_history.items.pop()
 
         self.update_legal_moves()
 
