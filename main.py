@@ -65,7 +65,9 @@ class UsiEngine():
             # 逆操作の算出
             #   code: inverse 4n
             elif cmd[0] == 'inverse':
-                self.let_inverse_move(cmd[0], cmd[1])
+                self.inverse_move(
+                    name=cmd[0],
+                    argument_line=cmd[1])
 
             # 一手戻す
             #   code: undo
@@ -251,7 +253,7 @@ class UsiEngine():
         print("") # 空行
 
 
-    def let_inverse_move(self, name, argument_line):
+    def inverse_move(self, name, argument_line):
         """逆操作の算出
 
         Parameters
@@ -274,7 +276,10 @@ example: inverse 4n -""")
         move_u = arguments[0]
         code = Move.code_to_obj(move_u)
         stones_before_change = arguments[1]
-        inverse_move = MoveHelper.let_inverse_move(code, stones_before_change)
+        inverse_move = MoveHelper.let_inverse_move(
+            board=self._board,
+            move=code,
+            stones_before_change=stones_before_change)
 
         if inverse_move is None:
             print(f"[let_inverse_move] 未実装： {inverse_move=}")

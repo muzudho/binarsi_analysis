@@ -639,11 +639,13 @@ class MoveHelper():
     """指し手の計算"""
 
     @staticmethod
-    def let_inverse_move(move, stones_before_change):
+    def let_inverse_move(board, move, stones_before_change):
         """逆操作を算出する
 
         Parameters
         ----------
+        board : Board
+            盤
         move : str
             順操作
         stones_before_change : str
@@ -673,46 +675,36 @@ class MoveHelper():
             return None
 
 
-        # TODO 逆操作 1ビットシフト
-        if op == 's1':
-            print("[逆操作] s1")
-            # TODO 対象路の石の長さ - 1
-            return None
+        # 逆操作　シフト
+        if op in ['s1', 's2', 's3', 's4', 's5', 's6']:
+            (begin, length) = board.get_position_on_way(way)
 
+            # 1ビットシフト --Inverse--> (対象路の石の長さ - 1)ビットシフト
+            if op == 's1':
+                shift_bits = 1
 
-        # TODO 逆操作 2ビットシフト
-        if op == 's2':
-            print("[逆操作] s2")
-            # TODO 対象路の石の長さ - 2
-            return None
+            # 2ビットシフト --Inverse--> (対象路の石の長さ - 2)ビットシフト
+            elif op == 's2':
+                shift_bits = 2
 
+            # 3ビットシフト --Inverse--> (対象路の石の長さ - 3)ビットシフト
+            elif op == 's3':
+                shift_bits = 3
 
-        # TODO 逆操作 3ビットシフト
-        if op == 's3':
-            print("[逆操作] s3")
-            # TODO 対象路の石の長さ - 3
-            return None
+            # 4ビットシフト --Inverse--> (対象路の石の長さ - 4)ビットシフト
+            elif op == 's4':
+                shift_bits = 4
 
+            # 5ビットシフト --Inverse--> (対象路の石の長さ - 5)ビットシフト
+            elif op == 's5':
+                shift_bits = 5
 
-        # TODO 逆操作 4ビットシフト
-        if op == 's4':
-            print("[逆操作] s4")
-            # TODO 対象路の石の長さ - 4
-            return None
+            # 6ビットシフト --Inverse--> (対象路の石の長さ - 6)ビットシフト
+            elif op == 's6':
+                shift_bits = 6
 
-
-        # TODO 逆操作 5ビットシフト
-        if op == 's5':
-            print("[逆操作] s5")
-            # TODO 対象路の石の長さ - 5
-            return None
-
-
-        # TODO 逆操作 6ビットシフト
-        if op == 's6':
-            print("[逆操作] s6")
-            # TODO 対象路の石の長さ - 6
-            return None
+            # TODO 目的のシフトにはなるが、結果が同じシフトの集合は Distinct したい
+            return Move.code_to_obj(f"{way.to_code()}s{length-shift_bits}#")
 
 
         # ノット・ニュー --逆操作--> カットザエッジ＃
@@ -1709,6 +1701,7 @@ class Board():
         # 逆操作を算出
         latest_edit = self._board_editing_history[-1]
         inverse_move = MoveHelper.let_inverse_move(
+            board=self._board,
             move=latest_edit.move,
             stones_before_change=latest_edit.stones_before_change)
 
