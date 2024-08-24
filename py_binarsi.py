@@ -1342,6 +1342,25 @@ class Board():
         return stones_before_change
 
 
+    def on_exit_push_usi(self, move, way_lock, stones_before_change=''):
+        """push_usi() 関数から抜けるときに実行する定型処理
+
+        Parameters
+        ----------
+        move : Move
+            指し手。履歴に記憶します
+        way_lock : bool
+            路ロック
+        stones_before_change : str
+            変更前の石の状態
+        """
+        self._way_locks[move.way.to_code()] = way_lock
+        self._board_editing_history.append(BoardEditingItem(
+            move=move,
+            stones_before_change=stones_before_change))
+        self.update_legal_moves()
+
+
     def push_usi(self, move_u):
         """一手指す
 
@@ -1393,25 +1412,14 @@ class Board():
                         stones_before_change += _pc_to_str[stone]
                         self._squares[src_dst_sq] = PC_EMPTY
 
-
-                if move.operator.force_unlock:
-                    new_lock = False
-                else: 
-                    # カットザエッジを対局中に使うことは想定していない。盤面編集時に石を消すことを想定している。暫定的にカットザエッジを使うと路ロックがかかるものとする
-                    new_lock = True
-
-                self._way_locks[move.way.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingItem(
-                    move=move,
-                    stones_before_change=stones_before_change))
-                self.update_legal_moves()
+                # 改変操作では
+                #   開錠指定があれば開錠、なければ 路ロックを掛ける
+                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
                 return
 
-
-            # 対象の路に石が置いてない ---> イリーガルムーブ
+            # 対象の路に石が置いてない
             else:
-                print("Illegal move")
-                return
+                raise ValueError("c演算では、石の置いてない対象路を指定してはいけません")
 
 
         # エディット演算子
@@ -1419,24 +1427,24 @@ class Board():
 
             #print(f"Edit operator  move_u={move.to_code()}  way_u={move.way.to_code()}  {move.stones_before_change=}")
 
-            # 対象の路に石が置いてあるか、そうでないかに関わらず同じ動きをします
             stones_before_change = self.set_stones_on_way(
                 target_way=move.way,
                 stones_str=move.stones_before_change)
 
+            # 対象の路に石が置いてある
+            if self.exists_stone_on_way(move.way):
+                # 改変操作では
+                #   開錠指定があれば開錠、なければ 路ロックを掛ける
+                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
+                return
 
-            if move.operator.force_unlock:
-                new_lock = False
-            else: 
-                # エディット演算子を対局中に使うことは想定していない。暫定的にエディットを使うと路ロックがかかるものとする
-                new_lock = True
-
-            self._way_locks[move.way.to_code()] = new_lock
-            self._board_editing_history.append(BoardEditingItem(
-                move=move,
-                stones_before_change=stones_before_change))
-            self.update_legal_moves()
-            return
+            # 対象の路に石が置いてない
+            else:
+                # 新規作成操作では
+                #   路ロックは掛からない（外れる）
+                #   変更前の石は無し
+                self.on_exit_push_usi(move, way_lock=False)
+                return
 
 
         # シフト（単項演算子 shift）
@@ -1448,7 +1456,7 @@ class Board():
             # 何ビットシフトか？
             bit_shift = int(op[1:2])
 
-            # 対象の路に石が置いてある ---> Shift操作
+            # 対象の路に石が置いてある
             if self.exists_stone_on_way(move.way):
 
                 # 筋（段）方向両用
@@ -1485,36 +1493,24 @@ class Board():
                     # コピー
                     self._squares[dst_sq] = source_stones[i]
 
-
-                if move.operator.force_unlock:
-                    new_lock = False
-                else: 
-                    # 石のある路への Shift 演算は Shift なので、路ロックがかかる
-                    new_lock = True
-
-                self._way_locks[move.way.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingItem(
-                    move=move,
-                    stones_before_change=stones_before_change))
-                self.update_legal_moves()
+                # 改変操作では
+                #   開錠指定があれば開錠、なければ 路ロックを掛ける
+                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
                 return
 
-
-            # 対象の路に石が置いてない ---> イリーガルムーブ
+            # 対象の路に石が置いてない
             else:
-                print("Illegal move")
-                return
+                raise ValueError("s演算では、石の置いてない対象路を指定してはいけません")
 
 
         # ノット（単項演算子）
         if op == 'n':
 
-            # 対象の路に石が置いてある ---> イリーガルムーブ
+            # 対象の路に石が置いてある
             if self.exists_stone_on_way(move.way):
-                print("illegal move: Low, High のどちらかを指定する必要があります")
-                return
+                raise ValueError("n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください")
 
-            # 対象の路に石が置いてない ---> New 操作
+            # 対象の路に石が置いてない
             else:
 
                 # 筋（段）方向両用
@@ -1538,24 +1534,17 @@ class Board():
                     stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=axes_absorber.swap_axes)]
                     self._squares[Square.file_rank_to_sq(dst_j, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
 
-
-                if move.operator.force_unlock:
-                    new_lock = False
-                else: 
-                    # 対局中に New 操作しても路ロックはかからない
-                    new_lock = False
-
-                self._way_locks[move.way.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingItem(
-                    move=move))
-                self.update_legal_moves()
+                # 新規作成操作では
+                #   路ロックは掛からない（外れる）
+                #   変更前の石は無し
+                self.on_exit_push_usi(move, way_lock=False)
                 return
 
 
         # ノット（単項演算子 Reverse）路上の小さい方
         if op == 'nL':
 
-            # 対象の路に石が置いてある --> Reverse 操作
+            # 対象の路に石が置いてある
             if self.exists_stone_on_way(move.way):
 
                 # 筋（段）方向両用
@@ -1582,63 +1571,20 @@ class Board():
                         stones_before_change += _pc_to_str[stone]
                         self._squares[Square.file_rank_to_sq(dst_j, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
 
-
-                if move.operator.force_unlock:
-                    new_lock = False
-                else: 
-                    # 石のある路への Not 演算は Reverse なので、路ロックがかかる
-                    new_lock = True
-
-                self._way_locks[move.way.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingItem(
-                    move=move,
-                    stones_before_change=stones_before_change))
-                self.update_legal_moves()
+                # 改変操作では
+                #   開錠指定があれば開錠、なければ 路ロックを掛ける
+                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
                 return
 
-
-            # 対象の路に石が置いてない ---> New 操作
+            # 対象の路に石が置いてない
             else:
-
-                # 筋（段）方向両用
-                axes_absorber = move.way.absorb_axes()
-
-                dst_j = move.way.number
-                if dst_j == 0:
-                    src_j = dst_j + 1
-                elif dst_j == FILE_LEN - 1:
-                    src_j = dst_j - 1
-                # 左か右（上か下）で、石が置いてある路が入力路
-                elif self.exists_stone_on_way(Way(move.way.axis_id, dst_j - 1)):
-                    src_j = dst_j - 1
-                elif self.exists_stone_on_way(Way(move.way.axis_id, dst_j + 1)):
-                    src_j = dst_j + 1
-                else:
-                    raise ValueError("not operator invalid operation")
-
-                # 入力路から、出力路へ、評価値を出力
-                for i in range(0, axes_absorber.opponent_axis_length):
-                    stone = self._squares[Square.file_rank_to_sq(src_j, i, swap=axes_absorber.swap_axes)]
-                    self._squares[Square.file_rank_to_sq(dst_j, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
-
-
-                if move.operator.force_unlock:
-                    new_lock = False
-                else: 
-                    # 石のある路への Not 演算は Reverse なので、路ロックがかかる
-                    new_lock = True
-
-                self._way_locks[move.way.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingItem(
-                    move=move))
-                self.update_legal_moves()
-                return
+                raise ValueError("nL演算では、石の置いてない対象路を指定してはいけません")
 
 
         # ノット（単項演算子 Reverse）路上の大きい方
         if op == 'nH':
 
-            # 対象の路に石が置いてある --> Reverse 操作
+            # 対象の路に石が置いてある
             if self.exists_stone_on_way(move.way):
 
                 # 筋（段）方向両用
@@ -1665,56 +1611,34 @@ class Board():
                         stones_before_change += _pc_to_str[stone]
                         self._squares[Square.file_rank_to_sq(dst_j, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(stone)
 
-
-                if move.operator.force_unlock:
-                    new_lock = False
-                else: 
-                    # 石のある路への Not 演算は Reverse なので、路ロックがかかる
-                    new_lock = True
-
-                self._way_locks[move.way.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingItem(
-                    move=move,
-                    stones_before_change=stones_before_change))
-                self.update_legal_moves()
+                # 改変操作では
+                #   開錠指定があれば開錠、なければ 路ロックを掛ける
+                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
                 return
 
-
-            # 対象の路に石が置いてない ---> New 操作
+            # 対象の路に石が置いてない
             else:
-
-                self.copy_stones_on_line_unary(
-                    axis_id=move.way.axis_id)
-
-                if move.operator.force_unlock:
-                    new_lock = False
-                else: 
-                    # 石のある路への Not 演算は Reverse なので、路ロックがかかる
-                    new_lock = True
-
-                self._way_locks[move.way.to_code()] = new_lock
-                self._board_editing_history.append(BoardEditingItem(
-                    move=move))
-                self.update_legal_moves()
-                return
+                raise ValueError("nH演算では、石の置いてない対象路を指定してはいけません")
 
 
         # アンド, オア, ゼロ, ノア, エクソア, ナンド, エクスノア, ワン
         if op in ['a', 'o', 'ze', 'no', 'xo', 'na', 'xn', 'on']:
-            self.copy_stones_on_line_binary(move)
+            stones_before_change = self.copy_stones_on_line_binary(move)
 
+            # 対象の路に石が置いてある
+            if self.exists_stone_on_way(move.way):
+                # 改変操作では
+                #   開錠指定があれば開錠、なければ 路ロックを掛ける
+                self.on_exit_push_usi(move, not move.operator.force_unlock, stones_before_change)
+                return
 
-            if move.operator.force_unlock:
-                new_lock = False
-            else: 
-                # 石のある路への And 演算は Reverse なので、路ロックがかかる
-                new_lock = True
-
-            self._way_locks[move.way.to_code()] = new_lock
-            self._board_editing_history.append(BoardEditingItem(
-                move=move))
-            self.update_legal_moves()
-            return
+            # 対象の路に石が置いてない
+            else:
+                # 新規作成操作では
+                #   路ロックは掛からない（外れる）
+                #   変更前の石は無し
+                self.on_exit_push_usi(move, way_lock=False)
+                return
 
 
         raise ValueError(f"undefined operator code: {op}")
