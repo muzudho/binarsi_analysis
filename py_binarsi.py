@@ -2082,14 +2082,20 @@ class Board():
         #
         # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
         #
-        def update_clear_target_1():
+        def update_clear_target_b3():
             # 棒サイズ
             line_length = 3
             my_stone_color = PC_BLACK
             is_not_hit = False  # 外側の file ループを続行
 
-            for rank in range(0, RANK_LEN-line_length):
-                for file in range(0, FILE_LEN-line_length):
+            for rank in range(0, RANK_LEN-line_length+1):
+                #                       6-          3+1
+                #                      =4
+
+                for file in range(0, FILE_LEN-line_length+1):
+                    #                       7-          3+1
+                    #                      =5 
+
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
                             is_not_hit = True
@@ -2103,7 +2109,7 @@ class Board():
                     return
 
         if self._clear_targets[0] == -1:
-            update_clear_target_1()
+            update_clear_target_b3()
 
 
         # クリアー条件　黒番２　斜め（左右反転でも構わない）に４つ 1 が並んでいること
@@ -2122,15 +2128,15 @@ class Board():
         #
         # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
         #
-        def update_clear_target_2():
+        def update_clear_target_b4():
             # 棒サイズ
             line_length = 4
             my_stone_color = PC_BLACK
             is_not_hit = False  # 外側の file ループを続行
 
             # Sinister Diagonal
-            for rank in range(0, RANK_LEN-line_length):
-                for file in range(0, FILE_LEN-line_length):
+            for rank in range(0, RANK_LEN-line_length+1):
+                for file in range(0, FILE_LEN-line_length+1):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2145,7 +2151,7 @@ class Board():
 
             # Baroque Diagonal
             for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length)-1)):
-                for file in range(line_length, FILE_LEN):
+                for file in range(line_length-1, FILE_LEN):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2159,7 +2165,7 @@ class Board():
                     return
 
         if self._clear_targets[1] == -1:
-            update_clear_target_2()
+            update_clear_target_b4()
 
 
         # クリアー条件　黒番３　縦に５つ 1 が並んでいること
@@ -2171,14 +2177,14 @@ class Board():
         #   | . . 1 . . |
         #   | . . 1 . . |
         #   +-----------+
-        def update_clear_target_3():
+        def update_clear_target_b5():
             # 棒サイズ
-            line_length = 4
+            line_length = 5
             my_stone_color = PC_BLACK
             is_not_hit = False  # 外側の file ループを続行
 
-            for rank in range(0, RANK_LEN-line_length):
-                for file in range(0, FILE_LEN-line_length):
+            for rank in range(0, RANK_LEN-line_length+1):
+                for file in range(0, FILE_LEN-line_length+1):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2192,7 +2198,7 @@ class Board():
                     return
 
         if self._clear_targets[2] == -1:
-            update_clear_target_3()
+            update_clear_target_b5()
 
 
 
@@ -2205,14 +2211,14 @@ class Board():
         #   | . . 0 . . |
         #   | . . . . . |
         #   +-----------+
-        def update_clear_target_4():
+        def update_clear_target_w3():
             # 棒サイズ
             line_length = 3
             my_stone_color = PC_WHITE
             is_not_hit = False  # 外側の file ループを続行
 
-            for rank in range(0, RANK_LEN-line_length):
-                for file in range(0, FILE_LEN-line_length):
+            for rank in range(0, RANK_LEN-line_length+1):
+                for file in range(0, FILE_LEN-line_length+1):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2226,7 +2232,7 @@ class Board():
                     return
 
         if self._clear_targets[3] == -1:
-            update_clear_target_4()
+            update_clear_target_w3()
 
 
         # クリアー条件　白番２　斜め（左右反転でも構わない）に４つ 0 が並んでいること
@@ -2245,15 +2251,15 @@ class Board():
         #
         # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
         #
-        def update_clear_target_5():
+        def update_clear_target_w4():
             # 棒サイズ
             line_length = 4
             my_stone_color = PC_WHITE
             is_not_hit = False  # 外側の file ループを続行
 
             # Sinister Diagonal
-            for rank in range(0, RANK_LEN-line_length):
-                for file in range(0, FILE_LEN-line_length):
+            for rank in range(0, RANK_LEN-line_length+1):
+                for file in range(0, FILE_LEN-line_length+1):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2268,7 +2274,7 @@ class Board():
 
             # Baroque Diagonal
             for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length)-1)):
-                for file in range(line_length, FILE_LEN):
+                for file in range(line_length-1, FILE_LEN):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2282,7 +2288,7 @@ class Board():
                     return
 
         if self._clear_targets[4] == -1:
-            update_clear_target_5()
+            update_clear_target_w4()
 
 
         # クリアー条件　白番３　横に５つ 0 が並んでいること
@@ -2294,14 +2300,14 @@ class Board():
         #   | . . . . . |
         #   | . . . . . |
         #   +-----------+
-        def update_clear_target_6():
+        def update_clear_target_w5():
             # 棒サイズ
             line_length = 5
             my_stone_color = PC_WHITE
             is_not_hit = False  # 外側の file ループを続行
 
-            for rank in range(0, RANK_LEN-line_length):
-                for file in range(0, FILE_LEN-line_length):
+            for rank in range(0, RANK_LEN-line_length+1):
+                for file in range(0, FILE_LEN-line_length+1):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
                             is_not_hit = True
@@ -2315,7 +2321,7 @@ class Board():
                     return
 
         if self._clear_targets[5] == -1:
-            update_clear_target_6()
+            update_clear_target_w5()
 
 
         # どちらかのプレイヤーが３つのターゲットを完了した
