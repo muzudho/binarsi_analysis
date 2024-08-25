@@ -2054,31 +2054,38 @@ class Board():
         # TODO クリアー条件はアンドゥしたあと消すよう注意
 
         # クリアー条件　黒番１　横に３つ 1 が並んでいること
-        #        [b3]
-        #   +-----------+
-        #   | . . . . . |
-        #   | . . . . . |
-        #   | . 1 1 1 . |
-        #   | . . . . . |
-        #   | . . . . . |
-        #   +-----------+
+        #
+        #           [b3]
+        #      1 2 3 4 5 6 7  
+        #    +---------------+
+        #  a | 1 1 1 ^ ^ . . |
+        #  b | ^ ^ ^ ^ ^ . . |
+        #  c | ^ ^ ^ ^ ^ . . |
+        #  d | ^ ^ ^ ^ ^ . . |
+        #  e | . . . . . . . |
+        #  f | . . . . . . . |
+        #    +---------------+
+        #
+        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        #
         def update_clear_target_1():
-            for rank in range(0, RANK_LEN - 2):
-                for file in range(0, FILE_LEN - 2):
+            # 棒サイズ
+            line_length = 3
+            my_stone_color = PC_BLACK
+            is_not_hit = False  # 外側の file ループを続行
 
-                    sq = Square.file_rank_to_sq(file, rank)
-                    if self._squares[sq] != PC_BLACK:
+            for rank in range(0, RANK_LEN-line_length):
+                for file in range(0, FILE_LEN-line_length):
+                    for i in range(0, line_length):
+                        if self._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
+                            is_not_hit = True
+                            break
+
+                    if is_not_hit:
+                        is_not_hit = False
                         continue
 
-                    sq = Square.file_rank_to_sq(file + 1, rank)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 2, rank)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    self._clear_targets[0] = len(self._board_editing_history.game_items)
+                    self._clear_targets[0] = self.turn_number
                     return
 
         if self._clear_targets[0] == -1:
@@ -2094,7 +2101,7 @@ class Board():
         #  a | 1 ^ ^ ^ . . . |    a | . . . 1 ^ ^ ^ |
         #  b | ^ 1 ^ ^ . . . |    b | . . 1 ^ ^ ^ ^ |
         #  c | ^ ^ 1 ^ . . . |    c | . 1 . ^ ^ ^ ^ |
-        #  d | ^ ^ ^ 1 . . . |    d | 1 . . ^ ^ ^ ^ |
+        #  d | . . . 1 . . . |    d | 1 . . . . . . |
         #  e | . . . . . . . |    e | . . . . . . . |
         #  f | . . . . . . . |    f | . . . . . . . |
         #    +---------------+      +---------------+
@@ -2104,51 +2111,37 @@ class Board():
         def update_clear_target_2():
             # 棒サイズ
             line_length = 4
+            my_stone_color = PC_BLACK
+            is_not_hit = False  # 外側の file ループを続行
 
             # Sinister Diagonal
-            for file in range(0, FILE_LEN-(FILE_LEN-line_length)):
-                for rank in range(0, RANK_LEN-(RANK_LEN-line_length)):
+            for rank in range(0, RANK_LEN-line_length):
+                for file in range(0, FILE_LEN-line_length):
+                    for i in range(0, line_length):
+                        if self._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
+                            is_not_hit = True
+                            break
 
-                    sq = Square.file_rank_to_sq(file, rank)
-                    if self._squares[sq] != PC_BLACK:
+                    if is_not_hit:
+                        is_not_hit = False
                         continue
 
-                    sq = Square.file_rank_to_sq(file + 1, rank + 1)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 2, rank + 2)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 3, rank + 3)
-                    if self._squares[sq] == PC_BLACK:
-                        continue
-
-                    self._clear_targets[1] = len(self._board_editing_history.game_items)
+                    self._clear_targets[1] = self.turn_number
                     return
 
             # Baroque Diagonal
-            for file in range(line_length-1, FILE_LEN):
-                for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length))):
+            for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length)-1)):
+                for file in range(line_length-1, FILE_LEN):
+                    for i in range(0, line_length):
+                        if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
+                            is_not_hit = True
+                            break
 
-                    sq = Square.file_rank_to_sq(file, rank)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
+                    if is_not_hit:
+                        is_not_hit = False
+                        break
 
-                    sq = Square.file_rank_to_sq(file + 1, rank - 1)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 2, rank - 2)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 3, rank - 3)
-                    if self._squares[sq] == PC_BLACK:
-                        continue
-
-                    self._clear_targets[1] = len(self._board_editing_history.game_items)
+                    self._clear_targets[1] = self.turn_number
                     return
 
         if self._clear_targets[1] == -1:
@@ -2165,30 +2158,23 @@ class Board():
         #   | . . 1 . . |
         #   +-----------+
         def update_clear_target_3():
-            for file in range(0, FILE_LEN - 4):
-                for rank in range(0, RANK_LEN - 4):
+            # 棒サイズ
+            line_length = 4
+            my_stone_color = PC_BLACK
+            is_not_hit = False  # 外側の file ループを続行
 
-                    sq = Square.file_rank_to_sq(file, rank)
-                    if self._squares[sq] != PC_BLACK:
+            for rank in range(0, RANK_LEN-line_length):
+                for file in range(0, FILE_LEN-line_length):
+                    for i in range(0, line_length):
+                        if self._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
+                            is_not_hit = True
+                            break
+
+                    if is_not_hit:
+                        is_not_hit = False
                         continue
 
-                    sq = Square.file_rank_to_sq(file, rank + 1)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file, rank + 2)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file, rank + 3)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file, rank + 4)
-                    if self._squares[sq] != PC_BLACK:
-                        continue
-
-                    self._clear_targets[2] = len(self._board_editing_history.game_items)
+                    self._clear_targets[2] = self.turn_number
                     return
 
         if self._clear_targets[2] == -1:
@@ -2206,22 +2192,23 @@ class Board():
         #   | . . . . . |
         #   +-----------+
         def update_clear_target_4():
-            for file in range(0, FILE_LEN - 2):
-                for rank in range(0, RANK_LEN - 2):
+            # 棒サイズ
+            line_length = 3
+            my_stone_color = PC_WHITE
+            is_not_hit = False  # 外側の file ループを続行
 
-                    sq = Square.file_rank_to_sq(file, rank)
-                    if self._squares[sq] != PC_WHITE:
+            for rank in range(0, RANK_LEN-line_length):
+                for file in range(0, FILE_LEN-line_length):
+                    for i in range(0, line_length):
+                        if self._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
+                            is_not_hit = True
+                            break
+
+                    if is_not_hit:
+                        is_not_hit = False
                         continue
 
-                    sq = Square.file_rank_to_sq(file, rank + 1)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file, rank + 2)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    self._clear_targets[3] = len(self._board_editing_history.game_items)
+                    self._clear_targets[3] = self.turn_number
                     return
 
         if self._clear_targets[3] == -1:
@@ -2237,7 +2224,7 @@ class Board():
         #  a | 0 ^ ^ ^ . . . |    a | . . . 0 ^ ^ ^ |
         #  b | ^ 0 ^ ^ . . . |    b | . . 0 ^ ^ ^ ^ |
         #  c | ^ ^ 0 ^ . . . |    c | . 0 . ^ ^ ^ ^ |
-        #  d | ^ ^ ^ 0 . . . |    d | 0 . . ^ ^ ^ ^ |
+        #  d | . . . 0 . . . |    d | 0 . . . . . . |
         #  e | . . . . . . . |    e | . . . . . . . |
         #  f | . . . . . . . |    f | . . . . . . . |
         #    +---------------+      +---------------+
@@ -2247,51 +2234,37 @@ class Board():
         def update_clear_target_5():
             # 棒サイズ
             line_length = 4
+            my_stone_color = PC_WHITE
+            is_not_hit = False  # 外側の file ループを続行
 
             # Sinister Diagonal
-            for file in range(0, FILE_LEN-(FILE_LEN-line_length)):
-                for rank in range(0, RANK_LEN-(RANK_LEN-line_length)):
+            for rank in range(0, RANK_LEN-line_length):
+                for file in range(0, FILE_LEN-line_length):
+                    for i in range(0, line_length):
+                        if self._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
+                            is_not_hit = True
+                            break
 
-                    sq = Square.file_rank_to_sq(file, rank)
-                    if self._squares[sq] != PC_WHITE:
+                    if is_not_hit:
+                        is_not_hit = False
                         continue
 
-                    sq = Square.file_rank_to_sq(file + 1, rank + 1)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 2, rank + 2)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 3, rank + 3)
-                    if self._squares[sq] == PC_WHITE:
-                        continue
-
-                    self._clear_targets[4] = len(self._board_editing_history.game_items)
+                    self._clear_targets[4] = self.turn_number
                     return
 
             # Baroque Diagonal
-            for file in range(line_length-1, FILE_LEN):
-                for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length))):
+            for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length)-1)):
+                for file in range(line_length-1, FILE_LEN):
+                    for i in range(0, line_length):
+                        if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
+                            is_not_hit = True
+                            break
 
-                    sq = Square.file_rank_to_sq(file, rank)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
+                    if is_not_hit:
+                        is_not_hit = False
+                        break
 
-                    sq = Square.file_rank_to_sq(file + 1, rank - 1)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 2, rank - 2)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 3, rank - 3)
-                    if self._squares[sq] == PC_WHITE:
-                        continue
-
-                    self._clear_targets[4] = len(self._board_editing_history.game_items)
+                    self._clear_targets[4] = self.turn_number
                     return
 
         if self._clear_targets[4] == -1:
@@ -2308,30 +2281,23 @@ class Board():
         #   | . . . . . |
         #   +-----------+
         def update_clear_target_6():
-            for rank in range(0, RANK_LEN - 4):
-                for file in range(0, FILE_LEN - 4):
+            # 棒サイズ
+            line_length = 5
+            my_stone_color = PC_WHITE
+            is_not_hit = False  # 外側の file ループを続行
 
-                    sq = Square.file_rank_to_sq(file, rank)
-                    if self._squares[sq] != PC_WHITE:
+            for rank in range(0, RANK_LEN-line_length):
+                for file in range(0, FILE_LEN-line_length):
+                    for i in range(0, line_length):
+                        if self._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
+                            is_not_hit = True
+                            break
+
+                    if is_not_hit:
+                        is_not_hit = False
                         continue
 
-                    sq = Square.file_rank_to_sq(file + 1, rank)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 2, rank)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 3, rank)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    sq = Square.file_rank_to_sq(file + 4, rank)
-                    if self._squares[sq] != PC_WHITE:
-                        continue
-
-                    self._clear_targets[5] = len(self._board_editing_history.game_items)
+                    self._clear_targets[5] = self.turn_number
                     return
 
         if self._clear_targets[5] == -1:
@@ -2431,11 +2397,8 @@ class Board():
 
         # １行目表示
         # ---------
-
-        moves_num = len(self._board_editing_history.game_items)
-
         edits_num = len(self._board_editing_history.items)
-        if moves_num != edits_num:
+        if self.turn_number != edits_num:
             edits_num_str = f"| {edits_num} edits "
         else:
             edits_num_str = ""
@@ -2482,7 +2445,7 @@ class Board():
                 next_turn_str = 'next white'
 
 
-        print(f"[{moves_num:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str} | {next_turn_str}]")
+        print(f"[{self.turn_number:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str} | {next_turn_str}]")
 
 
         # 盤表示

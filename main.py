@@ -461,7 +461,7 @@ HISTORY
 
         for i in range(0, CLEAR_TARGETS_LEN):
             if self._board._clear_targets[i] != -1:
-                disp1[i] = '   CLEARED   '
+                disp1[i] = f' CLEAR in {self._board._clear_targets[i]:2} '
                 disp2[i] = '             '
 
         print(f"""\
@@ -651,6 +651,22 @@ CLEAR TARGETS
         self.print_sfen(from_present=True)
         print("") # 空行
 
+
+        def print_clear_target_if_it_now():
+            """今クリアーしたものがあれば、クリアー目標表示"""
+            one_cleared = False
+            for clear_target in self._board.clear_targets:
+                if clear_target == self._board.turn_number:
+                    one_cleared = True
+                    break
+            
+            if one_cleared:
+                self.print_clear_targets()
+                time.sleep(0.7)
+
+        # 今クリアーしたものがあれば、クリアー目標表示
+        print_clear_target_if_it_now()
+
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
         time.sleep(0.7)
         self.print_comp()
@@ -680,6 +696,9 @@ CLEAR TARGETS
         self.print_board()
         self.print_sfen(from_present=True)
         print("") # 空行
+
+        # 今クリアーしたものがあれば、クリアー目標表示
+        print_clear_target_if_it_now()
 
         # ターミナルが見づらいので、イラストを挟む
         time.sleep(0.7)
