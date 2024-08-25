@@ -2094,7 +2094,7 @@ class Board():
 
         # クリアー条件　黒番２　斜め（左右反転でも構わない）に４つ 1 が並んでいること
         #
-        #   Sinister Diagonal   Baroque Diagonal
+        #   Sinister Diagonal     Baroque Diagonal
         #           [b4]
         #      1 2 3 4 5 6 7          1 2 3 4 5 6 7
         #    +---------------+      +---------------+
@@ -2131,7 +2131,7 @@ class Board():
 
             # Baroque Diagonal
             for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length)-1)):
-                for file in range(line_length-1, FILE_LEN):
+                for file in range(line_length, FILE_LEN):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2217,7 +2217,7 @@ class Board():
 
         # クリアー条件　白番２　斜め（左右反転でも構わない）に４つ 0 が並んでいること
         #
-        #   Sinister Diagonal   Baroque Diagonal
+        #   Sinister Diagonal     Baroque Diagonal
         #           [w4]
         #      1 2 3 4 5 6 7          1 2 3 4 5 6 7
         #    +---------------+      +---------------+
@@ -2254,7 +2254,7 @@ class Board():
 
             # Baroque Diagonal
             for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length)-1)):
-                for file in range(line_length-1, FILE_LEN):
+                for file in range(line_length, FILE_LEN):
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
                             is_not_hit = True
