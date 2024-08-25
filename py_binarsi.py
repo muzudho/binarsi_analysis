@@ -645,6 +645,13 @@ class Move():
         return instance
 
 
+    def to_unlock_mode(self):
+        """開錠フラグを立てたコピー・オブジェクトを返却します"""
+        instance = copy.copy(self)
+        instance._is_way_unlock = True
+        return instance
+
+
     def replaced_by_same(self, same_move_u):
         """冗長フラグを立てたコピー・オブジェクトを返却します
         
@@ -991,6 +998,13 @@ class Board():
         self.update_legal_moves()
 
 
+    def set_way_lock_by_code(self, way_u, value, is_it_init=False):
+        """路ロックする"""
+        self._way_locks[way_u] = value
+        if is_it_init:
+            self._way_locks_at_init[way_u] = value
+
+
     def set_sfen(self, sfen_u):
         """指定局面に変更
 
@@ -1076,8 +1090,7 @@ class Board():
         # --------
         for way_u in parts[2]:
             if way_u in _way_characters:
-                self._way_locks[way_u] = True
-                self._way_locks_at_init[way_u] = True
+                self.set_way_lock_by_code(way_u, True, is_it_init=True)
 
             else:
                 raise ValueError(f"undefined sfen character on locks:`{way_u}`")
@@ -1354,7 +1367,8 @@ class Board():
         stones_before_change : str
             変更前の石の状態
         """
-        self._way_locks[move.way.to_code()] = way_lock
+        self.set_way_lock_by_code(move.way.to_code(), way_lock)
+
         self._board_editing_history.append(BoardEditingItem(
             move=move,
             stones_before_change=stones_before_change))
@@ -1626,7 +1640,7 @@ class Board():
             stones_before_change = self.copy_stones_on_line_binary(move)
 
             # もともとは、対象の路に石が置いてあった
-            if self.exists_stone_on_way(move.way):
+            if exists_stone_on_way_before_change:
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
                 self.on_exit_push_usi(move, not move.is_way_unlock, stones_before_change)
@@ -1698,8 +1712,8 @@ class Board():
         if inverse_move is None:
             raise ValueError(f"[pop] {latest_edit.move.to_code()=} に逆操作がなく、pop に失敗しました")
 
-        # 逆操作には、盤面編集フラグを立てる
-        inverse_move_for_edit = inverse_move.to_edit_mode()
+        # 逆操作には、盤面編集フラグ、開錠フラグを立てる
+        inverse_move_for_edit = inverse_move.to_edit_mode().to_unlock_mode()
         inverse_move_for_edit_u = inverse_move_for_edit.to_code()
 
         #print(f"[pop] 盤面編集として、逆操作を実行  {inverse_move_for_edit_u=}  {inverse_move_for_edit.is_way_unlock=}")
@@ -2346,10 +2360,12 @@ class Board():
             if move.operator.code not in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
                 continue
 
+            # DEBUG 一手指す前に、現局面が載っている sfen を取得しておく
+            old_sfen = self.as_sfen(from_present=True)
+
             # 試しに一手指してみる
             #print(f"試しに一手指してみる  {move.to_code()=}")
             self.push_usi(move.to_code())
-            #self._board.update_legal_moves()
 
             # 一般的に長さが短い方の形式の SFEN を記憶
             sfen = self.as_sfen(from_present=True)
@@ -2376,7 +2392,13 @@ class Board():
             # 一手戻す
             #print(f"一手戻す")
             self.pop()
-            #self.update_legal_moves()
+
+            # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
+            new_sfen = self.as_sfen(from_present=True)
+
+            # DEBUG 巻き戻せていなければ例外を投げる
+            if old_sfen != new_sfen:
+                raise ValueError(f"undo error  {old_sfen=}  {new_sfen=}")
 
 
     def as_str(self):
