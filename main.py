@@ -1,6 +1,7 @@
 import datetime
 import random
-from py_binarsi import CLEAR_TARGETS_LEN, Move, MoveHelper, Board
+import time
+from py_binarsi import PC_BLACK, PC_WHITE, CLEAR_TARGETS_LEN, Move, MoveHelper, Board
 
 
 class UsiEngine():
@@ -110,6 +111,11 @@ class UsiEngine():
             elif cmd[0] == 'clear_targets':
                 self.print_clear_targets()
 
+            # プレイ
+            #   code: play 4n
+            elif cmd[0] == 'play':
+                self.play(input_str)
+
 
     def usi(self):
         """usi握手"""
@@ -182,15 +188,22 @@ class UsiEngine():
             self._board.update_legal_moves()
 
 
-    def go(self):
-        """思考開始～最善手返却"""
+    def sub_go(self):
+        """思考開始～最善手返却
+        
+        Returns
+        -------
+        best_move : Move
+            最善手。投了なら None
+        reason : str
+            説明
+        """
 
         if self._board.is_gameover():
             """投了局面時"""
 
             # 投了
-            print(f'bestmove resign', flush=True)
-            return
+            return None, 'resign'
 
         # ビナーシに入玉はありません
 
@@ -200,11 +213,7 @@ class UsiEngine():
 
             if (matemove := self._board.mate_move_in_1ply()):
                 """一手詰めの指し手があれば、それを取得"""
-
-                best_move_u = matemove.to_code()
-                print('info score mate 1 pv {}'.format(best_move_u), flush=True)
-                print(f'bestmove {best_move_u}', flush=True)
-                return
+                return matemove, 'mate 1 move'
 
         # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
 
@@ -220,7 +229,30 @@ class UsiEngine():
 
         # １手指す
         best_move = random.choice(move_list)
+        return best_move, 'best move'
 
+
+    def go(self):
+        """思考開始～最善手返却"""
+
+        # 次の１手取得
+        (best_move, reason) = self.sub_go()
+
+        if reason == 'resign':
+            # 投了
+            print(f'bestmove resign', flush=True)
+            return
+
+        # ビナーシに入玉はありません
+
+        # 一手詰めを詰める
+        if reason == 'mate 1 move':
+            best_move_u = best_move.to_code()
+            print('info score mate 1 pv {}'.format(best_move_u), flush=True)
+            print(f'bestmove {best_move_u}', flush=True)
+            return
+
+        # １手指す
         print(f"info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move")
         print(f'bestmove {best_move.to_code()}', flush=True)
 
@@ -251,16 +283,27 @@ class UsiEngine():
                 print(f"（・＿・）何だろな？：'{cmd[1]}'")
 
 
-    def do(self, cmd):
+    def sub_do(self, move_u):
         """一手指す
+
+        Parameters
+        ----------
+        move_u : str
+            例： "4n"
+        """
+        self._board.push_usi(move_u)
+        self._board.update_legal_moves()
+
+
+    def do(self, cmd):
+        """一手指す　～　盤表示
 
         Parameters
         ----------
         cmd : list
             例： ["do", "4n"]
         """
-        self._board.push_usi(cmd[1])
-        self._board.update_legal_moves()
+        self.sub_do(move_u=cmd[1])
 
         # 現在の盤表示
         self.print_board()
@@ -541,6 +584,106 @@ CLEAR TARGETS
         stone_before_change_str = self._board.as_stones_before_change(from_present=True)
         if stone_before_change_str != '':
             print(f"                 stones_before_change {stone_before_change_str}")
+
+
+    def print_0(self):
+        print("""\
+     ________
+    /   __   |
+    |  /  |  |
+    |  |  |  |
+    |  |  |  |
+    |  |_/   |
+    |_______/""")
+
+
+    def print_1(self):
+        print("""\
+       ___
+      /   |
+     /    |
+    |__   |
+      |   |
+      |   |
+      |___|""")
+
+
+    def print_comp(self):
+        print("""\
+     ________   ________    ______  ______   ________
+    /   ____|  /   __   |  |   __ |/ __   |  |   __  |
+    |  /       |  |  |  |  |  |  |  |  |  |  |  |  |  |
+    |  |       |  |  |  |  |  |  |  |  |  |  |  |__/  |
+    |  |       |  |  |  |  |  |  |  |  |  |  |  _____/
+    |  |____   |  |_/   |  |  |  |  |  |  |  |  |
+    |_______|  |_______/   |__|  |__|  |__|  |__|""")
+
+
+    def print_you(self):
+        print("""\
+     __     ___   ________    __    __ 
+    |  |   /  /  /   __   |  |  |  |  |
+    |  |__/  /   |  |  |  |  |  |  |  |
+    |__    _/    |  |  |  |  |  |  |  |
+       |  |      |  |  |  |  |  |  |  |
+       |  |      |  |_/   |  |  |_/   |
+       |__|      |_______/   |_______/""")
+
+
+
+    def play(self, input_str):
+        """一手入力すると、相手番をコンピュータが指してくれる"""
+
+        # 待ち時間（秒）を置く。ターミナルの行が詰まって見づらいので、イラストでも挟む
+        if self._board.get_next_turn(from_present=True) == PC_BLACK:
+            self.print_1()
+        else:
+            self.print_0()
+
+        time.sleep(0.7)
+
+        # DO 一手指す
+        move_u = input_str.split(' ')[1]
+        self.sub_do(move_u)
+
+        # 現在の盤表示
+        self.print_board()
+        self.print_sfen(from_present=True)
+        print("") # 空行
+
+        # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
+        time.sleep(0.7)
+        self.print_comp()
+        time.sleep(0.7)
+
+        # DO コンピュータが次の一手を算出する
+        (best_move, reason) = self.sub_go()
+
+        if best_move is None:
+            # ターミナルが見づらいので、空行を挟む
+            print(f"""\
+# You win!""", flush=True)
+            return
+        
+        # ターミナルが見づらいので、イラストを挟む
+        if self._board.get_next_turn(from_present=True) == PC_BLACK:
+            self.print_1()
+        else:
+            self.print_0()
+
+        time.sleep(0.7)
+
+        # DO コンピュータが一手指す
+        self.sub_do(best_move.to_code())
+
+        # 現在の盤表示
+        self.print_board()
+        self.print_sfen(from_present=True)
+        print("") # 空行
+
+        # ターミナルが見づらいので、イラストを挟む
+        time.sleep(0.7)
+        self.print_you()
 
 
 if __name__ == '__main__':

@@ -964,6 +964,12 @@ class Board():
         return self._board_editing_history
 
 
+    @property
+    def turn_number(self):
+        """指し手が何手目か（盤面編集操作除く）"""
+        return len(self._board_editing_history.game_items)
+
+
     def update_squares_at_init(self):
         """初期局面を記憶（SFENで初期局面を出力したいときのためのもの）"""
         if self._squares_at_init is None:
@@ -1889,7 +1895,7 @@ class Board():
     def update_legal_moves(self):
         """合法手の一覧生成"""
 
-        print("[update_legal_moves] 実行")
+        #print("[update_legal_moves] 実行")
 
         self._legal_moves = []
         self._moves_for_edit = []
@@ -2515,13 +2521,13 @@ class Board():
         if from_present:
             # 添付局面が先手番のケース
             if self._turn_at_init == PC_BLACK:
-                if len(self._board_editing_history.game_items) % 2 == 0:
+                if self.turn_number % 2 == 0:
                     return PC_BLACK
                 
                 return PC_WHITE
 
             # 添付局面が後手番のケース
-            if len(self._board_editing_history.game_items) % 2 == 0:
+            if self.turn_number % 2 == 0:
                 return PC_WHITE
 
             return PC_BLACK
@@ -2635,7 +2641,7 @@ class Board():
 
         # 現在の盤面からのSFEN表示
         if from_present:
-            buffer.append(f' {len(self._board_editing_history.game_items)}')
+            buffer.append(f' {self.turn_number}')
 
         # 初期盤面からのSFEN表示
         else:
