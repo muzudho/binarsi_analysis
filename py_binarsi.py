@@ -2054,6 +2054,7 @@ class Board():
         # TODO クリアー条件はアンドゥしたあと消すよう注意
 
         # クリアー条件　黒番１　横に３つ 1 が並んでいること
+        #        [b3]
         #   +-----------+
         #   | . . . . . |
         #   | . . . . . |
@@ -2085,18 +2086,28 @@ class Board():
 
 
         # クリアー条件　黒番２　斜め（左右反転でも構わない）に４つ 1 が並んでいること
+        #
         #   Sinister Diagonal   Baroque Diagonal
-        #   +-----------+       +-----------+
-        #   | 1 . . . . |       | . . . . 1 |
-        #   | . 1 . . . |       | . . . 1 . |
-        #   | . . 1 . . |       | . . 1 . . |
-        #   | . . . 1 . |       | . 1 . . . |
-        #   | . . . . . |       | . . . . . |
-        #   +-----------+       +-----------+
+        #           [b4]
+        #      1 2 3 4 5 6 7          1 2 3 4 5 6 7
+        #    +---------------+      +---------------+
+        #  a | 1 ^ ^ ^ . . . |    a | . . . 1 ^ ^ ^ |
+        #  b | ^ 1 ^ ^ . . . |    b | . . 1 ^ ^ ^ ^ |
+        #  c | ^ ^ 1 ^ . . . |    c | . 1 . ^ ^ ^ ^ |
+        #  d | ^ ^ ^ 1 . . . |    d | 1 . . ^ ^ ^ ^ |
+        #  e | . . . . . . . |    e | . . . . . . . |
+        #  f | . . . . . . . |    f | . . . . . . . |
+        #    +---------------+      +---------------+
+        #
+        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        #
         def update_clear_target_2():
+            # 棒サイズ
+            line_length = 4
+
             # Sinister Diagonal
-            for rank in range(0, RANK_LEN - 3):
-                for file in range(0, FILE_LEN - 3):
+            for file in range(0, FILE_LEN-(FILE_LEN-line_length)):
+                for rank in range(0, RANK_LEN-(RANK_LEN-line_length)):
 
                     sq = Square.file_rank_to_sq(file, rank)
                     if self._squares[sq] != PC_BLACK:
@@ -2118,8 +2129,8 @@ class Board():
                     return
 
             # Baroque Diagonal
-            for rank in reversed(range(3, RANK_LEN)):
-                for file in range(0, FILE_LEN - 3):
+            for file in range(line_length-1, FILE_LEN):
+                for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length))):
 
                     sq = Square.file_rank_to_sq(file, rank)
                     if self._squares[sq] != PC_BLACK:
@@ -2145,6 +2156,7 @@ class Board():
 
 
         # クリアー条件　黒番３　縦に５つ 1 が並んでいること
+        #        [b5]
         #   +-----------+
         #   | . . 1 . . |
         #   | . . 1 . . |
@@ -2185,6 +2197,7 @@ class Board():
 
 
         # クリアー条件　白番１　縦に３つ 0 が並んでいること
+        #        [w3]
         #   +-----------+
         #   | . . . . . |
         #   | . . 0 . . |
@@ -2216,18 +2229,28 @@ class Board():
 
 
         # クリアー条件　白番２　斜め（左右反転でも構わない）に４つ 0 が並んでいること
+        #
         #   Sinister Diagonal   Baroque Diagonal
-        #   +-----------+       +-----------+
-        #   | 0 . . . . |       | . . . . 0 |
-        #   | . 0 . . . |       | . . . 0 . |
-        #   | . . 0 . . |       | . . 0 . . |
-        #   | . . . 0 . |       | . 0 . . . |
-        #   | . . . . . |       | . . . . . |
-        #   +-----------+       +-----------+
+        #           [w4]
+        #      1 2 3 4 5 6 7          1 2 3 4 5 6 7
+        #    +---------------+      +---------------+
+        #  a | 0 ^ ^ ^ . . . |    a | . . . 0 ^ ^ ^ |
+        #  b | ^ 0 ^ ^ . . . |    b | . . 0 ^ ^ ^ ^ |
+        #  c | ^ ^ 0 ^ . . . |    c | . 0 . ^ ^ ^ ^ |
+        #  d | ^ ^ ^ 0 . . . |    d | 0 . . ^ ^ ^ ^ |
+        #  e | . . . . . . . |    e | . . . . . . . |
+        #  f | . . . . . . . |    f | . . . . . . . |
+        #    +---------------+      +---------------+
+        #
+        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        #
         def update_clear_target_5():
+            # 棒サイズ
+            line_length = 4
+
             # Sinister Diagonal
-            for rank in range(0, RANK_LEN - 3):
-                for file in range(0, FILE_LEN - 3):
+            for file in range(0, FILE_LEN-(FILE_LEN-line_length)):
+                for rank in range(0, RANK_LEN-(RANK_LEN-line_length)):
 
                     sq = Square.file_rank_to_sq(file, rank)
                     if self._squares[sq] != PC_WHITE:
@@ -2249,8 +2272,8 @@ class Board():
                     return
 
             # Baroque Diagonal
-            for rank in reversed(range(3, RANK_LEN)):
-                for file in range(0, FILE_LEN - 3):
+            for file in range(line_length-1, FILE_LEN):
+                for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length))):
 
                     sq = Square.file_rank_to_sq(file, rank)
                     if self._squares[sq] != PC_WHITE:
@@ -2276,6 +2299,7 @@ class Board():
 
 
         # クリアー条件　白番３　横に５つ 0 が並んでいること
+        #        [w5]
         #   +-----------+
         #   | . . . . . |
         #   | . . . . . |
