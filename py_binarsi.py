@@ -778,6 +778,135 @@ class MoveHelper():
         raise ValueError(f"undefined operator:{op}")
 
 
+class Sfen():
+    """SFEN形式文字列"""
+
+
+    def __init__(self, from_present, squares, next_turn, way_locks, turn_number, move_u_list):
+        """初期化"""
+
+        # （初期局面からではなく）現局面のSFEN形式なら真
+        self._from_present = from_present
+
+        # 盤面
+        self._squares = squares
+
+        # 手番
+        self._next_turn = next_turn
+
+        # 添付局面図での路ロック
+        self._way_locks = way_locks
+        #self._way_locks = {
+        #    '1' : False,
+        #    '2' : False,
+        #    '3' : False,
+        #    '4' : False,
+        #    '5' : False,
+        #    '6' : False,
+        #    '7' : False,
+        #    'a' : False,
+        #    'b' : False,
+        #    'c' : False,
+        #    'd' : False,
+        #    'e' : False,
+        #    'f' : False,
+        #}
+
+        self._turn_number = turn_number
+        self._move_u_list = move_u_list
+
+        # キャッシュ
+        self._code_cached = None
+
+
+    def to_code(self):
+        """コード"""
+        global _way_characters
+
+        if self._code_cached is None:
+
+            buffer = []
+
+            # [盤面]
+
+            # usinewgame コマンドの直後に selfmatch をするとこの例外になる
+            if self._squares  is None:
+                raise ValueError("self._squares is None")
+
+            spaces = 0
+
+            for rank in range(0, RANK_LEN):
+                for file in range(0, FILE_LEN):
+                    sq = Square.file_rank_to_sq(file, rank)
+                    stone = self._squares[sq]
+
+                    if stone == PC_EMPTY:
+                        spaces += 1
+                    else:
+                        # 空白の数を Flush
+                        if 0 < spaces:
+                            buffer.append(str(spaces))
+                            spaces = 0
+                        
+                        if stone == PC_BLACK:
+                            buffer.append('x')
+                        elif stone == PC_WHITE:
+                            buffer.append('o')
+                        else:
+                            raise ValueError(f"undefined stone:'{stone}'")
+
+                # 空白の数を Flush
+                if 0 < spaces:
+                    buffer.append(str(spaces))
+                    spaces = 0
+
+                if rank != RANK_LEN - 1:
+                    buffer.append('/')
+
+
+            # ［添付図の手番］
+            if self._next_turn == PC_BLACK:
+                buffer.append(' b ')
+            elif self._next_turn == PC_WHITE:
+                buffer.append(' w ')
+            else:
+                raise ValueError(f"undefined next turn  {self._next_turn=}")
+
+
+            # ［添付図の路ロック］
+            locked = False
+
+            for way_code in _way_characters:
+                if self._way_locks[way_code]:
+                    buffer.append(way_code)
+                    locked = True
+
+            if not locked:
+                buffer.append('-')
+
+
+            # ［添付図は何手目か？］
+            buffer.append(f' {self._turn_number}')
+
+
+            # ［添付図からの棋譜］
+            if 0 < len(self._move_u_list):
+                moves_u = ' '.join(self._move_u_list)
+                buffer.append(f' moves {moves_u}')
+
+
+            sfen_str = ''.join(buffer)
+
+            # 平手初期局面なら startpos に置換
+            result = re.match(r"^7/7/2o4/7/7/7 b - 1(.*)$", sfen_str)
+            if result:
+                sfen_str = f"startpos{result.group(1)}"
+
+            self._code_cached = sfen_str
+
+        return self._code_cached
+
+
 class BoardEditingItem():
     """盤面編集記録"""
 
@@ -2415,7 +2544,12 @@ class Board():
 
 
     def distinct_legal_moves(self):
-        """指してみると結果が同じになる指し手は、印をつけたい"""
+        """指してみると結果が同じになる指し手は、印をつけたい
+
+        左右反転、上下反転で同形のものも弾きたい。
+        縦横比が異なるので、９０°回転は対象外とする。
+        上下左右反転の形を作る操作は、対局中にはないはずなので対象外とする
+        """
 
         sfen_memory_dict = {}
 
@@ -2425,7 +2559,7 @@ class Board():
         #
         #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
         #
-        sub_sfen_before_push = self.as_sfen(from_present=True).split(' ')[:-1][0]
+        sub_sfen_before_push = self.as_sfen(from_present=True).to_code().split(' ')[:-1][0]
         #print(f"[distinct_legal_moves] {sub_sfen_before_push=}")
 
         for i in range(0, len(self._legal_moves)):
@@ -2449,7 +2583,7 @@ class Board():
             #
             #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
             #
-            sub_sfen_after_push = self.as_sfen(from_present=True).split(' ')[:-1][0]
+            sub_sfen_after_push = self.as_sfen(from_present=True).to_code().split(' ')[:-1][0]
             #print(f"一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push=}")
             
             # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
@@ -2480,7 +2614,7 @@ class Board():
             self.pop()
 
             # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            rollbacked_sfen = self.as_sfen(from_present=True).split(' ')[:-1][0]
+            rollbacked_sfen = self.as_sfen(from_present=True).to_code().split(' ')[:-1][0]
             #
             #   例： 7/7/2o4/2x4/7/7 b - 1
             #
@@ -2651,89 +2785,37 @@ class Board():
         from_present : bool
             現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
-        global _way_characters
-
-        buffer = []
-        spaces = 0
 
         # 局面図
         # ------
 
         # 現在の盤面からのSFEN表示
         if from_present:
-            target_squares = self._squares 
-            if target_squares is None:
-                raise ValueError("self._squares is None")
+            squares = self._squares 
 
         # 初期盤面からのSFEN表示
         else:
-            target_squares = self._squares_at_init
-
-            # usinewgame コマンドの直後に selfmatch をするとこの例外になる
-            if target_squares is None:
-                raise ValueError("self._squares_at_init is None")
-
-
-        for rank in range(0, RANK_LEN):
-            for file in range(0, FILE_LEN):
-                sq = Square.file_rank_to_sq(file, rank)
-                stone = target_squares[sq]
-
-                if stone == PC_EMPTY:
-                    spaces += 1
-                else:
-                    # 空白の数を Flush
-                    if 0 < spaces:
-                        buffer.append(str(spaces))
-                        spaces = 0
-                    
-                    if stone == PC_BLACK:
-                        buffer.append('x')
-                    elif stone == PC_WHITE:
-                        buffer.append('o')
-                    else:
-                        raise ValueError(f"undefined stone:'{stone}'")
-
-            # 空白の数を Flush
-            if 0 < spaces:
-                buffer.append(str(spaces))
-                spaces = 0
-
-            if rank != RANK_LEN - 1:
-                buffer.append('/')
+            squares = self._squares_at_init
 
 
         # 添付局面図の手番
         # ---------------
         next_turn = self.get_next_turn()
-        if next_turn == PC_BLACK:
-            buffer.append(' b ')
-        elif next_turn == PC_WHITE:
-            buffer.append(' w ')
-        else:
-            raise ValueError(f"undefined next turn  {next_turn=}")
-        
 
-        # 添付局面図の筋（段）の符号、またはロック
-        # -------------------------------------
-        locked = False
+
+        # 路ロックされている添付局面図の路の符号
+        # -----------------------------------
+        #
+        #   筋、段の順
+        #
 
         # 現在の盤面から
         if from_present:
-            for way_code in _way_characters:
-                if self._way_locks[way_code]:
-                    buffer.append(way_code)
-                    locked = True
+            way_locks = self._way_locks
 
         # 初期盤面から
         else:
-            for way_code in _way_characters:
-                if self._way_locks_at_init[way_code]:
-                    buffer.append(way_code)
-                    locked = True
-
-        if not locked:
-            buffer.append('-')
+            way_locks = self._way_locks_at_init
 
 
         # 添付局面図は何手目のものか
@@ -2741,15 +2823,16 @@ class Board():
 
         # 現在の盤面からのSFEN表示
         if from_present:
-            buffer.append(f' {self.turn_number}')
+            turn_number = self.turn_number
 
         # 初期盤面からのSFEN表示
         else:
-            buffer.append(' 1')
+            turn_number = 1
 
 
         # 添付局面図からの指し手
         # ---------------------
+        move_u_list = []
 
         # 現在の盤面からのSFEN表示
         if from_present:
@@ -2757,28 +2840,18 @@ class Board():
 
         # 初期盤面からのSFEN表示
         else:
-
-            move_u_list = []
-
             # 対局棋譜
             for game_record_item in self._board_editing_history.game_items:
                 move_u_list.append(game_record_item.move.to_code())
 
-            if 0 < len(move_u_list):
-                moves_u = ' '.join(move_u_list).rstrip()
-                buffer.append(f' moves {moves_u}')
 
-
-        sfen_str = ''.join(buffer)
-
-
-        # 平手初期局面なら startpos に置換
-        result = re.match(r"^7/7/2o4/7/7/7 b - 1(.*)$", sfen_str)
-        if result:
-            sfen_str = f"startpos{result.group(1)}"
-
-
-        return sfen_str
+        return Sfen(
+            from_present=from_present,
+            squares=squares,
+            next_turn=next_turn,
+            way_locks=way_locks,
+            turn_number=turn_number,
+            move_u_list=move_u_list)
 
 
     def as_stones_before_change(self, from_present=False):

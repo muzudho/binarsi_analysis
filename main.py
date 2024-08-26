@@ -576,13 +576,13 @@ CLEAR TARGETS
         from_present : bool
             現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
-        print(f"[from beginning] sfen {self._board.as_sfen()}")
+        print(f"[from beginning] sfen {self._board.as_sfen().to_code()}")
 
         stone_before_change_str = self._board.as_stones_before_change()
         if stone_before_change_str != '':
             print(f"                 stones_before_change {stone_before_change_str}")
 
-        print(f"[from present]   sfen {self._board.as_sfen(from_present=True)}")
+        print(f"[from present]   sfen {self._board.as_sfen(from_present=True).to_code()}")
 
         stone_before_change_str = self._board.as_stones_before_change(from_present=True)
         if stone_before_change_str != '':
