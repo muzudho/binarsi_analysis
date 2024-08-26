@@ -47,3 +47,21 @@ f | . . 1 . . . . |
 [from beginning] sfen startpos moves dn bn en an fn anH
                  stones_before_change - - - - - 0
 [from present]   sfen 2o4/2x4/2o4/2x4/2o4/2x4 b a 6
+
+# [ ] 結果の変わらない指し手によるイリーガルムーブ
+
+```
+[ 4 moves | moved dnL | next black]
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . 1 . . . . |
+c | . . 0 . . . . |
+# | . . 1 . . . . |
+e | . . 0 . . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen startpos moves dn bn en dnL
+                 stones_before_change - - - 1
+[from present]   sfen 7/2x4/2o4/2x4/2o4/7 b d 4
+```

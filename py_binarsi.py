@@ -2591,7 +2591,7 @@ class Board():
             #
             #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
             #
-            sub_sfen_after_push = self.as_sfen(from_present=True).to_code(without_move_number)
+            sub_sfen_after_push = self.as_sfen(from_present=True).to_code(without_move_number=True)
             #print(f"一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push=}")
             
             # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
@@ -2622,7 +2622,7 @@ class Board():
             self.pop()
 
             # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            rollbacked_sfen = self.as_sfen(from_present=True).to_code(without_move_number=False)
+            rollbacked_sfen = self.as_sfen(from_present=True).to_code(without_move_number=True)
             #
             #   例： 7/7/2o4/2x4/7/7 b - 1
             #
