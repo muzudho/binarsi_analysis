@@ -659,7 +659,7 @@ CLEAR TARGETS
             """今クリアーしたものがあれば、クリアー目標表示"""
             one_cleared = False
             for clear_target in self._board.clear_targets:
-                if clear_target == self._board.turn_number:
+                if clear_target == self._board.move_number:
                     one_cleared = True
                     break
             

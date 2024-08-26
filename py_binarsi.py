@@ -782,7 +782,7 @@ class Sfen():
     """SFEN形式文字列"""
 
 
-    def __init__(self, from_present, squares, next_turn, way_locks, turn_number, move_u_list):
+    def __init__(self, from_present, squares, next_turn, way_locks, move_number, move_u_list):
         """初期化"""
 
         # （初期局面からではなく）現局面のSFEN形式なら真
@@ -812,15 +812,22 @@ class Sfen():
         #    'f' : False,
         #}
 
-        self._turn_number = turn_number
+        self._move_number = move_number
         self._move_u_list = move_u_list
 
         # キャッシュ
         self._code_cached = None
 
 
-    def to_code(self):
-        """コード"""
+    def to_code(self, without_move_number=False):
+        """コード
+
+        Parameters
+        ----------
+        without_move_number : bool
+            SFEN に［何手目］を含まないようにするフラグです。
+            同じ局面をチェックしたいとき、［何手目］が異なるかは無視したいという要望があります
+        """
         global _way_characters
 
         if self._code_cached is None:
@@ -886,7 +893,8 @@ class Sfen():
 
 
             # ［添付図は何手目か？］
-            buffer.append(f' {self._turn_number}')
+            if not without_move_number:
+                buffer.append(f' {self._move_number}')
 
 
             # ［添付図からの棋譜］
@@ -1104,7 +1112,7 @@ class Board():
 
 
     @property
-    def turn_number(self):
+    def move_number(self):
         """指し手が何手目か（盤面編集操作除く）"""
         return len(self._board_editing_history.game_items)
 
@@ -2240,7 +2248,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[0] = self.turn_number
+                    self._clear_targets[0] = self.move_number
                     return
 
         if self._clear_targets[0] == -1:
@@ -2287,7 +2295,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[1] = self.turn_number
+                    self._clear_targets[1] = self.move_number
                     return
 
             # Baroque Diagonal
@@ -2307,7 +2315,7 @@ class Board():
                         is_not_hit = False
                         break
 
-                    self._clear_targets[1] = self.turn_number
+                    self._clear_targets[1] = self.move_number
                     return
 
         if self._clear_targets[1] == -1:
@@ -2351,7 +2359,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[2] = self.turn_number
+                    self._clear_targets[2] = self.move_number
                     return
 
         if self._clear_targets[2] == -1:
@@ -2395,7 +2403,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[3] = self.turn_number
+                    self._clear_targets[3] = self.move_number
                     return
 
         if self._clear_targets[3] == -1:
@@ -2442,7 +2450,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[4] = self.turn_number
+                    self._clear_targets[4] = self.move_number
                     return
 
             # Baroque Diagonal
@@ -2463,7 +2471,7 @@ class Board():
                         is_not_hit = False
                         break
 
-                    self._clear_targets[4] = self.turn_number
+                    self._clear_targets[4] = self.move_number
                     return
 
         if self._clear_targets[4] == -1:
@@ -2507,7 +2515,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[5] = self.turn_number
+                    self._clear_targets[5] = self.move_number
                     return
 
         if self._clear_targets[5] == -1:
@@ -2557,9 +2565,9 @@ class Board():
         #
         #   例： 7/7/2o4/2x4/7/7 b - 1
         #
-        #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
+        #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
         #
-        sub_sfen_before_push = self.as_sfen(from_present=True).to_code().split(' ')[:-1][0]
+        sub_sfen_before_push = self.as_sfen(from_present=True).to_code(without_move_number=True)
         #print(f"[distinct_legal_moves] {sub_sfen_before_push=}")
 
         for i in range(0, len(self._legal_moves)):
@@ -2581,9 +2589,9 @@ class Board():
             #
             #   例： 7/7/2x4/2o4/7/7 b 3 2
             #
-            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
+            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
             #
-            sub_sfen_after_push = self.as_sfen(from_present=True).to_code().split(' ')[:-1][0]
+            sub_sfen_after_push = self.as_sfen(from_present=True).to_code(without_move_number)
             #print(f"一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push=}")
             
             # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
@@ -2614,11 +2622,11 @@ class Board():
             self.pop()
 
             # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            rollbacked_sfen = self.as_sfen(from_present=True).to_code().split(' ')[:-1][0]
+            rollbacked_sfen = self.as_sfen(from_present=True).to_code(without_move_number=False)
             #
             #   例： 7/7/2o4/2x4/7/7 b - 1
             #
-            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
+            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
             #
 
             # DEBUG 巻き戻せていなければ例外を投げる
@@ -2645,7 +2653,7 @@ class Board():
         # １行目表示
         # ---------
         edits_num = len(self._board_editing_history.items)
-        if self.turn_number != edits_num:
+        if self.move_number != edits_num:
             edits_num_str = f"| {edits_num} edits "
         else:
             edits_num_str = ""
@@ -2692,7 +2700,7 @@ class Board():
                 next_turn_str = 'next white'
 
 
-        print(f"[{self.turn_number:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str} | {next_turn_str}]")
+        print(f"[{self.move_number:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str} | {next_turn_str}]")
 
 
         # 盤表示
@@ -2755,13 +2763,13 @@ class Board():
         if from_present:
             # 添付局面が先手番のケース
             if self._turn_at_init == PC_BLACK:
-                if self.turn_number % 2 == 0:
+                if self.move_number % 2 == 0:
                     return PC_BLACK
                 
                 return PC_WHITE
 
             # 添付局面が後手番のケース
-            if self.turn_number % 2 == 0:
+            if self.move_number % 2 == 0:
                 return PC_WHITE
 
             return PC_BLACK
@@ -2823,11 +2831,11 @@ class Board():
 
         # 現在の盤面からのSFEN表示
         if from_present:
-            turn_number = self.turn_number
+            move_number = self.move_number
 
         # 初期盤面からのSFEN表示
         else:
-            turn_number = 1
+            move_number = 1
 
 
         # 添付局面図からの指し手
@@ -2850,7 +2858,7 @@ class Board():
             squares=squares,
             next_turn=next_turn,
             way_locks=way_locks,
-            turn_number=turn_number,
+            move_number=move_number,
             move_u_list=move_u_list)
 
 
