@@ -1048,34 +1048,37 @@ class Board():
 
         # 盤面
         # ----
+        
         numeric = 0
         for ch in parts[0]:
             if ch in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
                 numeric *= 10
                 numeric += int(ch)
-
-            elif ch in ['x', 'o']:
-                # 空白の数をフラッシュ
+            
+            else:
+                # フラッシュ。空白が何個あるかで１回ずつカーソルを進める
                 while 0 < numeric:
                     # フォワード
                     cursor.file_forward()
                     numeric -= 1
 
-                sq = cursor.get_sq()
+                if ch in ['x', 'o']:
 
-                if ch == 'x':
-                    self._squares[sq] = PC_BLACK
+                    sq = cursor.get_sq()
+
+                    if ch == 'x':
+                        self._squares[sq] = PC_BLACK
+                    else:
+                        self._squares[sq] = PC_WHITE
+
+                    # フォワード
+                    cursor.file_forward()
+
+                elif ch == '/':
+                    pass
+
                 else:
-                    self._squares[sq] = PC_WHITE
-
-                # フォワード
-                cursor.file_forward()
-
-            elif ch == '/':
-                pass
-
-            else:
-                raise ValueError(f"undefined sfen character on board:`{ch}`")
+                    raise ValueError(f"undefined sfen character on board:`{ch}`")
 
         # 添付盤面での手番
         # ---------------
@@ -1088,12 +1091,13 @@ class Board():
 
         # 路ロック
         # --------
-        for way_u in parts[2]:
-            if way_u in _way_characters:
-                self.set_way_lock_by_code(way_u, True, is_it_init=True)
+        if parts[2] != '-':
+            for way_u in parts[2]:
+                if way_u in _way_characters:
+                    self.set_way_lock_by_code(way_u, True, is_it_init=True)
 
-            else:
-                raise ValueError(f"undefined sfen character on locks:`{way_u}`")
+                else:
+                    raise ValueError(f"undefined sfen character on locks:`{way_u}`")
 
         # TODO 手数の解析
         pass
