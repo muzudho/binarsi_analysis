@@ -819,11 +819,14 @@ class Sfen():
         self._code_cached = None
 
 
-    def to_code(self, without_move_number=False):
+    def to_code(self, without_way_lock=False, without_move_number=False):
         """コード
 
         Parameters
         ----------
+        without_way_lock : bool
+            SFEN に［路ロック］を含まないようにするフラグです。
+            同じ局面をチェックしたいとき、［路ロック］が異なるかは無視したいという要望があります
         without_move_number : bool
             SFEN に［何手目］を含まないようにするフラグです。
             同じ局面をチェックしたいとき、［何手目］が異なるかは無視したいという要望があります
@@ -873,23 +876,24 @@ class Sfen():
 
             # ［添付図の手番］
             if self._next_turn == PC_BLACK:
-                buffer.append(' b ')
+                buffer.append(' b')
             elif self._next_turn == PC_WHITE:
-                buffer.append(' w ')
+                buffer.append(' w')
             else:
                 raise ValueError(f"undefined next turn  {self._next_turn=}")
 
 
             # ［添付図の路ロック］
-            locked = False
+            if not without_way_lock:
+                locked = False
 
-            for way_code in _way_characters:
-                if self._way_locks[way_code]:
-                    buffer.append(way_code)
-                    locked = True
+                for way_code in _way_characters:
+                    if self._way_locks[way_code]:
+                        buffer.append(way_code)
+                        locked = True
 
-            if not locked:
-                buffer.append('-')
+                if not locked:
+                    buffer.append(' -')
 
 
             # ［添付図は何手目か？］
@@ -2567,8 +2571,8 @@ class Board():
         #
         #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
         #
-        sub_sfen_before_push = self.as_sfen(from_present=True).to_code(without_move_number=True)
-        #print(f"[distinct_legal_moves] {sub_sfen_before_push=}")
+        sub_sfen_before_push = self.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
+        print(f"[distinct_legal_moves] {sub_sfen_before_push=}")
 
         for i in range(0, len(self._legal_moves)):
             move = self._legal_moves[i]
@@ -2582,7 +2586,7 @@ class Board():
             sfen_memory_dict[sub_sfen_before_push] = 'pass'
 
             # 試しに一手指してみる
-            #print(f"試しに一手指してみる  {move.to_code()=}")
+            print(f"試しに一手指してみる  {move.to_code()=}")
             self.push_usi(move.to_code())
 
             # 一般的に長さが短い方の形式の SFEN を記憶
@@ -2591,13 +2595,13 @@ class Board():
             #
             #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
             #
-            sub_sfen_after_push = self.as_sfen(from_present=True).to_code(without_move_number=True)
-            #print(f"一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push=}")
+            sub_sfen_after_push = self.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
+            print(f"一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push=}")
             
             # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
             if sub_sfen_after_push in sfen_memory_dict.keys():
                 same_move_u = sfen_memory_dict[sub_sfen_after_push]
-                #print(f"[distinct_legal_moves] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}  {sub_sfen_after_push=}")
+                print(f"[distinct_legal_moves] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}  {sub_sfen_after_push=}")
                 replaced_move = move.replaced_by_same(same_move_u)
 
                 # 格納し直す
@@ -2614,7 +2618,7 @@ class Board():
             #
             else:
                 move_u = move.to_code()
-                #print(f"[distinct_legal_moves] 重複していないので、一時記憶する  {move_u=}  {sub_sfen_after_push=}")
+                print(f"[distinct_legal_moves] 重複していないので、一時記憶する  {move_u=}  {sub_sfen_after_push=}")
                 sfen_memory_dict[sub_sfen_after_push] = move_u
             
             # 一手戻す
@@ -2622,7 +2626,7 @@ class Board():
             self.pop()
 
             # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            rollbacked_sfen = self.as_sfen(from_present=True).to_code(without_move_number=True)
+            rollbacked_sfen = self.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
             #
             #   例： 7/7/2o4/2x4/7/7 b - 1
             #
