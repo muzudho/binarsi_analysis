@@ -181,6 +181,8 @@ class UsiEngine():
         # 初期局面を記憶（SFENで初期局面を出力したいときのためのもの）
         self._board.update_squares_at_init()
 
+        # １手も指していない添付図の合法手を判定
+        self._board.update_legal_moves()
 
         # 盤面編集履歴（対局棋譜のスーパーセット）再生
         for move_u in move_u_list:

@@ -2073,16 +2073,16 @@ class Board():
 
         # クリアー条件　黒番１　横に３つ 1 が並んでいること
         #
-        #           [b3]
-        #      1 2 3 4 5 6 7  
-        #    +---------------+
-        #  a | 1 1 1 ^ ^ . . |
-        #  b | ^ ^ ^ ^ ^ . . |
-        #  c | ^ ^ ^ ^ ^ . . |
-        #  d | ^ ^ ^ ^ ^ . . |
-        #  e | . . . . . . . |
-        #  f | . . . . . . . |
-        #    +---------------+
+        #          [b3]
+        #       1 2 3 4 5 6 7  
+        #     +---------------+
+        #   a | 1 1 1 ^ ^ . . |
+        #   b | ^ ^ ^ ^ ^ . . |
+        #   c | ^ ^ ^ ^ ^ . . |
+        #   d | ^ ^ ^ ^ ^ . . |
+        #   e | ^ ^ ^ ^ ^ . . |
+        #   f | ^ ^ ^ ^ ^ . . |
+        #     +---------------+
         #
         # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
         #
@@ -2092,13 +2092,12 @@ class Board():
             my_stone_color = PC_BLACK
             is_not_hit = False  # 外側の file ループを続行
 
-            for rank in range(0, RANK_LEN-line_length+1):
-                #                       6-          3+1
-                #                      =4
+            for rank in range(0, RANK_LEN):
+                #             0,        6
 
                 for file in range(0, FILE_LEN-line_length+1):
-                    #                       7-          3+1
-                    #                      =5 
+                    #             0,        7-          3+1
+                    #             0,       =5 
 
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
@@ -2140,7 +2139,13 @@ class Board():
 
             # Sinister Diagonal
             for rank in range(0, RANK_LEN-line_length+1):
+                #             0,        6-          4+1
+                #             0,       =3
+
                 for file in range(0, FILE_LEN-line_length+1):
+                    #             0,        7-          4+1
+                    #             0,       =4
+
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2154,8 +2159,13 @@ class Board():
                     return
 
             # Baroque Diagonal
-            for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length)-1)):
+            for rank in range(0, RANK_LEN-(RANK_LEN-line_length)-1):
+                #             0,        6-(       6-          4)-1
+                #             0,       =3 
                 for file in range(line_length-1, FILE_LEN):
+                    #                       4-1,        7
+                    #                      =3  ,        7
+
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2173,14 +2183,20 @@ class Board():
 
 
         # クリアー条件　黒番３　縦に５つ 1 が並んでいること
-        #        [b5]
-        #   +-----------+
-        #   | . . 1 . . |
-        #   | . . 1 . . |
-        #   | . . 1 . . |
-        #   | . . 1 . . |
-        #   | . . 1 . . |
-        #   +-----------+
+        #
+        #          [b5]
+        #       1 2 3 4 5 6 7
+        #     +---------------+
+        #   a | 1 ^ ^ ^ ^ ^ ^ |
+        #   b | 1 ^ ^ ^ ^ ^ ^ |
+        #   c | 1 . . . . . . |
+        #   d | 1 . . . . . . |
+        #   e | 1 . . . . . . |
+        #   f | . . . . . . . |
+        #     +---------------+
+        #
+        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        #
         def update_clear_target_b5():
             # 棒サイズ
             line_length = 5
@@ -2188,7 +2204,12 @@ class Board():
             is_not_hit = False  # 外側の file ループを続行
 
             for rank in range(0, RANK_LEN-line_length+1):
-                for file in range(0, FILE_LEN-line_length+1):
+                #             0,        6-          5+1
+                #             0,       =2
+
+                for file in range(0, FILE_LEN):
+                    #             0,        7
+
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2207,14 +2228,19 @@ class Board():
 
 
         # クリアー条件　白番１　縦に３つ 0 が並んでいること
-        #        [w3]
-        #   +-----------+
-        #   | . . . . . |
-        #   | . . 0 . . |
-        #   | . . 0 . . |
-        #   | . . 0 . . |
-        #   | . . . . . |
-        #   +-----------+
+        #          [w3]
+        #       1 2 3 4 5 6 7
+        #     +---------------+
+        #   a | 0 ^ ^ ^ ^ ^ ^ |
+        #   b | 0 ^ ^ ^ ^ ^ ^ |
+        #   c | 0 ^ ^ ^ ^ ^ ^ |
+        #   d | ^ ^ ^ ^ ^ ^ ^ |
+        #   e | . . . . . . . |
+        #   f | . . . . . . . |
+        #     +---------------+
+        #
+        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        #
         def update_clear_target_w3():
             # 棒サイズ
             line_length = 3
@@ -2222,7 +2248,12 @@ class Board():
             is_not_hit = False  # 外側の file ループを続行
 
             for rank in range(0, RANK_LEN-line_length+1):
-                for file in range(0, FILE_LEN-line_length+1):
+                #             0,        6-          3+1
+                #             0,       =4
+
+                for file in range(0, FILE_LEN):
+                    #             0,        7
+
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2263,7 +2294,13 @@ class Board():
 
             # Sinister Diagonal
             for rank in range(0, RANK_LEN-line_length+1):
+                #             0,        6-          4+1
+                #             0,       =3
+
                 for file in range(0, FILE_LEN-line_length+1):
+                    #             0,        7-          4+1
+                    #             0,       =4
+
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2277,8 +2314,14 @@ class Board():
                     return
 
             # Baroque Diagonal
-            for rank in reversed(range(0, RANK_LEN-(RANK_LEN-line_length)-1)):
+            for rank in range(0, RANK_LEN-(RANK_LEN-line_length)-1):
+                #             0,        6-(       6-          4)-1
+                #             0,       =3
+
                 for file in range(line_length-1, FILE_LEN):
+                    #                       4-1,        7
+                    #                      =3  ,        7
+
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
                             is_not_hit = True
@@ -2296,22 +2339,33 @@ class Board():
 
 
         # クリアー条件　白番３　横に５つ 0 が並んでいること
-        #        [w5]
-        #   +-----------+
-        #   | . . . . . |
-        #   | . . . . . |
-        #   | 0 0 0 0 0 |
-        #   | . . . . . |
-        #   | . . . . . |
-        #   +-----------+
+        #
+        #          [w5]
+        #       1 2 3 4 5 6 7
+        #     +---------------+
+        #   a | 0 0 0 0 0 . . |
+        #   b | ^ ^ ^ . . . . |
+        #   c | ^ ^ ^ . . . . |
+        #   d | ^ ^ ^ . . . . |
+        #   e | ^ ^ ^ . . . . |
+        #   f | ^ ^ ^ . . . . |
+        #     +---------------+
+        #
+        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        #
         def update_clear_target_w5():
             # 棒サイズ
             line_length = 5
             my_stone_color = PC_WHITE
             is_not_hit = False  # 外側の file ループを続行
 
-            for rank in range(0, RANK_LEN-line_length+1):
+            for rank in range(0, RANK_LEN):
+                #             0,        6
+
                 for file in range(0, FILE_LEN-line_length+1):
+                    #             0,        7-          5+1
+                    #             0,       =3
+
                     for i in range(0, line_length):
                         if self._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
                             is_not_hit = True
