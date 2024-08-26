@@ -1,3 +1,5 @@
+# おかしな路ロック
+
 [ 2 moves | moved 5o | next black]
     1 2 3 4 # 6 7
   +---------------+
@@ -27,3 +29,21 @@ f |               |
                  stones_before_change - - 0
 [from present]   sfen 7/7/2oxx2/7/7/7 b 45 3
 
+
+# [x] 2024-08-26 結果の変わらない nH はイリーガル
+
+* distinct_legal_moves() で弾くように変更
+
+[ 6 moves | moved anH | next black]
+    1 2 3 4 5 6 7
+  +---------------+
+# | . . 0 . . . . |
+b | . . 1 . . . . |
+c | . . 0 . . . . |
+d | . . 1 . . . . |
+e | . . 0 . . . . |
+f | . . 1 . . . . |
+  +---------------+
+[from beginning] sfen startpos moves dn bn en an fn anH
+                 stones_before_change - - - - - 0
+[from present]   sfen 2o4/2x4/2o4/2x4/2o4/2x4 b a 6

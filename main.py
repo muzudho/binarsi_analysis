@@ -373,8 +373,9 @@ class UsiEngine():
         """
         print("""\
 LEGAL MOVES
------------
-    (Distinct|All)""")
++--------+---+
+|Distinct|All|
++--------+---+""")
 
         # 冗長な指し手を省く
         self._board.distinct_legal_moves()
@@ -392,17 +393,17 @@ LEGAL MOVES
 
             if move.same_move_u != '':
                 same_move_str = f' | same {move.same_move_u}'
-                num_str = f'  |{i+1:2}'
+                num_str = f'        |{i+1:3}'
 
             else:
                 same_move_str = ''
-                num_str = f'{j+1:2}|{i+1:2}'
+                num_str = f'{j+1:8}|{i+1:3}'
                 j += 1
 
-            print(f"    ({num_str}) do {move.to_code()}{same_move_str}")
+            print(f"|{num_str}| do {move.to_code():<3}{same_move_str}")
 
         print("""\
------------
++--------+---+
 """)
 
 

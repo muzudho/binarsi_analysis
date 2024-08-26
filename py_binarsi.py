@@ -341,6 +341,9 @@ class Operator():
         n
         nL
         nH
+
+    現局面と変わらない、あるいは現局面を示す方法として内部的に使うかも
+        pass
     """
 
     def __init__(self, stem_u, parameter_length):
@@ -2416,6 +2419,15 @@ class Board():
 
         sfen_memory_dict = {}
 
+        # 一手指す前に、現局面が載っている sfen を取得しておく
+        #
+        #   例： 7/7/2o4/2x4/7/7 b - 1
+        #
+        #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
+        #
+        sub_sfen_before_push = self.as_sfen(from_present=True).split(' ')[:-1][0]
+        #print(f"[distinct_legal_moves] {sub_sfen_before_push=}")
+
         for i in range(0, len(self._legal_moves)):
             move = self._legal_moves[i]
 
@@ -2424,45 +2436,60 @@ class Board():
             if move.operator.code not in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
                 continue
 
-            # DEBUG 一手指す前に、現局面が載っている sfen を取得しておく
-            old_sfen = self.as_sfen(from_present=True)
+            # FIXME パスという指し手はないが、現局面と同じになる指し手も省きたいので、暫定で追加している
+            sfen_memory_dict[sub_sfen_before_push] = 'pass'
 
             # 試しに一手指してみる
             #print(f"試しに一手指してみる  {move.to_code()=}")
             self.push_usi(move.to_code())
 
             # 一般的に長さが短い方の形式の SFEN を記憶
-            sfen = self.as_sfen(from_present=True)
-            #print(f"一般的に長さが短い方の形式の SFEN を記憶  {sfen=}")
+            #
+            #   例： 7/7/2x4/2o4/7/7 b 3 2
+            #
+            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
+            #
+            sub_sfen_after_push = self.as_sfen(from_present=True).split(' ')[:-1][0]
+            #print(f"一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push=}")
             
             # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
-            if sfen in sfen_memory_dict.keys():
-                same_move_u = sfen_memory_dict[sfen]
-                #print(f"既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}")
+            if sub_sfen_after_push in sfen_memory_dict.keys():
+                same_move_u = sfen_memory_dict[sub_sfen_after_push]
+                #print(f"[distinct_legal_moves] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}  {sub_sfen_after_push=}")
                 replaced_move = move.replaced_by_same(same_move_u)
 
                 # 格納し直す
                 # FIXME 一手進んだ局面のリーガルムーブを設定しても意味ないのでは？ 一手進んだり、戻ったりするたびにリセットしないように要注意
-                #print(f"格納し直す  {replaced_move.to_code()}  {replaced_move.same_move_u=}")
+                #print(f"[distinct_legal_moves] 格納し直す  {replaced_move.to_code()}  {replaced_move.same_move_u=}")
                 self._legal_moves[i] = replaced_move
-                #print(f"格納し直した  {self._legal_moves[i].to_code()}  {self._legal_moves[i].same_move_u=}")
+                #print(f"[distinct_legal_moves] 格納し直した  {self._legal_moves[i].to_code()}  {self._legal_moves[i].same_move_u=}")
             
             # 重複していなければ、一時記憶する
+            #
+            #   例： 7/7/2x4/2o4/7/7 b 3 2
+            #
+            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
+            #
             else:
                 move_u = move.to_code()
-                #print(f"重複していないので、一時記憶する  {move_u=}")
-                sfen_memory_dict[sfen] = move_u
+                #print(f"[distinct_legal_moves] 重複していないので、一時記憶する  {move_u=}  {sub_sfen_after_push=}")
+                sfen_memory_dict[sub_sfen_after_push] = move_u
             
             # 一手戻す
-            #print(f"一手戻す")
+            #print(f"[distinct_legal_moves] 一手戻す")
             self.pop()
 
             # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            new_sfen = self.as_sfen(from_present=True)
+            rollbacked_sfen = self.as_sfen(from_present=True).split(' ')[:-1][0]
+            #
+            #   例： 7/7/2o4/2x4/7/7 b - 1
+            #
+            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
+            #
 
             # DEBUG 巻き戻せていなければ例外を投げる
-            if old_sfen != new_sfen:
-                raise ValueError(f"undo error  {old_sfen=}  {new_sfen=}")
+            if sub_sfen_before_push != rollbacked_sfen:
+                raise ValueError(f"undo error  {sub_sfen_before_push=}  {rollbacked_sfen=}")
 
 
     def as_str(self):
