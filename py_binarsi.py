@@ -919,6 +919,52 @@ class Sfen():
         return self._code_cached
 
 
+    def to_upside_down(self):
+        """盤面を上下反転した SFEN オブジェクトを返す"""
+
+        instance = copy.copy(self)
+
+        # キャッシュ・クリアー
+        instance._code_cached = None
+
+        # 参照ではなく、コピーにする
+        instance._squares = copy.copy(self._squares)
+
+        for file in range(0, FILE_LEN):
+            for rank in range(0, (RANK_LEN+1)//2):
+                src_sq = Square.file_rank_to_sq(file, rank)
+                dst_sq = Square.file_rank_to_sq(file, RANK_LEN-rank-1)
+
+                temp = instance._squares[dst_sq]
+                instance._squares[dst_sq] = instance._squares[src_sq]
+                instance._squares[src_sq] = temp
+
+        return instance
+
+
+    def to_flip_left_and_right(self):
+        """盤面を左右反転した SFEN オブジェクトを返す"""
+
+        instance = copy.copy(self)
+
+        # キャッシュ・クリアー
+        instance._code_cached = None
+
+        # 参照ではなく、コピーにする
+        instance._squares = copy.copy(self._squares)
+
+        for rank in range(0, RANK_LEN):
+            for file in range(0, (FILE_LEN+1)//2):
+                src_sq = Square.file_rank_to_sq(file, rank)
+                dst_sq = Square.file_rank_to_sq(FILE_LEN-file-1, rank)
+
+                temp = instance._squares[dst_sq]
+                instance._squares[dst_sq] = instance._squares[src_sq]
+                instance._squares[src_sq] = temp
+
+        return instance
+
+
 class BoardEditingItem():
     """盤面編集記録"""
 
@@ -2571,8 +2617,20 @@ class Board():
         #
         #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
         #
-        sub_sfen_before_push = self.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
-        print(f"[distinct_legal_moves] {sub_sfen_before_push=}")
+        sub_sfen_1_before_push = self.as_sfen(from_present=True)
+        sub_sfen_2_before_push = sub_sfen_1_before_push.to_upside_down()
+        sub_sfen_3_before_push = sub_sfen_1_before_push.to_flip_left_and_right()
+        sub_sfen_1_before_push_u = sub_sfen_1_before_push.to_code(without_way_lock=True, without_move_number=True)
+        sub_sfen_2_before_push_u = sub_sfen_2_before_push.to_code(without_way_lock=True, without_move_number=True)
+        sub_sfen_3_before_push_u = sub_sfen_3_before_push.to_code(without_way_lock=True, without_move_number=True)
+        #print(f"[distinct_legal_moves] {sub_sfen_1_before_push_u=}")
+        #print(f"[distinct_legal_moves] {sub_sfen_2_before_push_u=}")
+        #print(f"[distinct_legal_moves] {sub_sfen_3_before_push_u=}")
+
+        # FIXME パスという指し手はないが、現局面と同じになる指し手も省きたいので、暫定で追加している
+        sfen_memory_dict[sub_sfen_1_before_push_u] = 'pass'
+        sfen_memory_dict[sub_sfen_2_before_push_u] = 'pass'
+        sfen_memory_dict[sub_sfen_3_before_push_u] = 'pass'
 
         for i in range(0, len(self._legal_moves)):
             move = self._legal_moves[i]
@@ -2582,11 +2640,8 @@ class Board():
             if move.operator.code not in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
                 continue
 
-            # FIXME パスという指し手はないが、現局面と同じになる指し手も省きたいので、暫定で追加している
-            sfen_memory_dict[sub_sfen_before_push] = 'pass'
-
             # 試しに一手指してみる
-            print(f"試しに一手指してみる  {move.to_code()=}")
+            #print(f"[distinct_legal_moves] 試しに一手指してみる  {move.to_code()=}")
             self.push_usi(move.to_code())
 
             # 一般的に長さが短い方の形式の SFEN を記憶
@@ -2595,13 +2650,13 @@ class Board():
             #
             #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
             #
-            sub_sfen_after_push = self.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
-            print(f"一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push=}")
+            sub_sfen_after_push_u = self.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
+            #print(f"[distinct_legal_moves] 一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push_u=}")
             
             # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
-            if sub_sfen_after_push in sfen_memory_dict.keys():
-                same_move_u = sfen_memory_dict[sub_sfen_after_push]
-                print(f"[distinct_legal_moves] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}  {sub_sfen_after_push=}")
+            if sub_sfen_after_push_u in sfen_memory_dict.keys():
+                same_move_u = sfen_memory_dict[sub_sfen_after_push_u]
+                #print(f"[distinct_legal_moves] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}  {sub_sfen_after_push_u=}")
                 replaced_move = move.replaced_by_same(same_move_u)
 
                 # 格納し直す
@@ -2618,15 +2673,15 @@ class Board():
             #
             else:
                 move_u = move.to_code()
-                print(f"[distinct_legal_moves] 重複していないので、一時記憶する  {move_u=}  {sub_sfen_after_push=}")
-                sfen_memory_dict[sub_sfen_after_push] = move_u
+                #print(f"[distinct_legal_moves] 重複していないので、一時記憶する  {move_u=}  {sub_sfen_after_push_u=}")
+                sfen_memory_dict[sub_sfen_after_push_u] = move_u
             
             # 一手戻す
             #print(f"[distinct_legal_moves] 一手戻す")
             self.pop()
 
             # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            rollbacked_sfen = self.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
+            rollbacked_sfen_u = self.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
             #
             #   例： 7/7/2o4/2x4/7/7 b - 1
             #
@@ -2634,8 +2689,8 @@ class Board():
             #
 
             # DEBUG 巻き戻せていなければ例外を投げる
-            if sub_sfen_before_push != rollbacked_sfen:
-                raise ValueError(f"undo error  {sub_sfen_before_push=}  {rollbacked_sfen=}")
+            if sub_sfen_1_before_push_u != rollbacked_sfen_u:
+                raise ValueError(f"undo error  {sub_sfen_1_before_push=}  {rollbacked_sfen_u=}")
 
 
     def as_str(self):
