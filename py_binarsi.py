@@ -1440,8 +1440,8 @@ class Board():
         # 現局面の各マス
         self._squares = [C_EMPTY] * BOARD_AREA
 
-        # 現局面の合法手
-        self._legal_moves = LegalMoves()
+        # 現局面の合法手のキャッシュ。未設定ならナン
+        self._cached_legal_moves = None
 
         # 現局面での路ロック
         self._way_locks = {
@@ -1500,7 +1500,11 @@ class Board():
         
         moves は、同じ局面での指し手の選択肢方向に長い
         """
-        return self._legal_moves
+
+        if self._cached_legal_moves is None:
+            self.update_legal_moves()
+
+        return self._cached_legal_moves
 
 
     @property
@@ -2398,7 +2402,7 @@ class Board():
                     return (first_way, second_way)
 
 
-    def make_legal_moves(self, operator_u, for_edit_mode=False):
+    def _make_legal_moves(self, operator_u, for_edit_mode=False):
         """
         Parameters
         ----------
@@ -2435,9 +2439,9 @@ class Board():
                     # 対象路上にある石を Or して Reverse できる
                     move = Move(way, Operator.code_to_obj(operator_u))
                     if for_edit_mode:
-                        self._legal_moves.append(move, for_edit=True)
+                        self._cached_legal_moves.append(move, for_edit=True)
                     else:
-                        self._legal_moves.append(move)
+                        self._cached_legal_moves.append(move)
 
             # 石が置いてない路
             else:
@@ -2447,9 +2451,9 @@ class Board():
                     # Or で New できる
                     move = Move(way, Operator.code_to_obj(operator_u))
                     if for_edit_mode:
-                        self._legal_moves.append(move, for_edit=True)
+                        self._cached_legal_moves.append(move, for_edit=True)
                     else:
-                        self._legal_moves.append(move)
+                        self._cached_legal_moves.append(move)
 
 
     def update_legal_moves(self):
@@ -2457,10 +2461,10 @@ class Board():
 
         #print("[update_legal_moves] 実行")
 
-        # FIXME キャッシュ・クリアー → LegalMoves の中に移動できないか？
-        self._legal_moves = LegalMoves()
+        # キャッシュ・クリアー → 初期化
+        self._cached_legal_moves = LegalMoves()
 
-        # FIXME 終局判定のキャッシュをクリアー → LegalMoves の中に移動できないか？
+        # 終局判定のキャッシュをクリアー
         self._gameover_reason = ''
 
         (rect_exists, left_file, right_file, top_rank, bottom_rank) = self.get_edges()
@@ -2469,12 +2473,12 @@ class Board():
         # カットザエッジ（Cut the edge）の合法手生成（盤面編集用）
         if rect_exists:
             if 0 < right_file - left_file:
-                self._legal_moves.append(Move(Way(FILE_ID, left_file), Operator.code_to_obj('c')), for_edit=True)
-                self._legal_moves.append(Move(Way(FILE_ID, right_file), Operator.code_to_obj('c')), for_edit=True)
+                self._cached_legal_moves.append(Move(Way(FILE_ID, left_file), Operator.code_to_obj('c')), for_edit=True)
+                self._cached_legal_moves.append(Move(Way(FILE_ID, right_file), Operator.code_to_obj('c')), for_edit=True)
             
             if 0 < bottom_rank - top_rank:
-                self._legal_moves.append(Move(Way(RANK_ID, top_rank), Operator.code_to_obj('c')), for_edit=True)
-                self._legal_moves.append(Move(Way(RANK_ID, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
+                self._cached_legal_moves.append(Move(Way(RANK_ID, top_rank), Operator.code_to_obj('c')), for_edit=True)
+                self._cached_legal_moves.append(Move(Way(RANK_ID, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
 
 
         # シフト（Shift）の合法手生成
@@ -2512,7 +2516,7 @@ class Board():
                     move = Move(way, Operator.code_to_obj(f's{i}'))
 
                     # 合法手として記憶
-                    self._legal_moves.append(move)
+                    self._cached_legal_moves.append(move)
 
 
         # ノット（Not）の合法手生成
@@ -2529,22 +2533,22 @@ class Board():
 
                 if 0 < dst_file and self.exists_stone_on_way(dst_file_way.low_way()):
                     # 路上で小さい方にある石を Not して Reverse できる
-                    self._legal_moves.append(Move(dst_file_way, Operator.code_to_obj('nL')))
+                    self._cached_legal_moves.append(Move(dst_file_way, Operator.code_to_obj('nL')))
 
                 if dst_file < FILE_LEN - 1 and self.exists_stone_on_way(dst_file_way.high_way()):
                     # 路上で大きい方にある石を Not して Reverse できる
-                    self._legal_moves.append(Move(dst_file_way, Operator.code_to_obj('nH')))
+                    self._cached_legal_moves.append(Move(dst_file_way, Operator.code_to_obj('nH')))
 
             # 石が置いてない路
             else:
                 # 隣のどちらかに石が置いているか？
                 if 0 < dst_file and self.exists_stone_on_way(dst_file_way.low_way()):
                     # Not で New できる
-                    self._legal_moves.append(Move(dst_file_way, Operator.code_to_obj('n')))
+                    self._cached_legal_moves.append(Move(dst_file_way, Operator.code_to_obj('n')))
 
                 if dst_file < FILE_LEN - 1 and self.exists_stone_on_way(dst_file_way.high_way()):
                     # Not で New できる
-                    self._legal_moves.append(Move(dst_file_way, Operator.code_to_obj('n')))
+                    self._cached_legal_moves.append(Move(dst_file_way, Operator.code_to_obj('n')))
 
 
         # 段方向
@@ -2560,57 +2564,57 @@ class Board():
 
                 if 0 < dst_rank and self.exists_stone_on_way(dst_rank_way.low_way()):
                     # 路上で小さい方にある石を Not して Reverse できる
-                    self._legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('nL')))
+                    self._cached_legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('nL')))
 
                 if dst_rank < RANK_LEN - 1 and self.exists_stone_on_way(dst_rank_way.high_way()):
                     # 路上で大きい方にある石を Not して Reverse できる
-                    self._legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('nH')))
+                    self._cached_legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('nH')))
 
             # 石が置いてない路
             else:
                 # 隣のどちらかに石が置いているか？
                 if 0 < dst_rank and self.exists_stone_on_way(dst_rank_way.low_way()):
                     # Not で New できる
-                    self._legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('n')))
+                    self._cached_legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('n')))
 
                 if dst_rank < RANK_LEN - 1 and self.exists_stone_on_way(dst_rank_way.high_way()):
                     # Not で New できる
-                    self._legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('n')))
+                    self._cached_legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('n')))
 
 
         # アンド（AND）の合法手生成
-        self.make_legal_moves(operator_u='a')
+        self._make_legal_moves(operator_u='a')
 
         # オア（OR）の合法手生成
-        self.make_legal_moves(operator_u='o')
+        self._make_legal_moves(operator_u='o')
 
         # ゼロ（ZERO）の合法手生成
-        self.make_legal_moves(operator_u='ze', for_edit_mode=True)
+        self._make_legal_moves(operator_u='ze', for_edit_mode=True)
 
         # ノア（NOR）の合法手生成
-        self.make_legal_moves(operator_u='no')
+        self._make_legal_moves(operator_u='no')
 
         # エクソア（XOR）の合法手生成
-        self.make_legal_moves(operator_u='xo')
+        self._make_legal_moves(operator_u='xo')
 
         # ナンド（NAND）の合法手生成
-        self.make_legal_moves(operator_u='na')
+        self._make_legal_moves(operator_u='na')
 
         # エクスノア（XNOR）の合法手生成
-        self.make_legal_moves(operator_u='xn')
+        self._make_legal_moves(operator_u='xn')
 
         # ワン（ONE）の合法手生成
-        self.make_legal_moves(operator_u='on', for_edit_mode=True)
+        self._make_legal_moves(operator_u='on', for_edit_mode=True)
 
 
     def _update_gameover(self):
         """終局判定を更新
         
-        使うのは、 update_legal_moves() メソッドを呼び出した後である必要があります
+        先に update_legal_moves() メソッドを呼び出すように働きます
         """
 
         # ステールメートしている
-        if len(self._legal_moves.get_distinct_items(self)) < 1:
+        if len(self.legal_moves.get_distinct_items(self)) < 1:
 
             self._gameover_reason = 'stalemate'
             return
