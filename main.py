@@ -546,8 +546,8 @@ LEGAL MOVES
         """
         print("編集用の手一覧表示（合法手除く）　ここから：")
 
-        for i in range(0, len(self._board.moves_for_edit)):
-            move = self._board.moves_for_edit[i]
+        for i in range(0, len(self._board.legal_moves.items_for_edit)):
+            move = self._board.legal_moves.items_for_edit[i]
             print(f"    ({i + 1:2}) move_for_edit:{move.to_code()}")
 
         print("編集用の手一覧表示（合法手除く）　ここまで：")
@@ -912,10 +912,16 @@ CLEAR TARGETS
         print(f"[dump] {self._board._next_turn_at_init=}")
 
 
-    def mate1(self):
+    def print_mate1(self):
         """TODO １手詰めがあれば、その手をどれか１つ表示"""
 
-        pass
+        mate_move = self._board.legal_moves.get_mate_move_in_1ply(self._board)
+
+        if mate_move is None:
+            print(f"there is no checkmate")
+            return
+
+        print(mate_move.to_code())
 
 
 if __name__ == '__main__':

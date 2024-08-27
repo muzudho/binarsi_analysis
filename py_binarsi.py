@@ -1163,8 +1163,12 @@ class BoardEditingHistory():
 class LegalMoves():
     """合法手"""
 
+
     def __init__(self):
         self._items = []
+
+        # 現局面の盤面編集用の手（合法手除く）
+        self._items_for_edit = []
 
         # 冗長な指し手を省いたリスト
         self._cached_distinct_items = None
@@ -1178,6 +1182,12 @@ class LegalMoves():
         return self._items
 
 
+    @property
+    def items_for_edit(self):
+        """盤面編集用の手（合法手除く）"""
+        return self._items_for_edit
+
+
     def get_mate_move_in_1ply(self, board):
         """１手詰めの手。無ければナンを返す"""
 
@@ -1188,11 +1198,15 @@ class LegalMoves():
         return self._cached_mate_move_in_1ply
 
 
-    def append(self, item):
-        self._items.append(item)
+    def append(self, item, for_edit=False):
+        if for_edit:
+            self._items_for_edit.append(item)
 
-        # キャッシュ・クリアー
-        self._cached_distinct_items = None
+        else:
+            self._items.append(item)
+
+            # キャッシュ・クリアー
+            self._cached_distinct_items = None
 
 
     def _distinct_legal_moves(self, board):
@@ -1429,9 +1443,6 @@ class Board():
         # 現局面の合法手
         self._legal_moves = LegalMoves()
 
-        # 現局面の盤面編集用の手（合法手除く）
-        self._moves_for_edit = []
-
         # 現局面での路ロック
         self._way_locks = {
             '1' : False,
@@ -1490,12 +1501,6 @@ class Board():
         moves は、同じ局面での指し手の選択肢方向に長い
         """
         return self._legal_moves
-
-
-    @property
-    def moves_for_edit(self):
-        """盤面編集用の手（合法手除く）"""
-        return self._moves_for_edit
 
 
     @property
@@ -2430,7 +2435,7 @@ class Board():
                     # 対象路上にある石を Or して Reverse できる
                     move = Move(way, Operator.code_to_obj(operator_u))
                     if for_edit_mode:
-                        self._moves_for_edit.append(move)
+                        self._legal_moves.append(move, for_edit=True)
                     else:
                         self._legal_moves.append(move)
 
@@ -2442,7 +2447,7 @@ class Board():
                     # Or で New できる
                     move = Move(way, Operator.code_to_obj(operator_u))
                     if for_edit_mode:
-                        self._moves_for_edit.append(move)
+                        self._legal_moves.append(move, for_edit=True)
                     else:
                         self._legal_moves.append(move)
 
@@ -2452,8 +2457,11 @@ class Board():
 
         #print("[update_legal_moves] 実行")
 
+        # FIXME キャッシュ・クリアー → LegalMoves の中に移動できないか？
         self._legal_moves = LegalMoves()
-        self._moves_for_edit = []
+
+        # FIXME 終局判定のキャッシュをクリアー → LegalMoves の中に移動できないか？
+        self._gameover_reason = ''
 
         (rect_exists, left_file, right_file, top_rank, bottom_rank) = self.get_edges()
 
@@ -2461,12 +2469,12 @@ class Board():
         # カットザエッジ（Cut the edge）の合法手生成（盤面編集用）
         if rect_exists:
             if 0 < right_file - left_file:
-                self._moves_for_edit.append(Move(Way(FILE_ID, left_file), Operator.code_to_obj('c')))
-                self._moves_for_edit.append(Move(Way(FILE_ID, right_file), Operator.code_to_obj('c')))
+                self._legal_moves.append(Move(Way(FILE_ID, left_file), Operator.code_to_obj('c')), for_edit=True)
+                self._legal_moves.append(Move(Way(FILE_ID, right_file), Operator.code_to_obj('c')), for_edit=True)
             
             if 0 < bottom_rank - top_rank:
-                self._moves_for_edit.append(Move(Way(RANK_ID, top_rank), Operator.code_to_obj('c')))
-                self._moves_for_edit.append(Move(Way(RANK_ID, bottom_rank), Operator.code_to_obj('c')))
+                self._legal_moves.append(Move(Way(RANK_ID, top_rank), Operator.code_to_obj('c')), for_edit=True)
+                self._legal_moves.append(Move(Way(RANK_ID, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
 
 
         # シフト（Shift）の合法手生成
@@ -2593,9 +2601,6 @@ class Board():
 
         # ワン（ONE）の合法手生成
         self.make_legal_moves(operator_u='on', for_edit_mode=True)
-
-        # 終局判定のキャッシュをクリアー
-        self._gameover_reason = ''
 
 
     def _update_gameover(self):
@@ -2957,6 +2962,8 @@ class Board():
         
         _update_gameover() メソッド使用後に使う必要があります
         """
+
+        # FIXME 探索時、アンドゥしたらキャッシュをクリアーする必要があるが大変
         if self._gameover_reason == '':
             # 終局判定を更新
             self._update_gameover()
