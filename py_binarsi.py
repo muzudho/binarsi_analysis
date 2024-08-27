@@ -883,7 +883,7 @@ class Sfen():
     """SFEN形式文字列"""
 
 
-    def __init__(self, from_present, squares, next_turn, way_locks, moves_number, move_u_list):
+    def __init__(self, from_present, squares, next_turn, way_locks, clear_targets_list, moves_number, move_u_list):
         """初期化"""
 
         # （初期局面からではなく）現局面のSFEN形式なら真
@@ -895,42 +895,36 @@ class Sfen():
         # 手番
         self._next_turn = next_turn
 
-        # 添付局面図での路ロック
+        # 添付局面図での路ロックのリスト
         self._way_locks = way_locks
-        #self._way_locks = {
-        #    '1' : False,
-        #    '2' : False,
-        #    '3' : False,
-        #    '4' : False,
-        #    '5' : False,
-        #    '6' : False,
-        #    '7' : False,
-        #    'a' : False,
-        #    'b' : False,
-        #    'c' : False,
-        #    'd' : False,
-        #    'e' : False,
-        #    'f' : False,
-        #}
 
+        # クリアーターゲットをクリアした何手目が入っているリスト
+        self._clear_targets_list = clear_targets_list
+
+        # 何手目
         self._moves_number = moves_number
+
+        # 指し手のリスト
         self._move_u_list = move_u_list
 
         # キャッシュ
         self._code_cached = None
 
 
-    def to_code(self, without_way_lock=False, without_moves_number=False):
+    def to_code(self, without_way_lock=False, without_clear_targets_list=False, without_moves_number=False):
         """コード
 
         Parameters
         ----------
         without_way_lock : bool
-            SFEN に［路ロック］を含まないようにするフラグです。
-            同じ局面をチェックしたいとき、［路ロック］が異なるかは無視したいという要望があります
+            SFEN に［路ロック一覧］を含まないようにするフラグです。
+            同じ盤面をチェックしたいとき、［路ロック一覧］が異なるかは無視したいという要望があります
+        without_clear_targets_list : bool
+            SFEN に［クリアー済ターゲット一覧］を含まないようにするフラグです。
+            同じ盤面をチェックしたいとき、［クリアー済ターゲット一覧］が異なるかは無視したいという要望があります
         without_moves_number : bool
             SFEN に［何手目］を含まないようにするフラグです。
-            同じ局面をチェックしたいとき、［何手目］が異なるかは無視したいという要望があります
+            同じ盤面をチェックしたいとき、［何手目］が異なるかは無視したいという要望があります
         """
         global _way_characters
 
@@ -984,7 +978,7 @@ class Sfen():
                 raise ValueError(f"undefined next turn  {self._next_turn=}")
 
 
-            # ［添付図の路ロック］
+            # ［添付図の路ロック一覧］
             if not without_way_lock:
                 locked = False
 
@@ -992,7 +986,7 @@ class Sfen():
                     if self._way_locks[way_code]:
 
                         if not locked:
-                            # 手番と路ロックの区切りの空白
+                            # ［手番］と［路ロック一覧］の区切りの空白
                             buffer.append(' ')
 
                         buffer.append(way_code)
@@ -1000,6 +994,27 @@ class Sfen():
 
                 if not locked:
                     buffer.append(' -')
+
+
+            # ［添付図のクリアー済みターゲット一覧］
+            if not without_clear_targets_list:
+                # 全ての要素が -1 かどうか確認
+                all_empty = True
+
+                # ［路ロック一覧］と［クリアー済ターゲット一覧］の区切りの空白を先頭に付ける
+                u_list = []
+                for i in range(0, CLEAR_TARGETS_LEN):
+                    move_number = self._clear_targets_list[i]
+                    if move_number == -1:
+                        u_list.append('')
+                    else:
+                        all_empty = False
+                        u_list.append(str(move_number))
+
+                if all_empty:
+                    buffer.append(' -')
+                else:
+                    buffer.append(f" {'/'.join(u_list)}")
 
 
             # ［添付図は何手目か？］
@@ -1199,9 +1214,9 @@ class LegalMoves():
         sub_sfen_1_before_push = board.as_sfen(from_present=True)
         sub_sfen_2_before_push = sub_sfen_1_before_push.to_upside_down()
         sub_sfen_3_before_push = sub_sfen_1_before_push.to_flip_left_and_right()
-        sub_sfen_1_before_push_u = sub_sfen_1_before_push.to_code(without_way_lock=True, without_moves_number=True)
-        sub_sfen_2_before_push_u = sub_sfen_2_before_push.to_code(without_way_lock=True, without_moves_number=True)
-        sub_sfen_3_before_push_u = sub_sfen_3_before_push.to_code(without_way_lock=True, without_moves_number=True)
+        sub_sfen_1_before_push_u = sub_sfen_1_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
+        sub_sfen_2_before_push_u = sub_sfen_2_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
+        sub_sfen_3_before_push_u = sub_sfen_3_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
         #print(f"[distinct_legal_moves] {sub_sfen_1_before_push_u=}")
         #print(f"[distinct_legal_moves] {sub_sfen_2_before_push_u=}")
         #print(f"[distinct_legal_moves] {sub_sfen_3_before_push_u=}")
@@ -1229,7 +1244,7 @@ class LegalMoves():
             #
             #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
             #
-            sub_sfen_after_push_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_moves_number=True)
+            sub_sfen_after_push_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
             #print(f"[distinct_legal_moves] 一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push_u=}")
             
             # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
@@ -1260,7 +1275,7 @@ class LegalMoves():
             board.pop()
 
             # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            rollbacked_sfen_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_moves_number=True)
+            rollbacked_sfen_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
             #
             #   例： 7/7/2o4/2x4/7/7 b - 1
             #
@@ -1444,7 +1459,7 @@ class Board():
         self._gameover_reason = ''
 
         # 勝利条件をクリアーしたのが何手目か
-        self._clear_targets = [-1, -1, -1, -1, -1, -1]
+        self._clear_targets_list = [-1, -1, -1, -1, -1, -1]
 
 
     @property
@@ -1457,9 +1472,9 @@ class Board():
 
 
     @property
-    def clear_targets(self):
-        """クリアーターゲット"""
-        return self._clear_targets
+    def clear_targets_list(self):
+        """クリアーターゲット一覧"""
+        return self._clear_targets_list
 
 
     @property
@@ -1534,7 +1549,7 @@ class Board():
         sfen_u : str
             SFEN書式文字列
 
-            例： `7/7/2o4/7/7/7 b - 0`
+            例： `7/7/2o4/7/7/7 b - - 0`
 
                     1 2 3 4 5 6 7
                   +---------------+
@@ -1546,7 +1561,7 @@ class Board():
                 f |               |
                   +---------------+
 
-            例： `xooooxo/xooxxxo/ooxxooo/xooxxox/xoxxxxx/ooxoooo b 1234567abcdef 0`
+            例： `xooooxo/xooxxxo/ooxxooo/xooxxox/xoxxxxx/ooxoooo b 1234567abcdef 1/2//3/4/ 0`
 
                     # # # # # # #
                   +---------------+
@@ -1610,8 +1625,8 @@ class Board():
         else:
             raise ValueError(f"undefined sfen character on turn:  {ch=}  {sfen_u=}")
 
-        # 路ロック
-        # --------
+        # 添付盤面での路ロック一覧
+        # ----------------------
         if parts[2] != '-':
             for way_u in parts[2]:
                 if way_u in _way_characters:
@@ -1620,8 +1635,21 @@ class Board():
                 else:
                     raise ValueError(f"undefined sfen character on locks:  {way_u=}  {sfen_u=}")
 
+        # 添付盤面でのクリアー済ターゲット一覧
+        # ---------------------------------
+        if parts[3] != '-':
+            # 勝利条件をクリアーしたのが何手目か、６つの要素がスラッシュ区切りで入っている。クリアーしていなければ空文字列
+            tokens = parts[3].split('/')
+
+            for i in range(0, CLEAR_TARGETS_LEN):
+                token = tokens[i]
+
+                if 0 < len(token):
+                    self._clear_targets_list[i] = int(token)
+
         # 手数の解析
-        self._moves_number_at_init = int(parts[3])
+        # ---------
+        self._moves_number_at_init = int(parts[4])
 
 
     def exists_stone_on_way(self, way):
@@ -2242,8 +2270,8 @@ class Board():
 
 
     def is_check(self):
-        """一手詰めがあるか？"""
-        return self._legal_moves.find_mate_move_in_1ply(self)
+        """王手を食らっているか？"""
+        raise ValueError("このゲームに王手はありません")
 
 
     def mate_move_in_1ply(self):
@@ -2621,10 +2649,10 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[0] = self.moves_number
+                    self._clear_targets_list[0] = self.moves_number
                     return
 
-        if self._clear_targets[0] == -1:
+        if self._clear_targets_list[0] == -1:
             update_clear_target_b3()
 
 
@@ -2668,7 +2696,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[1] = self.moves_number
+                    self._clear_targets_list[1] = self.moves_number
                     return
 
             # Baroque Diagonal
@@ -2688,10 +2716,10 @@ class Board():
                         is_not_hit = False
                         break
 
-                    self._clear_targets[1] = self.moves_number
+                    self._clear_targets_list[1] = self.moves_number
                     return
 
-        if self._clear_targets[1] == -1:
+        if self._clear_targets_list[1] == -1:
             update_clear_target_b4()
 
 
@@ -2732,10 +2760,10 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[2] = self.moves_number
+                    self._clear_targets_list[2] = self.moves_number
                     return
 
-        if self._clear_targets[2] == -1:
+        if self._clear_targets_list[2] == -1:
             update_clear_target_b5()
 
 
@@ -2776,10 +2804,10 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[3] = self.moves_number
+                    self._clear_targets_list[3] = self.moves_number
                     return
 
-        if self._clear_targets[3] == -1:
+        if self._clear_targets_list[3] == -1:
             update_clear_target_w3()
 
 
@@ -2823,7 +2851,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[4] = self.moves_number
+                    self._clear_targets_list[4] = self.moves_number
                     return
 
             # Baroque Diagonal
@@ -2844,10 +2872,10 @@ class Board():
                         is_not_hit = False
                         break
 
-                    self._clear_targets[4] = self.moves_number
+                    self._clear_targets_list[4] = self.moves_number
                     return
 
-        if self._clear_targets[4] == -1:
+        if self._clear_targets_list[4] == -1:
             update_clear_target_w4()
 
 
@@ -2888,20 +2916,20 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[5] = self.moves_number
+                    self._clear_targets_list[5] = self.moves_number
                     return
 
-        if self._clear_targets[5] == -1:
+        if self._clear_targets_list[5] == -1:
             update_clear_target_w5()
 
 
         # どちらかのプレイヤーが３つのターゲットを完了した
         is_black_win = False
         is_white_win = False
-        if self._clear_targets[0] != -1 and self._clear_targets[1] != -1 and self._clear_targets[2] != -1:
+        if self._clear_targets_list[0] != -1 and self._clear_targets_list[1] != -1 and self._clear_targets_list[2] != -1:
             is_black_win = True
 
-        if self._clear_targets[3] != -1 and self._clear_targets[4] != -1 and self._clear_targets[5] != -1:
+        if self._clear_targets_list[3] != -1 and self._clear_targets_list[4] != -1 and self._clear_targets_list[5] != -1:
             is_white_win = True
 
         if is_black_win and is_white_win:
@@ -2971,24 +2999,24 @@ class Board():
 
 
         # クリアーターゲット状況
-        clear_targets_list = []
-        if self._clear_targets[0] != -1:
-            clear_targets_list.append('b3')
-        if self._clear_targets[1] != -1:
-            clear_targets_list.append('b4')
-        if self._clear_targets[2] != -1:
-            clear_targets_list.append('b5')
-        if self._clear_targets[3] != -1:
-            clear_targets_list.append('w3')
-        if self._clear_targets[4] != -1:
-            clear_targets_list.append('w4')
-        if self._clear_targets[5] != -1:
-            clear_targets_list.append('w5')
+        clear_targets_u_list = []
+        if self._clear_targets_list[0] != -1:
+            clear_targets_u_list.append('b3')
+        if self._clear_targets_list[1] != -1:
+            clear_targets_u_list.append('b4')
+        if self._clear_targets_list[2] != -1:
+            clear_targets_u_list.append('b5')
+        if self._clear_targets_list[3] != -1:
+            clear_targets_u_list.append('w3')
+        if self._clear_targets_list[4] != -1:
+            clear_targets_u_list.append('w4')
+        if self._clear_targets_list[5] != -1:
+            clear_targets_u_list.append('w5')
 
-        if 0 < len(clear_targets_list):
-            cleared_targets_str = f" | {' '.join(clear_targets_list)}"
+        if 0 < len(clear_targets_u_list):
+            clear_targets_list_str = f" | {' '.join(clear_targets_u_list)}"
         else:
-            cleared_targets_str = ''
+            clear_targets_list_str = ''
 
 
         # 次の手番、または、終局理由
@@ -3002,7 +3030,7 @@ class Board():
                 next_turn_str = 'next white'
 
 
-        print(f"[{self.moves_number:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str} | {next_turn_str}]")
+        print(f"[{self.moves_number:2} moves {edits_num_str}| {latest_move_str}{clear_targets_list_str} | {next_turn_str}]")
 
 
         # 盤表示
@@ -3181,6 +3209,7 @@ class Board():
             squares=squares,
             next_turn=next_turn,
             way_locks=way_locks,
+            clear_targets_list=self._clear_targets_list,
             moves_number=moves_number,
             move_u_list=move_u_list)
 

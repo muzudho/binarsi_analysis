@@ -121,6 +121,11 @@ class UsiEngine():
             elif cmd[0] == 'dump':
                 self.dump()
 
+            # １手詰めがあれば、その手をどれか１つ表示
+            #   code: mate1
+            elif cmd[0] == 'mate1':
+                self.print_mate1()
+
 
     def usi(self):
         """usi握手"""
@@ -222,13 +227,12 @@ class UsiEngine():
 
         # ビナーシに入玉はありません
 
-        # 一手詰めを詰める
-        if not self._board.is_check():
-            """自玉に王手がかかっていない時で"""
+        # ビナーシに王手はありません
 
-            if (matemove := self._board.mate_move_in_1ply()):
-                """一手詰めの指し手があれば、それを取得"""
-                return matemove, 'mate 1 move'
+        # 一手詰めを詰める
+        if (matemove := self._board.mate_move_in_1ply()):
+            """一手詰めの指し手があれば、それを取得"""
+            return matemove, 'mate 1 move'
 
         # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
         
@@ -592,8 +596,8 @@ HISTORY
         disp2 = ['    WANTED   '] * CLEAR_TARGETS_LEN
 
         for i in range(0, CLEAR_TARGETS_LEN):
-            if self._board._clear_targets[i] != -1:
-                disp1[i] = f' CLEAR in {self._board._clear_targets[i]:2} '
+            if self._board._clear_targets_list[i] != -1:
+                disp1[i] = f' CLEAR in {self._board._clear_targets_list[i]:2} '
                 disp2[i] = '             '
 
         print(f"""\
@@ -815,7 +819,7 @@ CLEAR TARGETS
         def print_clear_target_if_it_now():
             """今クリアーしたものがあれば、クリアー目標表示"""
             one_cleared = False
-            for clear_target in self._board.clear_targets:
+            for clear_target in self._board.clear_targets_list:
                 if clear_target == self._board.moves_number:
                     one_cleared = True
                     break
@@ -906,6 +910,12 @@ CLEAR TARGETS
     def dump(self):
         """デバッグ情報表示"""
         print(f"[dump] {self._board._next_turn_at_init=}")
+
+
+    def mate1(self):
+        """TODO １手詰めがあれば、その手をどれか１つ表示"""
+
+        pass
 
 
 if __name__ == '__main__':
