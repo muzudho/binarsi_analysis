@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from py_binarsi import PC_BLACK, PC_WHITE, CLEAR_TARGETS_LEN, Move, MoveHelper, Board
+from py_binarsi import C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Move, MoveHelper, Board
 
 
 class UsiEngine():
@@ -235,13 +235,18 @@ class UsiEngine():
         move_list = create_legal_moves_without_same_move()
 
         for move in move_list:
+
             # TODO 対象となる路の石（または空欄）の長さを測る
+            way_segment = self._board.get_stone_segment_on_way(move.way)
 
             # TODO （１手指す前の）対象となる路の石（または空欄）の並びを取得
+            current_colors = self._board.get_colors_on_way(move.way, way_segment)
 
             # TODO １手指す
+            self._board.push_usi(move.to_code())
 
             # TODO （１手指した後の）対象となる路の石（または空欄）の並びを取得
+            next_colors = self._board.get_colors_on_way(move.way, way_segment)
 
             # TODO １手指した後の石の数から、１手指す前の石の数を引く。これを差分とする
 
@@ -673,7 +678,7 @@ CLEAR TARGETS
         """一手入力すると、相手番をコンピュータが指してくれる"""
 
         # 待ち時間（秒）を置く。ターミナルの行が詰まって見づらいので、イラストでも挟む
-        if self._board.get_next_turn(from_present=True) == PC_BLACK:
+        if self._board.get_next_turn(from_present=True) == C_BLACK:
             self.print_1()
         else:
             self.print_0()
@@ -720,7 +725,7 @@ CLEAR TARGETS
             return
         
         # ターミナルが見づらいので、イラストを挟む
-        if self._board.get_next_turn(from_present=True) == PC_BLACK:
+        if self._board.get_next_turn(from_present=True) == C_BLACK:
             self.print_1()
         else:
             self.print_0()

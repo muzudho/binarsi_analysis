@@ -2,33 +2,36 @@ import re
 import copy
 
 
-# 石（PieCe）番号
-#   コンピュータ将棋プログラミングの Piece という変数名を踏襲
-PC_EMPTY = 0
-PC_BLACK = 1
-PC_WHITE = 2
+# 石の色
+#
+#   盤のマスの状態を　石の色　と呼ぶことにする。
+#   空欄、黒石、白石の３色がある。略記は C_
+#
+C_EMPTY = 0
+C_BLACK = 1
+C_WHITE = 2
 
 # 盤面表示用文字列。SFENにも使用
-_pc_to_str = {
+_color_to_str = {
     0 : '.',
     1 : '1',
     2 : '0',
 }
 
-_str_to_pc = {
+_str_to_color = {
     '.' : 0,
     '1' : 1,
     '0' : 2,
 }
 
-_pc_to_binary = {
+_color_to_binary = {
     1: 1,
     2: 0,
 }
 
-_bool_to_pc = {
-    True: PC_BLACK,
-    False: PC_WHITE,
+_bool_to_color = {
+    True: C_BLACK,
+    False: C_WHITE,
 }
 
 # 軸
@@ -450,14 +453,14 @@ class Operator():
 
         # ノット（単項演算子 New）
         if self._stem_u in ['nH', 'nL', 'n']:
-            if stone == PC_BLACK:
-                return PC_WHITE
+            if stone == C_BLACK:
+                return C_WHITE
             
-            if stone == PC_WHITE:
-                return PC_BLACK
+            if stone == C_WHITE:
+                return C_BLACK
             
-            if stone == PC_EMPTY:
-                return PC_EMPTY
+            if stone == C_EMPTY:
+                return C_EMPTY
         
         raise ValueError(f"undefined operator  {self._stem_u=}  {stone=}")
 
@@ -475,10 +478,10 @@ class Operator():
         Returns
         -------
         stone : int
-            PC_BLACK, PC_WHITE のいずれかを返す
+            C_BLACK, C_WHITE のいずれかを返す
         """
 
-        global _bool_to_pc
+        global _bool_to_color
 
         # 変数名を縮める
         l = left_operand
@@ -488,36 +491,36 @@ class Operator():
         # ゼロ
         if stem_u == 'ze':
             # 常に白石を返す
-            return PC_WHITE
+            return C_WHITE
         
         # ノア
         if stem_u == 'no':
-            return _bool_to_pc[not(l == 1 or r == 1)]
+            return _bool_to_color[not(l == 1 or r == 1)]
         
         # エクソア
         if stem_u == 'xo':
-            return _bool_to_pc[(l ^ r) == 1]
+            return _bool_to_color[(l ^ r) == 1]
         
         # ナンド
         if stem_u == 'na':
-            return _bool_to_pc[not(l == 1 and r == 1)]
+            return _bool_to_color[not(l == 1 and r == 1)]
         
         # アンド
         if stem_u == 'a':
-            return _bool_to_pc[l == 1 and r == 1]
+            return _bool_to_color[l == 1 and r == 1]
         
         # エクスノア
         if stem_u == 'xn':
-            return _bool_to_pc[(l ^ r) != 1]
+            return _bool_to_color[(l ^ r) != 1]
         
         # オア
         if stem_u == 'o':
-            return _bool_to_pc[l == 1 or r == 1]
+            return _bool_to_color[l == 1 or r == 1]
         
         # ワン
         if stem_u == 'on':
             # 常に黒石を返す
-            return PC_BLACK
+            return C_BLACK
 
         raise ValueError(f"undefined operator  stem_u:{stem_u}  {l=}  {r=}")
 
@@ -875,7 +878,7 @@ class Sfen():
                     sq = Square.file_rank_to_sq(file, rank)
                     stone = self._squares[sq]
 
-                    if stone == PC_EMPTY:
+                    if stone == C_EMPTY:
                         spaces += 1
                     else:
                         # 空白の数を Flush
@@ -883,9 +886,9 @@ class Sfen():
                             buffer.append(str(spaces))
                             spaces = 0
                         
-                        if stone == PC_BLACK:
+                        if stone == C_BLACK:
                             buffer.append('x')
-                        elif stone == PC_WHITE:
+                        elif stone == C_WHITE:
                             buffer.append('o')
                         else:
                             raise ValueError(f"undefined stone:'{stone}'")
@@ -900,9 +903,9 @@ class Sfen():
 
 
             # ［添付図の手番］
-            if self._next_turn == PC_BLACK:
+            if self._next_turn == C_BLACK:
                 buffer.append(' b')
-            elif self._next_turn == PC_WHITE:
+            elif self._next_turn == C_WHITE:
                 buffer.append(' w')
             else:
                 raise ValueError(f"undefined next turn  {self._next_turn=}")
@@ -1109,10 +1112,10 @@ class Board():
         #   平手初期局面の先手は必ず黒番（将棋と違って上手、下手が無いので）。
         #   ただし、途中局面は自由に設定できるので、白番から始めるように変更したいときがある
         #
-        self._turn_at_init = PC_BLACK
+        self._turn_at_init = C_BLACK
 
         # 現局面の各マス
-        self._squares = [PC_EMPTY] * BOARD_AREA
+        self._squares = [C_EMPTY] * BOARD_AREA
 
         # 現局面の合法手
         self._legal_moves = []
@@ -1208,7 +1211,7 @@ class Board():
         self.subinit()
 
         sq = Square.code_to_sq_obj('3c').as_num
-        self._squares[sq] = PC_WHITE
+        self._squares[sq] = C_WHITE
 
         self.update_legal_moves()
 
@@ -1282,9 +1285,9 @@ class Board():
                     sq = cursor.get_sq()
 
                     if ch == 'x':
-                        self._squares[sq] = PC_BLACK
+                        self._squares[sq] = C_BLACK
                     else:
-                        self._squares[sq] = PC_WHITE
+                        self._squares[sq] = C_WHITE
 
                     # フォワード
                     cursor.file_forward()
@@ -1298,9 +1301,9 @@ class Board():
         # 添付盤面での手番
         # ---------------
         if parts[1] == 'b':
-            self._turn_at_init = PC_BLACK
+            self._turn_at_init = C_BLACK
         elif parts[1] == 'w':
-            self._turn_at_init = PC_WHITE
+            self._turn_at_init = C_WHITE
         else:
             raise ValueError(f"undefined sfen character on turn:`{ch}`")
 
@@ -1321,35 +1324,25 @@ class Board():
     def exists_stone_on_way(self, way):
         """指定の路に石が置いてあるか？
         
+        get_stone_segment_on_way() よりは高速と思います
+
         Parameters
         ----------
         way : Way
             路オブジェクト
         """
 
-        # 筋
-        if way.axis_id == FILE_ID:
-            for rank in range(0, RANK_LEN):
-                sq = Square.file_rank_to_sq(way.number, rank)
-                stone = self._squares[sq]
+        # 筋（段）方向両用
+        axes_absorber = way.absorb_axes()
 
-                if stone != PC_EMPTY:
-                    return True
-                
-            return False
+        for i in range(0, axes_absorber.opponent_axis_length):
+            sq = Square.file_rank_to_sq(way.number, i, swap=axes_absorber.swap_axes)
+            stone = self._squares[sq]
 
-        # 段
-        if way.axis_id == RANK_ID:
-            for file in range(0, FILE_LEN):
-                sq = Square.file_rank_to_sq(file, way.number)
-                stone = self._squares[sq]
-
-                if stone != PC_EMPTY:
-                    return True
-                
-            return False
-
-        raise ValueError(f"undefined axis_id: {way.axis_id}")
+            if stone != C_EMPTY:
+                return True
+            
+        return False
 
 
     def get_stone_segment_on_way(self, way):
@@ -1380,7 +1373,7 @@ class Board():
         #       最初の石の位置を覚える。変数名を begin とする
         #       連続する石の長さを覚える。変数名を length とする
         #       最後のマージン（空欄）は無視する
-        source_stones = [PC_EMPTY] * axes_absorber.opponent_axis_length
+        source_stones = [C_EMPTY] * axes_absorber.opponent_axis_length
         state = 0
         begin = 0
         length = 0
@@ -1391,13 +1384,13 @@ class Board():
 
             if state == 0:
                 # 石を見っけ
-                if stone != PC_EMPTY:
+                if stone != C_EMPTY:
                     begin = i
                     state = 1
 
             elif state == 1:
                 # 石が切れた
-                if stone == PC_EMPTY:
+                if stone == C_EMPTY:
                     length = i - begin
                     state = 2
 
@@ -1406,6 +1399,26 @@ class Board():
             state = 2
 
         return WaySegment(begin, length)
+
+
+    def get_colors_on_way(self, target_way, way_segment):
+        """指定の路の、指定のセグメントの、石または空欄の並びを取得します
+        
+        Returns
+        -------
+        stones_before_change_str : str
+            石の並び
+        """
+
+        stones_before_change_str = ''
+
+        # 筋（段）方向両用
+        axes_absorber = target_way.absorb_axes()
+
+        for i in range(way_segment.begin, way_segment.end):
+            stones_before_change_str += _color_to_str[self._squares[Square.file_rank_to_sq(target_way.number, i, swap=axes_absorber.swap_axes)]]
+
+        return stones_before_change_str
 
 
     def set_stones_on_way(self, target_way, stones_str):
@@ -1434,10 +1447,10 @@ class Board():
             dst_sq = Square.file_rank_to_sq(target_way.number, i, swap=axes_absorber.swap_axes)
             old_stone = self._squares[dst_sq]
 
-            if old_stone != PC_EMPTY:
-                stones_before_change += _pc_to_str[old_stone]
+            if old_stone != C_EMPTY:
+                stones_before_change += _color_to_str[old_stone]
 
-            self._squares[dst_sq] = _str_to_pc[stones_str[i - way_segment.begin]]
+            self._squares[dst_sq] = _str_to_color[stones_str[i - way_segment.begin]]
 
         return stones_before_change
 
@@ -1470,8 +1483,8 @@ class Board():
             dst_sq = Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)
             old_stone = self._squares[dst_sq]
 
-            if overwrite and old_stone != PC_EMPTY:
-                stones_before_change += _pc_to_str[old_stone]
+            if overwrite and old_stone != C_EMPTY:
+                stones_before_change += _color_to_str[old_stone]
 
             self._squares[dst_sq] = move.operator.unary_operate(
                 stone=self._squares[Square.file_rank_to_sq(move.way.number + 1, i, swap=axes_absorber.swap_axes)])
@@ -1502,7 +1515,7 @@ class Board():
             指し手
         """
 
-        global _pc_to_binary
+        global _color_to_binary
 
         stones_before_change = ''
 
@@ -1519,20 +1532,20 @@ class Board():
             dst_sq = Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)
             old_stone = self._squares[dst_sq]
 
-            if overwrite and old_stone != PC_EMPTY:
-                stones_before_change += _pc_to_str[old_stone]
+            if overwrite and old_stone != C_EMPTY:
+                stones_before_change += _color_to_str[old_stone]
 
             input_stone_at_first = self._squares[Square.file_rank_to_sq(input_way_1.number, i, swap=axes_absorber.swap_axes)]
             input_stone_at_second = self._squares[Square.file_rank_to_sq(input_way_2.number, i, swap=axes_absorber.swap_axes)]
 
             #print(f"{move.way.axis_id=}  {i=}  {input_way_1.number=}  {input_way_2.number=}  {input_stone_at_first=}  {input_stone_at_second=}  {dst_sq=}")
 
-            if input_stone_at_first == PC_EMPTY or input_stone_at_second == PC_EMPTY:
+            if input_stone_at_first == C_EMPTY or input_stone_at_second == C_EMPTY:
                 continue
 
             self._squares[dst_sq] = move.operator.binary_operate(
-                left_operand=_pc_to_binary[input_stone_at_first],
-                right_operand=_pc_to_binary[input_stone_at_second])
+                left_operand=_color_to_binary[input_stone_at_first],
+                right_operand=_color_to_binary[input_stone_at_second])
 
         return stones_before_change
 
@@ -1621,9 +1634,9 @@ class Board():
                 for src_dst_i in range(way_segment.begin, way_segment.end):
                     src_dst_sq = Square.file_rank_to_sq(move.way.number, src_dst_i, swap=axes_absorber.swap_axes)
                     stone = self._squares[src_dst_sq]
-                    if stone != PC_EMPTY:
-                        stones_before_change += _pc_to_str[stone]
-                        self._squares[src_dst_sq] = PC_EMPTY
+                    if stone != C_EMPTY:
+                        stones_before_change += _color_to_str[stone]
+                        self._squares[src_dst_sq] = C_EMPTY
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
@@ -1695,7 +1708,7 @@ class Board():
                 #       石を移す先の配列のインデックスの求め方は以下の通り
                 #       dst_index = (src_index - begin + bit_shift) % length + begin
 
-                source_stones = [PC_EMPTY] * axes_absorber.opponent_axis_length
+                source_stones = [C_EMPTY] * axes_absorber.opponent_axis_length
                 for i in range(0, axes_absorber.opponent_axis_length):
                     src_sq = Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)
                     stone = self._squares[src_sq]
@@ -1764,11 +1777,11 @@ class Board():
                     src_stone = self._squares[Square.file_rank_to_sq(
                         self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes)]
 
-                    if src_stone != PC_EMPTY:
+                    if src_stone != C_EMPTY:
                         dst_stone = self._squares[Square.file_rank_to_sq(
                             move.way.number, i, swap=axes_absorber.swap_axes)]
 
-                        stones_before_change += _pc_to_str[dst_stone]
+                        stones_before_change += _color_to_str[dst_stone]
                         self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(src_stone)
 
                 # 改変操作では
@@ -1795,11 +1808,11 @@ class Board():
                     src_stone = self._squares[Square.file_rank_to_sq(
                         self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes)]
 
-                    if src_stone != PC_EMPTY:
+                    if src_stone != C_EMPTY:
                         dst_stone = self._squares[Square.file_rank_to_sq(
                             move.way.number, i, swap=axes_absorber.swap_axes)]
 
-                        stones_before_change += _pc_to_str[dst_stone]
+                        stones_before_change += _color_to_str[dst_stone]
                         self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(src_stone)
 
                 # 改変操作では
@@ -2267,7 +2280,7 @@ class Board():
         def update_clear_target_b3():
             # 棒サイズ
             line_length = 3
-            my_stone_color = PC_BLACK
+            my_stone_color = C_BLACK
             is_not_hit = False  # 外側の file ループを続行
 
             for rank in range(0, RANK_LEN):
@@ -2312,7 +2325,7 @@ class Board():
         def update_clear_target_b4():
             # 棒サイズ
             line_length = 4
-            my_stone_color = PC_BLACK
+            my_stone_color = C_BLACK
             is_not_hit = False  # 外側の file ループを続行
 
             # Sinister Diagonal
@@ -2378,7 +2391,7 @@ class Board():
         def update_clear_target_b5():
             # 棒サイズ
             line_length = 5
-            my_stone_color = PC_BLACK
+            my_stone_color = C_BLACK
             is_not_hit = False  # 外側の file ループを続行
 
             for rank in range(0, RANK_LEN-line_length+1):
@@ -2422,7 +2435,7 @@ class Board():
         def update_clear_target_w3():
             # 棒サイズ
             line_length = 3
-            my_stone_color = PC_WHITE
+            my_stone_color = C_WHITE
             is_not_hit = False  # 外側の file ループを続行
 
             for rank in range(0, RANK_LEN-line_length+1):
@@ -2467,7 +2480,7 @@ class Board():
         def update_clear_target_w4():
             # 棒サイズ
             line_length = 4
-            my_stone_color = PC_WHITE
+            my_stone_color = C_WHITE
             is_not_hit = False  # 外側の file ループを続行
 
             # Sinister Diagonal
@@ -2534,7 +2547,7 @@ class Board():
         def update_clear_target_w5():
             # 棒サイズ
             line_length = 5
-            my_stone_color = PC_WHITE
+            my_stone_color = C_WHITE
             is_not_hit = False  # 外側の file ループを続行
 
             for rank in range(0, RANK_LEN):
@@ -2695,7 +2708,7 @@ class Board():
             f | . . . . . . . |
               +---------------+
         """
-        global _pc_to_str
+        global _color_to_str
 
         # １行目表示
         # ---------
@@ -2741,7 +2754,7 @@ class Board():
             next_turn_str = self.gameover_reason
         else:
             next_turn = self.get_next_turn(from_present=True)
-            if next_turn == PC_BLACK:
+            if next_turn == C_BLACK:
                 next_turn_str = 'next black'
             else:
                 next_turn_str = 'next white'
@@ -2756,7 +2769,7 @@ class Board():
         # 数値を表示用文字列(Str)に変更
         s = [' '] * BOARD_AREA
         for sq in range(0, BOARD_AREA):
-            s[sq] = _pc_to_str[self._squares[sq]]
+            s[sq] = _color_to_str[self._squares[sq]]
 
         # 筋（段）の符号、またはロック
         def get_way_code_2(way_code):
@@ -2809,23 +2822,23 @@ class Board():
 
         if from_present:
             # 添付局面が先手番のケース
-            if self._turn_at_init == PC_BLACK:
+            if self._turn_at_init == C_BLACK:
                 if self.move_number % 2 == 0:
-                    return PC_BLACK
+                    return C_BLACK
                 
-                return PC_WHITE
+                return C_WHITE
 
             # 添付局面が後手番のケース
             if self.move_number % 2 == 0:
-                return PC_WHITE
+                return C_WHITE
 
-            return PC_BLACK
+            return C_BLACK
 
         # 初期盤面から
-        if self._turn_at_init == PC_BLACK:
-            return PC_BLACK
+        if self._turn_at_init == C_BLACK:
+            return C_BLACK
         
-        return PC_WHITE
+        return C_WHITE
 
 
     def as_sfen(self, from_present=False):
