@@ -742,7 +742,7 @@ class MoveHelper():
 
         # シフト
         if op in ['s1', 's2', 's3', 's4', 's5', 's6']:
-            way_segment = board.get_segment_on_way(way)
+            way_segment = board.get_stone_segment_on_way(way)
 
             # 1ビットシフト --Inverse--> (対象路の石の長さ - 1)ビットシフト
             if op == 's1':
@@ -1352,7 +1352,7 @@ class Board():
         raise ValueError(f"undefined axis_id: {way.axis_id}")
 
 
-    def get_segment_on_way(self, way):
+    def get_stone_segment_on_way(self, way):
         """路を指定すると、そこにある石の連なりの開始位置と長さを返す
 
         例えば：
@@ -1369,77 +1369,43 @@ class Board():
 
         上図の c 段を指定すると、 start:2, length:4 のような数を返す
         """
-        # 入力筋を探索
-        if way.axis_id == FILE_ID:
-            src_dst_file = way.number
 
-            # 入力路から、出力路へ、評価値を出力
-            #
-            #   必要な変数を調べる：
-            #       最初のマージン（空欄）は無視する
-            #       最初の石の位置を覚える。変数名を begin とする
-            #       連続する石の長さを覚える。変数名を length とする
-            #       最後のマージン（空欄）は無視する
-            source_stones = [PC_EMPTY] * RANK_LEN
-            state = 0
-            begin = 0
-            length = 0
-            for rank in range(0, RANK_LEN):
-                src_sq = Square.file_rank_to_sq(src_dst_file, rank)
-                stone = self._squares[src_sq]
-                source_stones[rank] = stone
+        # 筋（段）方向両用
+        axes_absorber = way.absorb_axes()
 
-                if state == 0:
-                    if stone != PC_EMPTY:
-                        begin = rank
-                        state = 1
-                elif state == 1:
-                    if stone == PC_EMPTY:
-                        length = rank - begin
-                        state = 2
+        # 入力路から、出力路へ、評価値を出力
+        #
+        #   必要な変数を調べる：
+        #       最初のマージン（空欄）は無視する
+        #       最初の石の位置を覚える。変数名を begin とする
+        #       連続する石の長さを覚える。変数名を length とする
+        #       最後のマージン（空欄）は無視する
+        source_stones = [PC_EMPTY] * axes_absorber.opponent_axis_length
+        state = 0
+        begin = 0
+        length = 0
+        for i in range(0, axes_absorber.opponent_axis_length):
+            src_sq = Square.file_rank_to_sq(way.number, i, swap=axes_absorber.swap_axes)
+            stone = self._squares[src_sq]
+            source_stones[i] = stone
 
-            if state == 1:
-                length = RANK_LEN - begin
-                state = 2
+            if state == 0:
+                # 石を見っけ
+                if stone != PC_EMPTY:
+                    begin = i
+                    state = 1
 
-            return WaySegment(begin, length)
+            elif state == 1:
+                # 石が切れた
+                if stone == PC_EMPTY:
+                    length = i - begin
+                    state = 2
 
-        # 入力段を探索
-        if way.axis_id == RANK_ID:
-            src_dst_rank = way.number
+        if state == 1:
+            length = axes_absorber.opponent_axis_length - begin
+            state = 2
 
-            # 入力路から、出力路へ、評価値を出力
-            #
-            #   必要な変数を調べる：
-            #       最初のマージン（空欄）は無視する
-            #       最初の石の位置を覚える。変数名を begin とする
-            #       連続する石の長さを覚える。変数名を length とする
-            #       最後のマージン（空欄）は無視する
-            source_stones = [PC_EMPTY] * FILE_LEN
-            state = 0
-            begin = 0
-            length = 0
-            for file in range(0, FILE_LEN):
-                src_sq = Square.file_rank_to_sq(file, src_dst_rank)
-                stone = self._squares[src_sq]
-                source_stones[file] = stone
-
-                if state == 0:
-                    if stone != PC_EMPTY:
-                        begin = file
-                        state = 1
-                elif state == 1:
-                    if stone == PC_EMPTY:
-                        length = file - begin
-                        state = 2
-
-            if state == 1:
-                length = FILE_LEN - begin
-                state = 2
-
-            return WaySegment(begin, length)
-
-        raise ValueError(f"undefined axis_id:{way.axis_id}")
+        return WaySegment(begin, length)
 
 
     def set_stones_on_way(self, target_way, stones_str):
@@ -1457,7 +1423,7 @@ class Board():
 
         # 置いてある石の位置に合わせる
         else:
-            way_segment = self.get_segment_on_way(target_way)
+            way_segment = self.get_stone_segment_on_way(target_way)
 
             if way_segment.length != stones_str_len:
                 raise ValueError(f"length error  {way_segment.length=}  {stones_str_len=}")
@@ -1649,7 +1615,7 @@ class Board():
 
                 # 筋（段）方向両用
                 axes_absorber = move.way.absorb_axes()
-                way_segment = self.get_segment_on_way(move.way)
+                way_segment = self.get_stone_segment_on_way(move.way)
 
                 # 盤面更新 --> 空欄で上書き
                 for src_dst_i in range(way_segment.begin, way_segment.end):
@@ -1736,7 +1702,7 @@ class Board():
                     source_stones[i] = stone
 
                 # (1)
-                way_segment = self.get_segment_on_way(move.way)
+                way_segment = self.get_stone_segment_on_way(move.way)
 
                 # (2)
                 for i in range(way_segment.begin, way_segment.end):
@@ -1887,13 +1853,13 @@ class Board():
         if space_way.axis_id == FILE_ID:
             left_way = space_way.low_way()
             if left_way is not None:
-                way_segment = self.get_segment_on_way(left_way)
+                way_segment = self.get_stone_segment_on_way(left_way)
                 if 0 < way_segment.length:
                     return left_way
 
             right_way = space_way.high_way()
             if right_way is not None:
-                way_segment = self.get_segment_on_way(right_way)
+                way_segment = self.get_stone_segment_on_way(right_way)
                 if 0 < way_segment.length:
                     return right_way
 
@@ -1901,13 +1867,13 @@ class Board():
         if space_way.axis_id == RANK_ID:
             top_way = space_way.low_way()
             if top_way is not None:
-                way_segment = self.get_segment_on_way(top_way)
+                way_segment = self.get_stone_segment_on_way(top_way)
                 if 0 < way_segment.length:
                     return top_way
 
             bottom_way = space_way.high_way()
             if bottom_way is not None:
-                way_segment = self.get_segment_on_way(bottom_way)
+                way_segment = self.get_stone_segment_on_way(bottom_way)
                 if 0 < way_segment.length:
                     return bottom_way
 
@@ -1998,7 +1964,7 @@ class Board():
             dst_file_way = Way(FILE_ID, dst_file)
 
             # 縦連の場所を調べる
-            way_segment = self.get_segment_on_way(dst_file_way)
+            way_segment = self.get_stone_segment_on_way(dst_file_way)
 
             # 石が置いてる段
             if 0 < way_segment.length:
@@ -2016,7 +1982,7 @@ class Board():
             dst_rank_way = Way(RANK_ID, dst_rank)
 
             # 横連の場所を調べる
-            way_segment = self.get_segment_on_way(dst_rank_way)
+            way_segment = self.get_stone_segment_on_way(dst_rank_way)
 
             # 石が置いてる筋
             if 0 < way_segment.length:
@@ -2170,7 +2136,7 @@ class Board():
             if self._way_locks[way.to_code()]:
                 continue
 
-            way_segment = self.get_segment_on_way(way)
+            way_segment = self.get_stone_segment_on_way(way)
 
             # 石が置いてる路
             if 0 < way_segment.length:
