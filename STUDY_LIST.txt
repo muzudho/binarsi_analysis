@@ -1,0 +1,18 @@
+# [ ] 2024-08-28 ステールメートになる理由を調べる
+
+* 一手詰めを逃しているからでは？
+
+[24 moves | moved anH | b3 w4 w5 | stalemate]
+    # # # # # # #
+  +---------------+
+# | 1 0 0 0 1 0 1 |
+# | 0 1 1 1 0 1 0 |
+# | 1 0 0 0 1 0 1 |
+# | 1 0 0 1 0 0 1 |
+# | 1 1 1 0 1 1 0 |
+# | 0 0 0 1 0 0 1 |
+  +---------------+
+[from beginning] sfen startpos moves 4n 5o cs2 3nH 2n 4a 5nL 6n dn ds3 1o 2nL ena enL fa 6s1 fnL 1s1 7xn bxn bnH 7nL ao anH
+                 stones_before_change - - - 1 - 1 0 - - - - 11 - 011111 - - 000000 - - - 1110010 10111 - 1111111
+[from present]   sfen xoooxox/oxxxoxo/xoooxox/xooxoox/xxxoxxo/oooxoox b1234567abcdef 24
+

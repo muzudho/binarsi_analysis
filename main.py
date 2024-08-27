@@ -158,12 +158,12 @@ class UsiEngine():
         pos_list = cmd[1].split(' moves ')
         sfen_text = pos_list[0]
 
-        print(f"[position] {pos_list=}")
+        #print(f"[position] {pos_list=}")
 
         # 区切りは半角空白１文字とします
         move_u_list = (pos_list[1].split(' ') if len(pos_list) > 1 else [])
 
-        print(f"[position] {move_u_list=}")
+        #print(f"[position] {move_u_list=}")
 
         self.position_detail(sfen_text, move_u_list)
 
@@ -853,6 +853,10 @@ CLEAR TARGETS
 
             elif self._board.gameover_reason == 'stalemate':
                 self.print_lose()
+            
+            else:
+                raise ValueError(f"undefined gameover. {self._board.gameover_reason=}")
+
 
         if self._board.is_gameover():
             print_if_end_of_game()

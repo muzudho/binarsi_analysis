@@ -565,6 +565,10 @@ class Move():
     
     強制的にロックを外したい場合、末尾に `#` を付ける。これは盤面操作のためのもので、対局での使用は想定していない
         例： `7c#` - ７筋の全石を取り除き、ロックも外す
+    
+    対局の棋譜には使えないが、パスも用意しておく
+        例： `pass`
+        内部的には、 way を None にしたらパス扱いとする。盤面編集扱いになる。'&' や '#'、 '$' は付加できない
     """
 
     def __init__(self, way, operator, is_way_unlock=False, option_stones='', when_edit=False, same_move_u=''):
@@ -634,6 +638,12 @@ class Move():
         return self._same_move_u
 
 
+    @property
+    def is_pass(self):
+        """パスか？"""
+        return self._way is None
+
+
     _re_move = re.compile(r"^(&)?([1234567abcdef])(na|nH|nL|no|on|s1|s2|s3|s4|s5|s6|xn|xo|ze|a|c|e|n|o)(#)?(\$[.01]+)?$")
 
 
@@ -650,6 +660,20 @@ class Move():
 
     @classmethod
     def code_to_obj(clazz, code):
+
+        # パス
+        if code == 'pass':
+            return Move(
+                # 路
+                way=None,
+                # 演算子
+                operator=None,
+                # 路ロック解除フラグ
+                is_way_unlock=None,
+                # 石の並び
+                option_stones=None,
+                # 盤面編集フラグ
+                when_edit=True)
 
         result = clazz._re_move.match(code)
         if result is None:
@@ -1125,10 +1149,23 @@ class LegalMoves():
         # 冗長な指し手を省いたリスト
         self._cached_distinct_items = None
 
+        # １手詰めの手。無ければ pass、未調査ならナン
+        self._cached_mate_move_in_1ply = None
+
 
     @property
     def items(self):
         return self._items
+
+
+    def get_mate_move_in_1ply(self, board):
+        """１手詰めの手。無ければナンを返す"""
+
+        # self._cached_mate_move_in_1ply に一手詰めの指し手が設定される
+        if not self.find_mate_move_in_1ply(board):
+            return None
+
+        return self._cached_mate_move_in_1ply
 
 
     def append(self, item):
@@ -1248,6 +1285,71 @@ class LegalMoves():
         return self._cached_distinct_items
 
 
+    def find_mate_move_in_1ply(self, board):
+        """１手詰めがあるか調べる"""
+        if self._cached_mate_move_in_1ply is not None:
+            move = self._cached_mate_move_in_1ply
+
+            # パスが入っていたら、１手詰めが無かったという符牒にしておく
+            if move.is_pass:
+                return False
+            
+            return True
+
+
+        current_turn = board.get_next_turn()
+
+        # DO 合法手を取得
+        move_list = self.get_distinct_items(board)
+
+        for move in move_list:
+
+            # DO 一手指す
+            board.push_usi(move.to_code())
+
+            # DO 勝ちかどうか判定する。価値が有ったら真を返す
+            if board.is_gameover():
+
+                if board.gameover_reason == 'black win':
+                    if current_turn == C_BLACK:
+                        # You win!
+                        self._cached_mate_move_in_1ply = move
+                        return True
+                    
+                    elif current_turn == C_WHITE:
+                        # You lose!
+                        pass
+
+                elif board.gameover_reason == 'white win':
+                    if current_turn == C_BLACK:
+                        # You lose!
+                        pass
+                    
+                    elif current_turn == C_WHITE:
+                        # You win!
+                        self._cached_mate_move_in_1ply = move
+                        return True
+
+                elif board.gameover_reason == 'draw (illegal move)':
+                    # Illegal move
+                    pass
+
+                elif board.gameover_reason == 'stalemate':
+                    # You lose!
+                    pass
+
+                else:
+                    raise ValueError(f"undefined gameover. {board.gameover_reason=}")
+
+
+            # DO 一手戻す
+            board.pop()
+
+        # DO 勝ちは無かった。パスを設定する
+        self._cached_mate_move_in_1ply = Move.code_to_obj('pass')
+        return False
+
+
 class Board():
     """ビナーシ盤
     
@@ -1332,7 +1434,6 @@ class Board():
 
         # 勝利条件をクリアーしたのが何手目か
         self._clear_targets = [-1, -1, -1, -1, -1, -1]
-
 
     @property
     def clear_targets(self):
@@ -2118,13 +2219,18 @@ class Board():
         """無視。ビナーシに入玉はありません"""
         pass
 
+
     def is_check(self):
-        """TODO 一手詰めがあるか？"""
-        pass
+        """一手詰めがあるか？"""
+        return self._legal_moves.find_mate_move_in_1ply(self)
+
 
     def mate_move_in_1ply(self):
-        """TODO 一手詰めの手を返す"""
-        pass
+        """一手詰めの手を返す
+        
+        なければナンを返す
+        """
+        return self.legal_moves.get_mate_move_in_1ply(self)
 
 
     def get_edges(self):

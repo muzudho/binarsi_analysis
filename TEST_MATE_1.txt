@@ -1,0 +1,13 @@
+[11 moves | moved 6o | b3 w3 | black win]
+    1 2 3 # # 6 7
+  +---------------+
+a | . . 1 1 0 1 . |
+b | . . 1 1 0 1 . |
+# | . . 0 0 1 1 . |
+# | . . 0 0 1 1 . |
+e | . . 0 1 0 1 . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 w - 1 moves dn 4n 5o 4no exn da bxn cnL ao 5nL 6o
+                 stones_before_change - - - 10 - 101 - 001 - 11011 -
+[from present]   sfen 2xxox1/2xxox1/2ooxx1/2ooxx1/2oxox1/7 w45cd 11
