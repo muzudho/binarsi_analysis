@@ -307,6 +307,31 @@ class Way():
         raise ValueError(f"undefined axis_id  {self.axis_id=}")
 
 
+class WaySegment():
+    """路上の線分"""
+
+
+    def __init__(self, begin, length):
+        """初期化"""
+        self._begin = begin
+        self._length = length
+
+
+    @property
+    def begin(self):
+        return self._begin
+
+
+    @property
+    def end(self):
+        return self._begin + self._length
+
+
+    @property
+    def length(self):
+        return self._length
+
+
 class Operator():
     """演算子
 
@@ -717,7 +742,7 @@ class MoveHelper():
 
         # シフト
         if op in ['s1', 's2', 's3', 's4', 's5', 's6']:
-            (begin, length) = board.get_position_on_way(way)
+            way_segment = board.get_segment_on_way(way)
 
             # 1ビットシフト --Inverse--> (対象路の石の長さ - 1)ビットシフト
             if op == 's1':
@@ -744,7 +769,7 @@ class MoveHelper():
                 shift_bits = 6
 
             # TODO 目的のシフトにはなるが、結果が同じシフトの集合は Distinct したい
-            return Move.code_to_obj(f"{way.to_code()}s{length-shift_bits}#")
+            return Move.code_to_obj(f"{way.to_code()}s{way_segment.length-shift_bits}#")
 
 
         # ノット・ニュー --Inverse--> カットザエッジ＃
@@ -1327,7 +1352,7 @@ class Board():
         raise ValueError(f"undefined axis_id: {way.axis_id}")
 
 
-    def get_position_on_way(self, way):
+    def get_segment_on_way(self, way):
         """路を指定すると、そこにある石の連なりの開始位置と長さを返す
 
         例えば：
@@ -1377,7 +1402,7 @@ class Board():
                 length = RANK_LEN - begin
                 state = 2
 
-            return (begin, length)
+            return WaySegment(begin, length)
 
         # 入力段を探索
         if way.axis_id == RANK_ID:
@@ -1412,7 +1437,7 @@ class Board():
                 length = FILE_LEN - begin
                 state = 2
 
-            return (begin, length)
+            return WaySegment(begin, length)
 
         raise ValueError(f"undefined axis_id:{way.axis_id}")
 
@@ -1428,20 +1453,17 @@ class Board():
 
         # 幅いっぱい使う
         if stones_str_len == axes_absorber.opponent_axis_length:
-            begin = 0
-            end = axes_absorber.opponent_axis_length
+            way_segment = WaySegment(0, axes_absorber.opponent_axis_length)
 
         # 置いてある石の位置に合わせる
         else:
-            (begin, length) = self.get_position_on_way(target_way)
+            way_segment = self.get_segment_on_way(target_way)
 
-            if length != stones_str_len:
-                raise ValueError(f"length error  {length=}  {stones_str_len=}")
-
-            end = begin + length
+            if way_segment.length != stones_str_len:
+                raise ValueError(f"length error  {way_segment.length=}  {stones_str_len=}")
 
 
-        for i in range(begin, end):
+        for i in range(way_segment.begin, way_segment.end):
 
             dst_sq = Square.file_rank_to_sq(target_way.number, i, swap=axes_absorber.swap_axes)
             old_stone = self._squares[dst_sq]
@@ -1449,7 +1471,7 @@ class Board():
             if old_stone != PC_EMPTY:
                 stones_before_change += _pc_to_str[old_stone]
 
-            self._squares[dst_sq] = _str_to_pc[stones_str[i - begin]]
+            self._squares[dst_sq] = _str_to_pc[stones_str[i - way_segment.begin]]
 
         return stones_before_change
 
@@ -1627,10 +1649,10 @@ class Board():
 
                 # 筋（段）方向両用
                 axes_absorber = move.way.absorb_axes()
-                (begin, length) = self.get_position_on_way(move.way)
+                way_segment = self.get_segment_on_way(move.way)
 
                 # 盤面更新 --> 空欄で上書き
-                for src_dst_i in range(begin, begin+length):
+                for src_dst_i in range(way_segment.begin, way_segment.end):
                     src_dst_sq = Square.file_rank_to_sq(move.way.number, src_dst_i, swap=axes_absorber.swap_axes)
                     stone = self._squares[src_dst_sq]
                     if stone != PC_EMPTY:
@@ -1714,13 +1736,13 @@ class Board():
                     source_stones[i] = stone
 
                 # (1)
-                (begin, length) = self.get_position_on_way(move.way)
+                way_segment = self.get_segment_on_way(move.way)
 
                 # (2)
-                for i in range(begin, begin+length):
+                for i in range(way_segment.begin, way_segment.end):
                     dst_sq = Square.file_rank_to_sq(
                         file=move.way.number,
-                        rank=(i - begin + bit_shift) % length + begin,
+                        rank=(i - way_segment.begin + bit_shift) % way_segment.length + way_segment.begin,
                         swap=axes_absorber.swap_axes)
 
                     # コピー
@@ -1865,28 +1887,28 @@ class Board():
         if space_way.axis_id == FILE_ID:
             left_way = space_way.low_way()
             if left_way is not None:
-                (begin, length) = self.get_position_on_way(left_way)
-                if 0 < length:
+                way_segment = self.get_segment_on_way(left_way)
+                if 0 < way_segment.length:
                     return left_way
 
             right_way = space_way.high_way()
             if right_way is not None:
-                (begin, length) = self.get_position_on_way(right_way)
-                if 0 < length:
+                way_segment = self.get_segment_on_way(right_way)
+                if 0 < way_segment.length:
                     return right_way
 
         # 段方向
         if space_way.axis_id == RANK_ID:
             top_way = space_way.low_way()
             if top_way is not None:
-                (begin, length) = self.get_position_on_way(top_way)
-                if 0 < length:
+                way_segment = self.get_segment_on_way(top_way)
+                if 0 < way_segment.length:
                     return top_way
 
             bottom_way = space_way.high_way()
             if bottom_way is not None:
-                (begin, length) = self.get_position_on_way(bottom_way)
-                if 0 < length:
+                way_segment = self.get_segment_on_way(bottom_way)
+                if 0 < way_segment.length:
                     return bottom_way
 
         None
@@ -1976,12 +1998,12 @@ class Board():
             dst_file_way = Way(FILE_ID, dst_file)
 
             # 縦連の場所を調べる
-            (begin, length) = self.get_position_on_way(dst_file_way)
+            way_segment = self.get_segment_on_way(dst_file_way)
 
             # 石が置いてる段
-            if 0 < length:
-                top_rank = begin
-                bottom_rank = begin + length - 1
+            if 0 < way_segment.length:
+                top_rank = way_segment.begin
+                bottom_rank = way_segment.end - 1
                 break
 
         
@@ -1994,12 +2016,12 @@ class Board():
             dst_rank_way = Way(RANK_ID, dst_rank)
 
             # 横連の場所を調べる
-            (begin, length) = self.get_position_on_way(dst_rank_way)
+            way_segment = self.get_segment_on_way(dst_rank_way)
 
             # 石が置いてる筋
-            if 0 < length:
-                left_file = begin
-                right_file = begin + length - 1
+            if 0 < way_segment.length:
+                left_file = way_segment.begin
+                right_file = way_segment.end - 1
                 break
 
 
@@ -2148,12 +2170,12 @@ class Board():
             if self._way_locks[way.to_code()]:
                 continue
 
-            (begin, length) = self.get_position_on_way(way)
+            way_segment = self.get_segment_on_way(way)
 
             # 石が置いてる路
-            if 0 < length:
+            if 0 < way_segment.length:
                 # Shift できる
-                for i in range(1, length):
+                for i in range(1, way_segment.length):
                     move = Move(way, Operator.code_to_obj(f's{i}'))
 
                     # 合法手として記憶

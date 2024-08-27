@@ -219,19 +219,54 @@ class UsiEngine():
 
         # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
 
-        # 冗長な指し手を省く
-        self._board.distinct_legal_moves()
+        def create_legal_moves_without_same_move():
+            """結果が同じになる指し手を省く"""
 
-        move_list = []
+            # 冗長な指し手を省くフラグを付ける
+            self._board.distinct_legal_moves()
 
-        for move in self._board.legal_moves:
-            if move.same_move_u == '':
-                move_list.append(move)
+            # 冗長な指し手を省いたリスト
+            move_list = []
+
+            for move in self._board.legal_moves:
+                if move.same_move_u == '':
+                    move_list.append(move)
+
+        move_list = create_legal_moves_without_same_move()
+
+        for move in move_list:
+            # TODO 対象となる路の石（または空欄）の長さを測る
+
+            # TODO （１手指す前の）対象となる路の石（または空欄）の並びを取得
+
+            # TODO １手指す
+
+            # TODO （１手指した後の）対象となる路の石（または空欄）の並びを取得
+
+            # TODO １手指した後の石の数から、１手指す前の石の数を引く。これを差分とする
+
+            # TODO １手戻す
+
+            # TODO 手番の石の差分から、相手番の石の差分を引く。これを［利］と呼ぶとする
+
+            # TODO ［利］が正のもの、零のもの、負のものに分けて、それぞれのリストに追加する
+
+            pass
+
+        # TODO 利が正の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
+
+        # TODO 利が零の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
+
+        # TODO 利が負の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
 
 
         # １手指す
-        best_move = random.choice(move_list)
-        return best_move, 'best move'
+        def go_random_move(move_list):
+            """ランダム・ムーブ"""
+            best_move = random.choice(move_list)
+            return best_move, 'best move'
+
+        return go_random_move(move_list)
 
 
     def go(self):
