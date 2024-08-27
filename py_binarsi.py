@@ -883,7 +883,7 @@ class Sfen():
     """SFEN形式文字列"""
 
 
-    def __init__(self, from_present, squares, next_turn, way_locks, move_number, move_u_list):
+    def __init__(self, from_present, squares, next_turn, way_locks, moves_number, move_u_list):
         """初期化"""
 
         # （初期局面からではなく）現局面のSFEN形式なら真
@@ -913,14 +913,14 @@ class Sfen():
         #    'f' : False,
         #}
 
-        self._move_number = move_number
+        self._moves_number = moves_number
         self._move_u_list = move_u_list
 
         # キャッシュ
         self._code_cached = None
 
 
-    def to_code(self, without_way_lock=False, without_move_number=False):
+    def to_code(self, without_way_lock=False, without_moves_number=False):
         """コード
 
         Parameters
@@ -928,7 +928,7 @@ class Sfen():
         without_way_lock : bool
             SFEN に［路ロック］を含まないようにするフラグです。
             同じ局面をチェックしたいとき、［路ロック］が異なるかは無視したいという要望があります
-        without_move_number : bool
+        without_moves_number : bool
             SFEN に［何手目］を含まないようにするフラグです。
             同じ局面をチェックしたいとき、［何手目］が異なるかは無視したいという要望があります
         """
@@ -990,6 +990,11 @@ class Sfen():
 
                 for way_code in _way_characters:
                     if self._way_locks[way_code]:
+
+                        if not locked:
+                            # 手番と路ロックの区切りの空白
+                            buffer.append(' ')
+
                         buffer.append(way_code)
                         locked = True
 
@@ -998,8 +1003,8 @@ class Sfen():
 
 
             # ［添付図は何手目か？］
-            if not without_move_number:
-                buffer.append(f' {self._move_number}')
+            if not without_moves_number:
+                buffer.append(f' {self._moves_number}')
 
 
             # ［添付図からの棋譜］
@@ -1194,9 +1199,9 @@ class LegalMoves():
         sub_sfen_1_before_push = board.as_sfen(from_present=True)
         sub_sfen_2_before_push = sub_sfen_1_before_push.to_upside_down()
         sub_sfen_3_before_push = sub_sfen_1_before_push.to_flip_left_and_right()
-        sub_sfen_1_before_push_u = sub_sfen_1_before_push.to_code(without_way_lock=True, without_move_number=True)
-        sub_sfen_2_before_push_u = sub_sfen_2_before_push.to_code(without_way_lock=True, without_move_number=True)
-        sub_sfen_3_before_push_u = sub_sfen_3_before_push.to_code(without_way_lock=True, without_move_number=True)
+        sub_sfen_1_before_push_u = sub_sfen_1_before_push.to_code(without_way_lock=True, without_moves_number=True)
+        sub_sfen_2_before_push_u = sub_sfen_2_before_push.to_code(without_way_lock=True, without_moves_number=True)
+        sub_sfen_3_before_push_u = sub_sfen_3_before_push.to_code(without_way_lock=True, without_moves_number=True)
         #print(f"[distinct_legal_moves] {sub_sfen_1_before_push_u=}")
         #print(f"[distinct_legal_moves] {sub_sfen_2_before_push_u=}")
         #print(f"[distinct_legal_moves] {sub_sfen_3_before_push_u=}")
@@ -1224,7 +1229,7 @@ class LegalMoves():
             #
             #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
             #
-            sub_sfen_after_push_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
+            sub_sfen_after_push_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_moves_number=True)
             #print(f"[distinct_legal_moves] 一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push_u=}")
             
             # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
@@ -1255,7 +1260,7 @@ class LegalMoves():
             board.pop()
 
             # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            rollbacked_sfen_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_move_number=True)
+            rollbacked_sfen_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_moves_number=True)
             #
             #   例： 7/7/2o4/2x4/7/7 b - 1
             #
@@ -1390,6 +1395,12 @@ class Board():
         #
         self._squares_at_init = None
 
+        # 初期局面での手数
+        #
+        #   途中局面から開始したのでもなければ、手数は 0 で始まります
+        #
+        self._moves_number_at_init = 0
+
         # 初期局面での手番
         #
         #   平手初期局面の手番（Next Turn）、つまり先手は必ず黒番（将棋と違って上手、下手が無いので）。
@@ -1435,6 +1446,16 @@ class Board():
         # 勝利条件をクリアーしたのが何手目か
         self._clear_targets = [-1, -1, -1, -1, -1, -1]
 
+
+    @property
+    def moves_number_at_init(self):
+        """初期局面での手数
+        
+        途中局面から開始したのでもなければ、手数は 0 で始まります
+        """        
+        return self._moves_number_at_init
+
+
     @property
     def clear_targets(self):
         """クリアーターゲット"""
@@ -1472,9 +1493,9 @@ class Board():
 
 
     @property
-    def move_number(self):
+    def moves_number(self):
         """指し手が何手目か（盤面編集操作除く）"""
-        return len(self._board_editing_history.game_items)
+        return self._moves_number_at_init + len(self._board_editing_history.game_items)
 
 
     def update_squares_at_init(self):
@@ -1599,8 +1620,8 @@ class Board():
                 else:
                     raise ValueError(f"undefined sfen character on locks:  {way_u=}  {sfen_u=}")
 
-        # TODO 手数の解析
-        pass
+        # 手数の解析
+        self._moves_number_at_init = int(parts[3])
 
 
     def exists_stone_on_way(self, way):
@@ -2600,7 +2621,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[0] = self.move_number
+                    self._clear_targets[0] = self.moves_number
                     return
 
         if self._clear_targets[0] == -1:
@@ -2647,7 +2668,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[1] = self.move_number
+                    self._clear_targets[1] = self.moves_number
                     return
 
             # Baroque Diagonal
@@ -2667,7 +2688,7 @@ class Board():
                         is_not_hit = False
                         break
 
-                    self._clear_targets[1] = self.move_number
+                    self._clear_targets[1] = self.moves_number
                     return
 
         if self._clear_targets[1] == -1:
@@ -2711,7 +2732,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[2] = self.move_number
+                    self._clear_targets[2] = self.moves_number
                     return
 
         if self._clear_targets[2] == -1:
@@ -2755,7 +2776,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[3] = self.move_number
+                    self._clear_targets[3] = self.moves_number
                     return
 
         if self._clear_targets[3] == -1:
@@ -2802,7 +2823,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[4] = self.move_number
+                    self._clear_targets[4] = self.moves_number
                     return
 
             # Baroque Diagonal
@@ -2823,7 +2844,7 @@ class Board():
                         is_not_hit = False
                         break
 
-                    self._clear_targets[4] = self.move_number
+                    self._clear_targets[4] = self.moves_number
                     return
 
         if self._clear_targets[4] == -1:
@@ -2867,7 +2888,7 @@ class Board():
                         is_not_hit = False
                         continue
 
-                    self._clear_targets[5] = self.move_number
+                    self._clear_targets[5] = self.moves_number
                     return
 
         if self._clear_targets[5] == -1:
@@ -2934,7 +2955,7 @@ class Board():
         # １行目表示
         # ---------
         edits_num = len(self._board_editing_history.items)
-        if self.move_number != edits_num:
+        if self.moves_number != edits_num:
             edits_num_str = f"| {edits_num} edits "
         else:
             edits_num_str = ""
@@ -2981,7 +3002,7 @@ class Board():
                 next_turn_str = 'next white'
 
 
-        print(f"[{self.move_number:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str} | {next_turn_str}]")
+        print(f"[{self.moves_number:2} moves {edits_num_str}| {latest_move_str}{cleared_targets_str} | {next_turn_str}]")
 
 
         # 盤表示
@@ -3041,17 +3062,46 @@ class Board():
         # 添付局面が先手番のケース
         if self._next_turn_at_init == C_BLACK:
 
-            # 添付局面が先手のとき、対局棋譜の指し手の数が偶数（０含む）なら黒番、奇数なら後手番（将棋と違って上手、下手が無いから）
-            if self.move_number % 2 == 0:
-                return C_BLACK
+            # 添付局面が偶数のケース
+            if self._moves_number_at_init % 2 == 0:
+                # 現在の［手目］が偶数のケース
+                if self.moves_number % 2 == 0:
+                    return C_BLACK
+                
+                # 現在の［手目］が奇数のケース
+                return C_WHITE
+                
+            # 添付局面が奇数のケース
+            # --------------------
+
+            # 現在の［手目］が偶数のケース
+            if self.moves_number % 2 == 0:
+                return C_WHITE
             
-            return C_WHITE
+            # 現在の［手目］が奇数のケース
+            return C_BLACK
 
         # 添付局面が後手番のケース
-        if self.move_number % 2 == 0:
-            return C_WHITE
+        # ----------------------
 
-        return C_BLACK
+        # 添付局面が偶数のケース
+        if self._moves_number_at_init % 2 == 0:
+            # 現在の［手目］が偶数のケース
+            if self.moves_number % 2 == 0:
+                return C_WHITE
+
+            # 現在の［手目］が奇数のケース
+            return C_BLACK
+
+        # 添付局面が奇数のケース
+        # --------------------
+
+        # 現在の［手目］が偶数のケース
+        if self.moves_number % 2 == 0:
+            return C_BLACK
+
+        # 現在の［手目］が奇数のケース
+        return C_WHITE
 
 
     def as_sfen(self, from_present=False):
@@ -3104,11 +3154,11 @@ class Board():
 
         # 現在の盤面からのSFEN表示
         if from_present:
-            move_number = self.move_number
+            moves_number = self.moves_number
 
         # 初期盤面からのSFEN表示
         else:
-            move_number = 1
+            moves_number = 1
 
 
         # 添付局面図からの指し手
@@ -3131,7 +3181,7 @@ class Board():
             squares=squares,
             next_turn=next_turn,
             way_locks=way_locks,
-            move_number=move_number,
+            moves_number=moves_number,
             move_u_list=move_u_list)
 
 

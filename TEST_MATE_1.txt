@@ -1,3 +1,5 @@
+# [x]
+
 [11 moves | moved 6o | b3 w3 | black win]
     1 2 3 # # 6 7
   +---------------+
@@ -10,4 +12,55 @@ f | . . . . . . . |
   +---------------+
 [from beginning] sfen 7/7/2o4/7/7/7 w - 1 moves dn 4n 5o 4no exn da bxn cnL ao 5nL 6o
                  stones_before_change - - - 10 - 101 - 001 - 11011 -
-[from present]   sfen 2xxox1/2xxox1/2ooxx1/2ooxx1/2oxox1/7 w45cd 11
+[from present]   sfen 2xxox1/2xxox1/2ooxx1/2ooxx1/2oxox1/7 w 45cd 11
+
+
+# [ ]
+
+[13 moves | moved ana | b3 w3 w4 | next white]
+    1 # # # 5 6 7
+  +---------------+
+a | . 1 1 1 1 . . |
+b | . 0 1 0 0 . . |
+# | . 0 0 0 0 . . |
+# | . 1 0 0 0 . . |
+e | . 1 0 0 1 . . |
+f | . 1 1 1 0 . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 w - 1 moves dn 4n eo 4nL 5o dno 2na 3nL bxn 2nH fxn ca ana
+                 stones_before_change - - - 101 - 101 - 001 - 1111 - 1011 -
+[from present]   sfen 1xxxx2/1oxoo2/1oooo2/1xooo2/1xoox2/1xxxo2 w 234cd 13
+
+
+# [ ]
+
+[22 moves | moved 1nH | b3 b5 w3 w4 | next black]
+    # # # # # # 7
+  +---------------+
+# | 0 1 0 1 1 0 1 |
+# | 1 0 1 0 1 1 0 |
+# | 1 0 0 0 1 1 0 |
+# | 0 1 0 0 1 1 0 |
+# | 0 1 0 0 0 0 1 |
+f | 0 1 1 1 1 0 1 |
+  +---------------+
+[from beginning] sfen startpos moves dn 4n eo 4nL 5o dno 2na 3nL bxn 2nH fxn ca ana anH 1na bnL 6xn ea 7xn 6no 5o 1nH
+                 stones_before_change - - - 101 - 101 - 001 - 1111 - 1011 - 1111 - 10100 - 110010 - 111100 100000 101100
+[from present]   sfen oxoxxox/xoxoxxo/xoooxxo/oxooxxo/oxoooox/oxxxxox b 123456abcde 22
+
+
+# [ ]
+
+[17 moves | 16 edits | moved 1nH | b3 w3 w5 | next white]
+    # 2 # # # 6 7
+  +---------------+
+a | 1 0 1 0 0 0 . |
+# | 0 1 0 1 1 1 . |
+# | 0 1 0 1 1 1 . |
+# | 1 0 1 0 0 0 . |
+# | 0 1 0 1 1 1 . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/2x4/7/7 w - 1 moves en 3s2 4n do 5no 5nL 6no enL 2no cnH bno 4nL ano bnL 1no 1nH
+                 stones_before_change - - - 01 - 000 - 0100 - 01010 - 0010 - 00100 - 00000
+[from present]   sfen xoxooo1/oxoxxx1/oxoxxx1/xoxooo1/oxoxxx1/7 w 1345bcde 17
