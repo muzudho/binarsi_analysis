@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from py_binarsi import C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Move, MoveHelper, Board
+from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board
 
 
 class UsiEngine():
@@ -218,60 +218,118 @@ class UsiEngine():
                 return matemove, 'mate 1 move'
 
         # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
+        
+        move_list = self._board.legal_moves.get_distinct_items(self._board)
 
-        def create_legal_moves_without_same_move():
-            """結果が同じになる指し手を省く"""
+        is_random_move = False
 
-            # 冗長な指し手を省くフラグを付ける
-            self._board.distinct_legal_moves()
-
-            # 冗長な指し手を省いたリスト
-            move_list = []
-
-            for move in self._board.legal_moves:
-                if move.same_move_u == '':
-                    move_list.append(move)
-
-        move_list = create_legal_moves_without_same_move()
-
-        for move in move_list:
-
-            # TODO 対象となる路の石（または空欄）の長さを測る
-            way_segment = self._board.get_stone_segment_on_way(move.way)
-
-            # TODO （１手指す前の）対象となる路の石（または空欄）の並びを取得
-            current_colors = self._board.get_colors_on_way(move.way, way_segment)
-
-            # TODO １手指す
-            self._board.push_usi(move.to_code())
-
-            # TODO （１手指した後の）対象となる路の石（または空欄）の並びを取得
-            next_colors = self._board.get_colors_on_way(move.way, way_segment)
-
-            # TODO １手指した後の石の数から、１手指す前の石の数を引く。これを差分とする
-
-            # TODO １手戻す
-
-            # TODO 手番の石の差分から、相手番の石の差分を引く。これを［利］と呼ぶとする
-
-            # TODO ［利］が正のもの、零のもの、負のものに分けて、それぞれのリストに追加する
-
-            pass
-
-        # TODO 利が正の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
-
-        # TODO 利が零の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
-
-        # TODO 利が負の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
+        if is_random_move:
+            # １手指す
+            def go_random_move(move_list):
+                """ランダム・ムーブ"""
+                best_move = random.choice(move_list)
+                return best_move, 'best move'
 
 
-        # １手指す
-        def go_random_move(move_list):
-            """ランダム・ムーブ"""
-            best_move = random.choice(move_list)
+            return go_random_move(move_list)
+
+
+        else:
+            # ［利］が正の数の指し手のリスト
+            positive_move_list = []
+
+            # ［利］が零の指し手のリスト
+            come_out_even_move_list = []
+
+            # ［利］が負の数の指し手のリスト
+            negative_move_list = []
+
+            for move in move_list:
+
+                # DO 対象となる路の石（または空欄）の長さを測る
+                way_segment = self._board.get_stone_segment_on_way(move.way)
+
+                # DO （１手指す前の）対象となる路の石（または空欄）の並びを取得
+                current_colors = self._board.get_colors_on_way(move.way, way_segment)
+
+                # DO （１手指す前の）対象路の色を数える
+                current_color_count = {
+                    C_EMPTY : 0,
+                    C_BLACK : 0,
+                    C_WHITE : 0,
+                }
+
+                for color in current_colors:
+                    current_color_count[color] += 1
+
+                # DO １手指す
+                self._board.push_usi(move.to_code())
+
+                # DO （１手指した後の）対象となる路の石（または空欄）の並びを取得
+                next_colors = self._board.get_colors_on_way(move.way, way_segment)
+
+                # DO （１手指した後の）対象路の色を数える
+                next_color_count = {
+                    C_EMPTY : 0,
+                    C_BLACK : 0,
+                    C_WHITE : 0,
+                }
+
+                for color in next_colors:
+                    next_color_count[color] += 1
+
+                # DO １手戻す
+                self._board.pop()
+
+                # DO 手番の石の差分から、相手番の石の差分を引く。これを［利］と呼ぶとする
+
+                # DO １手指した後の石の数から、１手指す前の石の数を引く。これを差分とする
+                difference_color_count = {
+                    C_EMPTY : next_color_count[C_EMPTY] - current_color_count[C_EMPTY],
+                    C_BLACK : next_color_count[C_BLACK] - current_color_count[C_BLACK],
+                    C_WHITE : next_color_count[C_WHITE] - current_color_count[C_WHITE],
+                }
+
+
+                # DO ［利］が正のもの、零のもの、負のものに分けて、それぞれのリストに追加する
+                # 石の［利］を調べる
+                profit = 0
+
+                # 次のターンの反対が、現在のターン
+                current_turn = Colors.Opponent(self._board.get_next_turn())
+
+                if current_turn == C_BLACK:
+                    profit = difference_color_count[C_BLACK] - difference_color_count[C_WHITE]
+
+                else:
+                    profit = difference_color_count[C_WHITE] - difference_color_count[C_BLACK]
+
+                # ［利］が正の数の指し手のリスト
+                if 0 < profit:
+                    positive_move_list.append(move)
+
+                # ［利］が零の指し手のリスト
+                elif profit == 0:
+                    come_out_even_move_list.append(move)
+
+                # ［利］が負の数の指し手のリスト
+                else:
+                    negative_move_list.append(move)
+
+
+            # DO 利が正の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
+            if 0 < len(positive_move_list):
+                best_move = random.choice(positive_move_list)
+                return best_move, 'best move'
+
+            # DO 利が零の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
+            if 0 < len(come_out_even_move_list):
+                best_move = random.choice(come_out_even_move_list)
+                return best_move, 'best move'
+
+            # DO 利が負の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
+            best_move = random.choice(negative_move_list)
             return best_move, 'best move'
-
-        return go_random_move(move_list)
 
 
     def go(self):
@@ -417,11 +475,8 @@ LEGAL MOVES
 |Distinct|All|
 +--------+---+""")
 
-        # 冗長な指し手を省く
-        self._board.distinct_legal_moves()
-
-        # コードで降順にソートする
-        move_list = sorted(self._board.legal_moves, key=lambda x:x.to_code())
+        # 冗長な指し手を省いたリストから、さらにコードを降順にソートする
+        move_list = sorted(self._board.legal_moves.get_distinct_items(self._board), key=lambda x:x.to_code())
 
         # 冗長な指し手を省いた通し番号
         j = 0
@@ -539,7 +594,8 @@ CLEAR TARGETS
                 break
 
             # １つ選ぶ
-            best_move = random.sample(self._board.legal_moves, 1)[0]
+            (best_move, reason) = self.sub_go()
+            #best_move = random.sample(self._board.legal_moves.items, 1)[0]
 
             # １手指す
             self._board.push_usi(best_move.to_code())
