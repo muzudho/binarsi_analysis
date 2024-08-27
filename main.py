@@ -116,6 +116,11 @@ class UsiEngine():
             elif cmd[0] == 'play':
                 self.play(input_str)
 
+            # デバッグ情報表示
+            #   code: dump
+            elif cmd[0] == 'dump':
+                self.dump()
+
 
     def usi(self):
         """usi握手"""
@@ -148,11 +153,19 @@ class UsiEngine():
 
     def position(self, cmd):
         """局面データ解析"""
-        pos = cmd[1].split('moves')
-        sfen_text = pos[0].strip()
+
+        # 余計な半角空白は入っていない前提
+        pos_list = cmd[1].split(' moves ')
+        sfen_text = pos_list[0]
+
+        print(f"[position] {pos_list=}")
+
         # 区切りは半角空白１文字とします
-        moves_text = (pos[1].split(' ') if len(pos) > 1 else [])
-        self.position_detail(sfen_text, moves_text)
+        move_u_list = (pos_list[1].split(' ') if len(pos_list) > 1 else [])
+
+        print(f"[position] {move_u_list=}")
+
+        self.position_detail(sfen_text, move_u_list)
 
 
     def position_detail(self, sfen_u, move_u_list):
@@ -221,6 +234,7 @@ class UsiEngine():
         
         move_list = self._board.legal_moves.get_distinct_items(self._board)
 
+        # ランダムムーブ
         is_random_move = False
 
         if is_random_move:
@@ -262,6 +276,9 @@ class UsiEngine():
                 for color in current_colors:
                     current_color_count[color] += 1
 
+                # DEBUG
+                #print(f"[sub_go]  {move.to_code()=}  {current_colors=}  {current_color_count=}")
+
                 # DO １手指す
                 self._board.push_usi(move.to_code())
 
@@ -278,6 +295,9 @@ class UsiEngine():
                 for color in next_colors:
                     next_color_count[color] += 1
 
+                # DEBUG
+                #print(f"[sub_go]  {move.to_code()=}  {next_colors=}  {next_color_count=}")
+
                 # DO １手戻す
                 self._board.pop()
 
@@ -290,19 +310,24 @@ class UsiEngine():
                     C_WHITE : next_color_count[C_WHITE] - current_color_count[C_WHITE],
                 }
 
+                # DEBUG
+                #print(f"[sub_go]  {move.to_code()=}  {difference_color_count=}")
 
                 # DO ［利］が正のもの、零のもの、負のものに分けて、それぞれのリストに追加する
                 # 石の［利］を調べる
                 profit = 0
 
-                # 次のターンの反対が、現在のターン
-                current_turn = Colors.Opponent(self._board.get_next_turn())
+                # DEBUG
+                #print(f"[sub_go]  {move.to_code()=}  {self._board.get_next_turn()=}")
 
-                if current_turn == C_BLACK:
+                if self._board.get_next_turn() == C_BLACK:
                     profit = difference_color_count[C_BLACK] - difference_color_count[C_WHITE]
 
                 else:
                     profit = difference_color_count[C_WHITE] - difference_color_count[C_BLACK]
+
+                # DEBUG
+                #print(f"[sub_go]  {move.to_code()=}  {profit=}")
 
                 # ［利］が正の数の指し手のリスト
                 if 0 < profit:
@@ -403,7 +428,14 @@ class UsiEngine():
         cmd : list
             例： ["do", "4n"]
         """
-        self.sub_do(move_u=cmd[1])
+
+        move_u = cmd[1]
+
+        if not Move.validate_code(move_u, no_panic=True):
+            print("illegal move")
+            return
+
+        self.sub_do(move_u)
 
         # 現在の盤表示
         self.print_board()
@@ -431,7 +463,9 @@ class UsiEngine():
         else:
             stones_before_change = ''
 
+        Move.validate_code(move_u)
         move = Move.code_to_obj(move_u)
+
         inverse_move = MoveHelper.inverse_move(
             board=self._board,
             move=move,
@@ -693,7 +727,7 @@ CLEAR TARGETS
     |  |  |  |
     |  |  |  |
     |  |_/   |
-    |_______/""")
+    |_______/""", flush=True)
 
 
     def print_1(self):
@@ -704,7 +738,7 @@ CLEAR TARGETS
     |__   |
       |   |
       |   |
-      |___|""")
+      |___|""", flush=True)
 
 
     def print_comp(self):
@@ -715,7 +749,7 @@ CLEAR TARGETS
     |  |       |  |  |  |  |  |  |  |  |  |  |  |__/  |
     |  |       |  |  |  |  |  |  |  |  |  |  |  _____/
     |  |____   |  |_/   |  |  |  |  |  |  |  |  |
-    |_______|  |_______/   |__|  |__|  |__|  |__|""")
+    |_______|  |_______/   |__|  |__|  |__|  |__|""", flush=True)
 
 
     def print_you(self):
@@ -726,7 +760,29 @@ CLEAR TARGETS
     |__    _/    |  |  |  |  |  |  |  |
        |  |      |  |  |  |  |  |  |  |
        |  |      |  |_/   |  |  |_/   |
-       |__|      |_______/   |_______/""")
+       |__|      |_______/   |_______/""", flush=True)
+
+
+    def print_win(self):
+        print("""\
+     __     ___     ___   ___   ____      __ 
+    |  |   /   |   /  /  /  |  |    |    |  |
+    |  |  /    |  /  /   |_/   |     |   |  |
+    |  | /     | /  /     __   |  |   |  |  |
+    |  |/  /|  |/  /     |  |  |  ||   | |  |
+    |     / |     /      |  |  |  | |   ||  |
+    |____/  |____/       |__|  |__|  |______|""", flush=True)
+
+
+    def print_lose(self):
+        print("""\
+     __          ________    _______    ________
+    |  |        /   __   |  /   ____|  |   __   |
+    |  |        |  |  |  |  |  /____   |  |__|  |
+    |  |        |  |  |  |  |____   |  |   _____/
+    |  |_____   |  |  |  |       |  |  |  |   ___
+    |        |  |  |_/   |   ___/   /  |  |__/  /
+    |________|  |_______/   |______/   |_______/""", flush=True)
 
 
 
@@ -734,7 +790,7 @@ CLEAR TARGETS
         """一手入力すると、相手番をコンピュータが指してくれる"""
 
         # 待ち時間（秒）を置く。ターミナルの行が詰まって見づらいので、イラストでも挟む
-        if self._board.get_next_turn(from_present=True) == C_BLACK:
+        if self._board.get_next_turn() == C_BLACK:
             self.print_1()
         else:
             self.print_0()
@@ -743,6 +799,11 @@ CLEAR TARGETS
 
         # DO 一手指す
         move_u = input_str.split(' ')[1]
+
+        if not Move.validate_code(move_u, no_panic=True):
+            print("illegal move")
+            return
+
         self.sub_do(move_u)
 
         # 現在の盤表示
@@ -766,6 +827,37 @@ CLEAR TARGETS
         # 今クリアーしたものがあれば、クリアー目標表示
         print_clear_target_if_it_now()
 
+        def print_if_end_of_game():
+            current_turn = Colors.Opponent(self._board.get_next_turn())
+            
+            if self._board.gameover_reason == 'black win':
+                if current_turn == C_BLACK:
+                    self.print_you()
+                    self.print_win()
+                
+                elif current_turn == C_WHITE:
+                    self.print_you()
+                    self.print_lose()
+
+            elif self._board.gameover_reason == 'white win':
+                if current_turn == C_BLACK:
+                    self.print_you()
+                    self.print_lose()
+                
+                elif current_turn == C_WHITE:
+                    self.print_you()
+                    self.print_win()
+
+            elif self._board.gameover_reason == 'draw (illegal move)':
+                self.print_lose()
+
+            elif self._board.gameover_reason == 'stalemate':
+                self.print_lose()
+
+        if self._board.is_gameover():
+            print_if_end_of_game()
+            return
+
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
         time.sleep(0.7)
         self.print_comp()
@@ -776,12 +868,11 @@ CLEAR TARGETS
 
         if best_move is None:
             # ターミナルが見づらいので、空行を挟む
-            print(f"""\
-# You win!""", flush=True)
+            self.print_win()
             return
         
         # ターミナルが見づらいので、イラストを挟む
-        if self._board.get_next_turn(from_present=True) == C_BLACK:
+        if self._board.get_next_turn() == C_BLACK:
             self.print_1()
         else:
             self.print_0()
@@ -799,9 +890,18 @@ CLEAR TARGETS
         # 今クリアーしたものがあれば、クリアー目標表示
         print_clear_target_if_it_now()
 
+        if self._board.is_gameover():
+            print_if_end_of_game()
+            return
+
         # ターミナルが見づらいので、イラストを挟む
         time.sleep(0.7)
         self.print_you()
+
+
+    def dump(self):
+        """デバッグ情報表示"""
+        print(f"[dump] {self._board._next_turn_at_init=}")
 
 
 if __name__ == '__main__':

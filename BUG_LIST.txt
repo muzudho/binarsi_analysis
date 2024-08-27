@@ -65,3 +65,49 @@ f | . . . . . . . |
                  stones_before_change - - - 1
 [from present]   sfen 7/2x4/2o4/2x4/2o4/7 b d 4
 ```
+
+# [x] 2024-06-27 ムーブ en 以外の eへのニュー操作が出ない
+
+* make_legal_moves() を修正
+
+[ 5 moves | moved 4xn | next white]
+    1 2 3 # 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . . . . . . |
+c | . . 0 1 0 1 . |
+d | . . 1 1 1 0 . |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 w - 1 moves 4n 5n 6n dn 4xn
+                 stones_before_change - - - - 10
+[from present]   sfen 7/7/2oxox1/2xxxo1/7/7 w4 5
+
+LEGAL MOVES
++--------+---+
+|Distinct|All|
++--------+---+
+|       1|  1| do 2a
+|       2|  2| do 2n
+|       3|  3| do 2no
+|       4|  4| do 2o
+|       5|  5| do 3nH
+|       6|  6| do 3s1
+|       7|  7| do 5nL
+|       8|  8| do 5o
+|       9|  9| do 5s1
+|      10| 10| do 6s1
+|      11| 11| do 7a
+|      12| 12| do 7n
+|      13| 13| do 7o
+|      14| 14| do bn
+|      15| 15| do cnH
+|      16| 16| do cs1
+|      17| 17| do cs2
+|      18| 18| do dnL
+|      19| 19| do ds1
+|      20| 20| do ds2
+|      21| 21| do ds3
+|      22| 22| do en
++--------+---+
