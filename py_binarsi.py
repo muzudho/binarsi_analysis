@@ -920,7 +920,14 @@ class Sfen():
 
 
     def __init__(self, from_present, squares, next_turn, way_locks, clear_targets_list, moves_number, move_u_list):
-        """初期化"""
+        """初期化
+
+        Parameters
+        ----------
+        clear_targets_list : list
+            クリアーターゲット一覧
+            盤面の情報しか要らないときなど、クリアーターゲットはナンが指定されるケースがある
+        """
 
         # （初期局面からではなく）現局面のSFEN形式なら真
         self._from_present = from_present
@@ -1040,7 +1047,11 @@ class Sfen():
                 # ［路ロック一覧］と［クリアー済ターゲット一覧］の区切りの空白を先頭に付ける
                 u_list = []
                 for i in range(0, CLEAR_TARGETS_LEN):
+
+                    # 盤面の情報しか要らないときなど、クリアーターゲットはナンが指定されるケースがある
+                    # その場合は without_clear_targets_list フラグを偽にしてエラーを回避してほしい
                     move_number = self._clear_targets_list[i]
+
                     if move_number == -1:
                         u_list.append('')
                     else:
@@ -2525,6 +2536,7 @@ class Board():
         ----------
         searched_clear_targets : SearchedClearTargets
             クリアーターゲット
+            盤面の情報しか要らないときなど、クリアーターゲットはナンが指定されるケースがある
         from_present : bool
             現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
@@ -2589,8 +2601,7 @@ class Board():
 
 
         if searched_clear_targets is None:
-            # FIXME 毎回生成するのは改善したい？
-            clear_targets_list = SearchedClearTargets.make_new_obj()
+            clear_targets_list = None
         else:
             clear_targets_list = searched_clear_targets.clear_targets_list
 
@@ -2600,6 +2611,7 @@ class Board():
             squares=squares,
             next_turn=next_turn,
             way_locks=way_locks,
+            # 盤面の情報しか要らないときなど、クリアーターゲットはナンが指定されるケースがある
             clear_targets_list=clear_targets_list,
             moves_number=moves_number,
             move_u_list=move_u_list)
