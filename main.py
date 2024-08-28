@@ -759,6 +759,8 @@ CLEAR TARGETS
 
         print(f"{match_count + 1} 局目ここまで")
 
+        return searched_clear_targets
+
 
     def self_match(self, input_str):
         """自己対局
@@ -770,11 +772,6 @@ CLEAR TARGETS
             コマンド文字列
         """
         print("自己対局　ここから：")
-
-        ## 現在の盤表示
-        #self.print_board()
-        #self.print_sfen(searched_clear_targets, from_present=True)
-        #print("") # 空行
 
         # 連続対局回数
         tokens = input_str.split(' ')
@@ -794,12 +791,12 @@ CLEAR TARGETS
             self.position('position startpos')
 
             # 自己対局
-            self.self_match_once(match_count=i)
+            searched_clear_targets = self.self_match_once(match_count=i)
 
-            if self._board.gameover_reason == 'black win':
+            if searched_clear_targets.gameover_reason == 'black win':
                 black_win_count += 1
 
-            elif self._board.gameover_reason == 'white win':
+            elif searched_clear_targets.gameover_reason == 'white win':
                 white_win_count += 1
             
             else:
@@ -969,10 +966,10 @@ CLEAR TARGETS
         print_clear_target_if_it_now()
 
 
-        def print_if_end_of_game():
+        def print_if_end_of_game(searched_clear_targets):
             current_turn = Colors.Opponent(self._board.get_next_turn())
             
-            if self._board.gameover_reason == 'black win':
+            if searched_clear_targets.gameover_reason == 'black win':
                 if current_turn == C_BLACK:
                     self.print_you()
                     self.print_win()
@@ -981,7 +978,7 @@ CLEAR TARGETS
                     self.print_you()
                     self.print_lose()
 
-            elif self._board.gameover_reason == 'white win':
+            elif searched_clear_targets.gameover_reason == 'white win':
                 if current_turn == C_BLACK:
                     self.print_you()
                     self.print_lose()
@@ -990,18 +987,18 @@ CLEAR TARGETS
                     self.print_you()
                     self.print_win()
 
-            elif self._board.gameover_reason == 'draw (illegal move)':
+            elif searched_clear_targets.gameover_reason == 'draw (illegal move)':
                 self.print_lose()
 
-            elif self._board.gameover_reason == 'stalemate':
+            elif searched_clear_targets.gameover_reason == 'stalemate':
                 self.print_lose()
             
             else:
-                raise ValueError(f"undefined gameover. {self._board.gameover_reason=}")
+                raise ValueError(f"undefined gameover. {searched_clear_targets.gameover_reason=}")
 
 
         if self._board.is_gameover(searched_clear_targets):
-            print_if_end_of_game()
+            print_if_end_of_game(searched_clear_targets)
             return searched_clear_targets
 
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む

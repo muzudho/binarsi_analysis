@@ -2286,8 +2286,8 @@ class Board():
         if self.exists_stone_on_way(target_way):
 
             # 盤の端ならエラー
-            if target_way.number in [0, axes_absorber.opponent_axis_length - 1]:
-                return (Way.code_to_obj('-'), Way.code_to_obj('-'), f'there was stone on target way. but should not be at both end edge.  {target_way.number=}')
+            if target_way.number in [0, axes_absorber.axis_length - 1]:
+                return (Way.code_to_obj('-'), Way.code_to_obj('-'), f'there was stone on target way. but should not be at both end edge.  {target_way.to_code()=}  {target_way.number=}  {axes_absorber.axis_length=}')
 
             # ロウ、ハイの両方に石が置いてある必要がある
             low_way = target_way.low_way()
@@ -3138,9 +3138,6 @@ class SearchLegalMoves():
 
         #print("[SearchLegalMoves > generate_legal_moves] 実行")
 
-        # 終局判定のキャッシュをクリアー
-        board._gameover_reason = ''
-
         # 現局面から合法手を生成する
         legal_moves = LegalMoves(board)
 
@@ -3311,7 +3308,7 @@ class SearchMateMoveIn1Play():
             # DO 勝ちかどうか判定する。価値が有ったら真を返す
             if board.is_gameover(searched_clear_targets):
 
-                if board.gameover_reason == 'black win':
+                if searched_clear_targets.gameover_reason == 'black win':
                     if current_turn == C_BLACK:
                         # You win!  ※一手戻すまでスコープから抜けないこと
                         found_move = move
@@ -3320,7 +3317,7 @@ class SearchMateMoveIn1Play():
                         # You lose!
                         pass
 
-                elif board.gameover_reason == 'white win':
+                elif searched_clear_targets.gameover_reason == 'white win':
                     if current_turn == C_BLACK:
                         # You lose!
                         pass
@@ -3329,16 +3326,16 @@ class SearchMateMoveIn1Play():
                         # You win!  ※一手戻すまでスコープから抜けないこと
                         found_move = move
 
-                elif board.gameover_reason == 'draw (illegal move)':
+                elif searched_clear_targets.gameover_reason == 'draw (illegal move)':
                     # Illegal move
                     pass
 
-                elif board.gameover_reason == 'stalemate':
+                elif searched_clear_targets.gameover_reason == 'stalemate':
                     # You lose!
                     pass
 
                 else:
-                    raise ValueError(f"undefined gameover. {board.gameover_reason=}")
+                    raise ValueError(f"undefined gameover. {searched_clear_targets.gameover_reason=}")
 
 
             # DO 一手戻す
