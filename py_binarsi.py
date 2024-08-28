@@ -2339,8 +2339,7 @@ class Board():
             ゲームオーバー探索
         """
 
-        # FIXME 探索時、アンドゥしたらキャッシュをクリアーする必要があるが大変
-        return not searched_gameover.is_playing
+        return searched_gameover.is_black_win or searched_gameover.is_white_win or searched_gameover.is_stalemate
 
 
     def as_str(self, searched_clear_targets=None):
