@@ -1578,7 +1578,7 @@ class Board():
 
         # 添付盤面でのクリアー済ターゲット一覧
         # ---------------------------------
-        clear_targets_list = [-1, -1, -1, -1, -1, -1]
+        clear_targets_list = [-1] * CLEAR_TARGETS_LEN
 
         if parts[3] != '-':
             # 勝利条件をクリアーしたのが何手目か、６つの要素がスラッシュ区切りで入っている。クリアーしていなければ空文字列
@@ -2332,14 +2332,12 @@ class Board():
     def is_gameover(self, searched_clear_targets):
         """終局しているか？
         
-        cshogi では is_gameover() は board のメソッドあり、 legal_moves 引数はありませんが、ビナーシでは引数として受け取ります
-
-        SearchedClearTargets.update_clear_targets() メソッド使用後に使う必要があります
+        cshogi では is_gameover() は board のメソッドあり、引数はありませんが、ビナーシでは引数を受け取ります
 
         Parameters
         ----------
-        legal_moves : LegalMoves
-            合法手一覧
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
         """
 
         # FIXME 探索時、アンドゥしたらキャッシュをクリアーする必要があるが大変
@@ -2995,15 +2993,7 @@ class SearchedClearTargets():
             引き継ぐ
         """
 
-        # ステールメートしている
-        if len(legal_moves.items) < 1:
-            return SearchedClearTargets(
-                gameover_reason='stalemate',
-                clear_targets_list=[-1, -1, -1, -1, -1, -1])
-
-
         # TODO クリアー条件はアンドゥしたあと消すよう注意
-
 
         if clear_targets_list[0] == -1:
             SearchedClearTargets.update_clear_target_b3(board, clear_targets_list)
@@ -3024,40 +3014,13 @@ class SearchedClearTargets():
             SearchedClearTargets.update_clear_target_w5(board, clear_targets_list)
 
 
-        # どちらかのプレイヤーが３つのターゲットを完了した
-        is_black_win = False
-        is_white_win = False
-        if clear_targets_list[0] != -1 and clear_targets_list[1] != -1 and clear_targets_list[2] != -1:
-            is_black_win = True
+        # ゲームオーバー判定
+        searched_gameover = SearchedGameover.search(legal_moves, clear_targets_list)
 
-        if clear_targets_list[3] != -1 and clear_targets_list[4] != -1 and clear_targets_list[5] != -1:
-            is_white_win = True
-
-        if is_black_win and is_white_win:
-            return SearchedClearTargets(
-                # FIXME 同着になる手は禁じ手
-                gameover_reason='draw (illegal move)',
-                clear_targets_list=clear_targets_list)
-
-        if is_black_win:
-            return SearchedClearTargets(
-                # 黒勝ち
-                gameover_reason='black win',
-                clear_targets_list=clear_targets_list)
-
-        if is_white_win:
-            return SearchedClearTargets(
-                # 白勝ち
-                gameover_reason='white win',
-                clear_targets_list=clear_targets_list)
-
-
-        # TODO 投了している
-
+        # TODO 投了しているケースに対応したい
 
         return SearchedClearTargets(
-            # 終局していない
-            gameover_reason='playing',
+            gameover_reason=searched_gameover.reason,
             clear_targets_list=clear_targets_list)
 
 
@@ -3368,3 +3331,99 @@ class SearchMateMoveIn1Play():
 
         # 一手詰めの手
         return found_move
+
+
+class SearchedGameover():
+    """ゲームオーバー探索"""
+
+
+    def __init__(self, is_black_win, is_white_win, reason):
+        """初期化
+        
+        Parameters
+        ----------
+        is_black_win : bool
+            黒勝ち
+        is_white_win : bool
+            白勝ち
+        reason : str
+            ゲームオーバーと判定された理由の説明
+        """
+
+        self._is_black_win = is_black_win
+        self._is_white_win = is_white_win
+        self._reason = reason
+
+
+    @property
+    def is_black_win(self):
+        """黒勝ち"""
+        return self._is_black_win
+
+
+    @property
+    def is_white_win(self):
+        """白勝ち"""
+        return self._is_white_win
+
+
+    @property
+    def is_double_win(self):
+        """両者勝ち（反則）"""
+        return self._is_black_win and self._is_white_win
+
+
+    @property
+    def reason(self):
+        """ゲームオーバーと判定された理由の説明"""
+        return self._reason
+
+
+    @staticmethod
+    def search(legal_moves, clear_targets_list):
+
+        # どちらかのプレイヤーが３つのターゲットを完了した
+        is_black_win = False
+        is_white_win = False
+        
+        if clear_targets_list[0] != -1 and clear_targets_list[1] != -1 and clear_targets_list[2] != -1:
+            is_black_win = True
+
+        if clear_targets_list[3] != -1 and clear_targets_list[4] != -1 and clear_targets_list[5] != -1:
+            is_white_win = True
+
+        if is_black_win and is_white_win:
+            # TODO 同着になる手は禁じ手にしたい
+            return SearchedGameover(
+                is_black_win=is_black_win,
+                is_white_win=is_white_win,
+                reason='draw (illegal move)')
+
+        if is_black_win:
+            # 黒勝ち
+            return SearchedGameover(
+                is_black_win=is_black_win,
+                is_white_win=is_white_win,
+                reason='black win')
+
+        if is_white_win:
+            # 白勝ち
+            return SearchedGameover(
+                is_black_win=is_black_win,
+                is_white_win=is_white_win,
+                reason='white win')
+
+        # ステールメートしている
+        if len(legal_moves.items) < 1:
+            return SearchedGameover(
+                is_black_win=is_black_win,
+                is_white_win=is_white_win,
+                reason='stalemate')
+
+        # TODO 投了しているケースに対応したい
+
+        # 終局していない
+        return SearchedGameover(
+            is_black_win=is_black_win,
+            is_white_win=is_white_win,
+            reason='playing')

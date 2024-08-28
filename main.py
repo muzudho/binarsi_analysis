@@ -483,7 +483,7 @@ class UsiEngine():
 
         if not Move.validate_code(move_u, no_panic=True):
             print("illegal move")
-            return
+            return searched_clear_targets
 
         # 一手指す
         self._board.push_usi(move_u)
@@ -725,7 +725,7 @@ CLEAR TARGETS
                 clear_targets_list=searched_clear_targets.clear_targets_list)
 
             if self._board.is_gameover(searched_clear_targets):
-                print("# gameover")
+                print(f"# gameover  {searched_clear_targets.gameover_reason=}")
                 break
 
             # 現在の盤表示
@@ -933,7 +933,7 @@ CLEAR TARGETS
         print("") # 空行
 
 
-        def print_clear_target_if_it_now():
+        def print_clear_target_if_it_now(searched_clear_targets):
             """今クリアーしたものがあれば、クリアー目標表示"""
             one_cleared = False
             for clear_target in searched_clear_targets.clear_targets_list:
@@ -946,7 +946,7 @@ CLEAR TARGETS
                 time.sleep(0.7)
 
         # 今クリアーしたものがあれば、クリアー目標表示
-        print_clear_target_if_it_now()
+        print_clear_target_if_it_now(searched_clear_targets)
 
 
         def print_if_end_of_game(searched_clear_targets):

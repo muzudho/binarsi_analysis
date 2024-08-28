@@ -1,0 +1,84 @@
+[ 4 moves | moved 1a | b3 | next black]
+    1 2 3 4 5 6 7
+  +---------------+
+a | 1 1 1 . . . . |
+b | 0 0 1 . . . . |
+c | 0 1 0 . . . . |
+d | . . . . . . . |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 b - 4///// 1 moves bn 2n ao 1a
+                 stones_before_change - - - -
+[from present]   sfen xxx4/oox4/oxo4/7/7/7 b - 4///// 4
+
+
+
+
+[ 5 moves | moved fo | b3 | next white]
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . . . . . . |
+c | 0 1 0 . . . . |
+d | 1 0 1 . . . . |
+e | 0 1 0 . . . . |
+f | 1 1 1 . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 w - 5///// 1 moves dn 2n en 1n fo
+                 stones_before_change - - - - -
+[from present]   sfen 7/7/oxo4/xox4/oxo4/xxx4 w - 5///// 5
+
+
+
+
+[ 6 moves | moved ao | b3 | next black]
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . 1 1 1 1 1 |
+b | . . 1 0 1 0 1 |
+c | . . 0 1 0 1 0 |
+d | . . . . . . . |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 b - 6///// 1 moves 4n 5n 6n 7n bn ao
+                 stones_before_change - - - - - -
+[from present]   sfen 2xxxxx/2xoxox/2oxoxo/7/7/7 b - 6///// 6
+
+
+
+
+[ 7 moves | moved fo | b3 b4 | next white]
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . . . . . . |
+c | . . 0 1 0 1 0 |
+d | . . 1 0 1 0 1 |
+e | . . 0 1 0 1 0 |
+f | . . 1 1 1 1 1 |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 w - 7/7//// 1 moves 4n 5n 6n 7n dn en fo
+                 stones_before_change - - - - - - -
+[from present]   sfen 7/7/2oxoxo/2xoxox/2oxoxo/2xxxxx w - 7/7//// 7
+
+
+
+
+[ 6 moves | moved ao | b3 b4 | next black]
+    1 2 3 4 5 6 7
+  +---------------+
+a | 1 1 1 1 . . . |
+b | 1 0 1 0 . . . |
+c | 0 1 0 1 . . . |
+d | 1 0 1 0 . . . |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 b - 6/6//// 1 moves 4n 2n 1n dn bn ao
+                 stones_before_change - - - - - -
+[from present]   sfen xxxx3/xoxo3/oxox3/xoxo3/7/7 b - 6/6//// 6
+
+
+
