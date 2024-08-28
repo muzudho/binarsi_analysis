@@ -395,6 +395,7 @@ class UsiEngine():
                 return best_move, 'best move'
 
             # DO 利が負の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
+            # FIXME ここでエラーになる？
             best_move = random.choice(negative_move_list)
             return best_move, 'best move'
 

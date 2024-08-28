@@ -2979,33 +2979,34 @@ class SearchedClearTargets():
         Parameters
         ----------
         clear_targets_list : list
-            引き継ぐ
+            引き継ぐ（変更しません）
         """
 
-        # TODO クリアー条件はアンドゥしたあと消すよう注意
+        # NOTE 元のリストを変更しないように注意
+        new_clear_targets_list = list(clear_targets_list)
 
-        if clear_targets_list[0] == -1:
-            SearchedClearTargets.update_clear_target_b3(board, clear_targets_list)
+        if new_clear_targets_list[0] == -1:
+            SearchedClearTargets.update_clear_target_b3(board, new_clear_targets_list)
 
-        if clear_targets_list[1] == -1:
-            SearchedClearTargets.update_clear_target_b4(board, clear_targets_list)
+        if new_clear_targets_list[1] == -1:
+            SearchedClearTargets.update_clear_target_b4(board, new_clear_targets_list)
 
-        if clear_targets_list[2] == -1:
-            SearchedClearTargets.update_clear_target_b5(board, clear_targets_list)
+        if new_clear_targets_list[2] == -1:
+            SearchedClearTargets.update_clear_target_b5(board, new_clear_targets_list)
 
-        if clear_targets_list[3] == -1:
-            SearchedClearTargets.update_clear_target_w3(board, clear_targets_list)
+        if new_clear_targets_list[3] == -1:
+            SearchedClearTargets.update_clear_target_w3(board, new_clear_targets_list)
 
-        if clear_targets_list[4] == -1:
-            SearchedClearTargets.update_clear_target_w4(board, clear_targets_list)
+        if new_clear_targets_list[4] == -1:
+            SearchedClearTargets.update_clear_target_w4(board, new_clear_targets_list)
 
-        if clear_targets_list[5] == -1:
-            SearchedClearTargets.update_clear_target_w5(board, clear_targets_list)
+        if new_clear_targets_list[5] == -1:
+            SearchedClearTargets.update_clear_target_w5(board, new_clear_targets_list)
 
         # TODO 投了しているケースに対応したい
 
         return SearchedClearTargets(
-            clear_targets_list=clear_targets_list)
+            clear_targets_list=new_clear_targets_list)
 
 
 class SearchLegalMoves():
@@ -3252,24 +3253,25 @@ class SearchMateMoveIn1Play():
 
         for move in move_list:
 
-            # DO 一手指す
+            # DO 試しに一手指す
             board.push_usi(move.to_code())
 
-            legal_moves = SearchLegalMoves.generate_legal_moves(board)
+            # 新規合法手生成
+            next_legal_moves = SearchLegalMoves.generate_legal_moves(board)
 
-            # クリアーターゲット更新
-            searched_clear_targets = SearchedClearTargets.update_clear_targets(
+            # 未来のクリアーターゲット新規作成
+            next_searched_clear_targets = SearchedClearTargets.update_clear_targets(
                 board=board,
                 # 引き継ぎ
                 clear_targets_list=searched_clear_targets.clear_targets_list)
 
-            # 終局判定
-            searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+            # 未来の終局判定新規作成
+            next_searched_gameover = SearchedGameover.search(next_legal_moves, next_searched_clear_targets.clear_targets_list)
 
             # DO 勝ちかどうか判定する。価値が有ったら真を返す
-            if board.is_gameover(searched_gameover):
+            if board.is_gameover(next_searched_gameover):
 
-                if searched_gameover.is_black_win:
+                if next_searched_gameover.is_black_win:
                     if current_turn == C_BLACK:
                         # You win!  ※一手戻すまでスコープから抜けないこと
                         found_move = move
@@ -3278,7 +3280,7 @@ class SearchMateMoveIn1Play():
                         # You lose!
                         pass
 
-                elif searched_gameover.is_white_win:
+                elif next_searched_gameover.is_white_win:
                     if current_turn == C_BLACK:
                         # You lose!
                         pass
@@ -3287,31 +3289,20 @@ class SearchMateMoveIn1Play():
                         # You win!  ※一手戻すまでスコープから抜けないこと
                         found_move = move
 
-                elif searched_gameover.is_double_win:
+                elif next_searched_gameover.is_double_win:
                     # Illegal move
                     pass
 
-                elif searched_gameover.is_stalemate:
+                elif next_searched_gameover.is_stalemate:
                     # You lose!
                     pass
 
                 else:
-                    raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
+                    raise ValueError(f"undefined gameover. {next_searched_gameover.reason=}")
 
 
             # DO 一手戻す
             board.pop()
-
-            legal_moves = SearchLegalMoves.generate_legal_moves(board)
-
-            # クリアーターゲット更新
-            searched_clear_targets = SearchedClearTargets.update_clear_targets(
-                board=board,
-                # 引き継ぎ
-                clear_targets_list=searched_clear_targets.clear_targets_list)
-
-            # 終局判定
-            searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
 
             if found_move is not None:
                 break
