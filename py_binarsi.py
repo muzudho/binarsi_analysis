@@ -2339,7 +2339,7 @@ class Board():
             ゲームオーバー探索
         """
 
-        return searched_gameover.is_black_win or searched_gameover.is_white_win or searched_gameover.is_stalemate
+        return searched_gameover.is_black_win or searched_gameover.is_white_win
 
 
     def as_str(self, searched_clear_targets=None):
@@ -3265,7 +3265,7 @@ class SearchMateMoveIn1Play():
                 clear_targets_list=searched_clear_targets.clear_targets_list)
 
             # 未来の終局判定新規作成
-            next_searched_gameover = SearchedGameover.search(next_legal_moves, next_searched_clear_targets.clear_targets_list)
+            next_searched_gameover = SearchedGameover.search(board, next_legal_moves, next_searched_clear_targets.clear_targets_list)
 
             # DO 勝ちかどうか判定する。価値が有ったら真を返す
             if board.is_gameover(next_searched_gameover):
@@ -3292,10 +3292,6 @@ class SearchMateMoveIn1Play():
                     # Illegal move
                     pass
 
-                elif next_searched_gameover.is_stalemate:
-                    # You lose!
-                    pass
-
                 else:
                     raise ValueError(f"undefined gameover. {next_searched_gameover.reason=}")
 
@@ -3315,7 +3311,7 @@ class SearchedGameover():
     """ゲームオーバー探索"""
 
 
-    def __init__(self, is_black_win, is_white_win, is_stalemate, reason):
+    def __init__(self, is_black_win, is_white_win, black_count, white_count, reason):
         """初期化
         
         Parameters
@@ -3324,15 +3320,18 @@ class SearchedGameover():
             黒勝ち
         is_white_win : bool
             白勝ち
-        is_stalemate : bool
-            ステールメート
+        black_count : bool
+            点数勝負の場合の黒石の数
+        white_count : bool
+            点数勝負の場合の白石の数
         reason : str
             ゲームオーバーと判定された理由の説明
         """
 
         self._is_black_win = is_black_win
         self._is_white_win = is_white_win
-        self._is_stalemate = is_stalemate
+        self._black_count = black_count
+        self._white_count = white_count
         self._reason = reason
 
 
@@ -3355,9 +3354,15 @@ class SearchedGameover():
 
 
     @property
-    def is_stalemate(self):
-        """ステールメート"""
-        return self._is_stalemate
+    def black_count(self):
+        """点数勝負の場合の黒石の数"""
+        return self._black_count
+
+
+    @property
+    def white_count(self):
+        """点数勝負の場合の白石の数"""
+        return self._white_count
 
 
     @property
@@ -3373,7 +3378,7 @@ class SearchedGameover():
 
 
     @staticmethod
-    def search(legal_moves, clear_targets_list):
+    def search(board, legal_moves, clear_targets_list):
 
         # どちらかのプレイヤーが３つのターゲットを完了した
         is_black_win = False
@@ -3390,7 +3395,8 @@ class SearchedGameover():
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
-                is_stalemate=False,
+                black_count = -1,
+                white_count = -1,
                 reason='draw (illegal move)')
 
         if is_black_win:
@@ -3398,7 +3404,8 @@ class SearchedGameover():
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
-                is_stalemate=False,
+                black_count = -1,
+                white_count = -1,
                 reason='black win')
 
         if is_white_win:
@@ -3406,16 +3413,48 @@ class SearchedGameover():
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
-                is_stalemate=False,
+                black_count = -1,
+                white_count = -1,
                 reason='white win')
 
         # ステールメートしている
         if len(legal_moves.distinct_items) < 1:
-            return SearchedGameover(
-                is_black_win=is_black_win,
-                is_white_win=is_white_win,
-                is_stalemate=True,
-                reason='stalemate')
+
+            # TODO 盤上の石を数えて点数勝負したい
+            black_count = 0
+            white_count = 0.5
+
+            for i in range(0, BOARD_AREA):
+                stone = board._squares[i]
+                if stone == C_BLACK:
+                    black_count += 1
+
+                elif stone == C_WHITE:
+                    white_count += 1
+
+                else:
+                    raise ValueError(f"{stone=}")
+
+            if white_count < black_count:
+                return SearchedGameover(
+                    is_black_win=True,
+                    is_white_win=False,
+                    black_count = black_count,
+                    white_count = white_count,
+                    reason=f'black {black_count-white_count} win')
+
+            elif black_count < white_count:
+                return SearchedGameover(
+                    is_black_win=False,
+                    is_white_win=True,
+                    black_count = black_count,
+                    white_count = white_count,
+                    reason=f'white {white_count-black_count} win')
+
+            # 後手の白番に 0.5 のコミがあるので引き分けにはならない
+            else:
+                raise ValueError(f"{black_count=}  {white_count=}")
+
 
         # TODO 投了しているケースに対応したい
 
@@ -3423,5 +3462,6 @@ class SearchedGameover():
         return SearchedGameover(
             is_black_win=is_black_win,
             is_white_win=is_white_win,
-            is_stalemate=False,
+            black_count = -1,
+            white_count = -1,
             reason='playing')

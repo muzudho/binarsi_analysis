@@ -424,7 +424,7 @@ class UsiEngine():
             clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # 終局判定
-        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+        searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
         # 次の１手取得
         (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
@@ -508,7 +508,7 @@ class UsiEngine():
             clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # 終局判定
-        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+        searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
         self.print_board(searched_clear_targets)
@@ -569,7 +569,7 @@ class UsiEngine():
             clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # 終局判定
-        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+        searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
         self.print_board(searched_clear_targets)
@@ -739,7 +739,7 @@ CLEAR TARGETS
                 clear_targets_list=searched_clear_targets.clear_targets_list)
 
             # 終局判定
-            searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+            searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
             # 現在の盤表示
             self.print_board(searched_clear_targets)
@@ -780,9 +780,10 @@ CLEAR TARGETS
         else:
             max_match_count = int(tokens[1])
         
-        black_win_count = 0
-        white_win_count = 0
-        no_game_count = 0
+        black_bingo_win_count = 0
+        black_point_win_count = 0
+        white_bingo_win_count = 0
+        white_point_win_count = 0
 
         # 連続対局
         for i in range(0, max_match_count):
@@ -798,24 +799,37 @@ CLEAR TARGETS
             legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
             # 終局判定
-            searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+            searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
             if searched_gameover.is_black_win:
-                black_win_count += 1
+                if searched_gameover.black_count == -1:
+                    black_bingo_win_count += 1
+                else:
+                    black_point_win_count += 1
 
             elif searched_gameover.is_white_win:
-                white_win_count += 1
+                if searched_gameover.white_count == -1:
+                    white_bingo_win_count += 1
+                else:
+                    white_point_win_count += 1
             
             else:
-                no_game_count += 1
+                raise ValueError(f"{searched_gameover.is_black_win=}  {searched_gameover.is_white_win=}")
 
-        total = black_win_count + white_win_count + no_game_count
+
+        total = black_bingo_win_count + black_point_win_count + white_bingo_win_count + white_point_win_count
+        bingo_total = black_bingo_win_count + white_bingo_win_count
+        point_total = black_point_win_count + white_point_win_count
 
         print(f"""\
 自己対局　ここまで：
-    黒勝ち： {black_win_count:6} 黒勝率： {black_win_count/total:3.3f}
-    白勝ち： {white_win_count:6} 白勝率： {white_win_count/total:3.3f}
-    無効　： {no_game_count:6} 無効率： {no_game_count/total:3.3f}
+    黒勝ち　　： {black_bingo_win_count:6} 黒勝率　　： {black_bingo_win_count/total:3.3f}
+    白勝ち　　： {white_bingo_win_count:6} 白勝率　　： {white_bingo_win_count/total:3.3f}
+    並べ勝ち　： {bingo_total:6} 並べ勝率　： {bingo_total/total:3.3f}
+    ーーーーー
+    黒点数勝ち： {black_point_win_count:6} 黒点数勝率： {black_point_win_count/total:3.3f}
+    白点数勝ち： {white_point_win_count:6} 白点数勝率： {white_point_win_count/total:3.3f}
+    点数勝ち　： {point_total:6} 点数勝率　： {point_total/total:3.3f}
 """)
 
 
@@ -944,9 +958,6 @@ CLEAR TARGETS
 
         elif searched_gameover.is_double_win:
             self.print_lose()
-
-        elif searched_gameover.is_stalemate:
-            self.print_lose()
         
         else:
             raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
@@ -994,7 +1005,7 @@ CLEAR TARGETS
             clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # コンピューター側のための終局判定
-        searched_gameover_for_computer = SearchedGameover.search(legal_moves_for_computer, searched_clear_targets_for_computer.clear_targets_list)
+        searched_gameover_for_computer = SearchedGameover.search(self._board, legal_moves_for_computer, searched_clear_targets_for_computer.clear_targets_list)
 
         # 現在の盤表示
         self.print_board(searched_clear_targets_for_computer)
@@ -1044,7 +1055,7 @@ CLEAR TARGETS
             clear_targets_list=searched_clear_targets_for_computer.clear_targets_list)
 
         # あなた側のための終局判定
-        searched_gameover_for_you = SearchedGameover.search(legal_moves_for_you, searched_clear_targets_for_you.clear_targets_list)
+        searched_gameover_for_you = SearchedGameover.search(self._board, legal_moves_for_you, searched_clear_targets_for_you.clear_targets_list)
 
         # 現在の盤表示
         self.print_board(searched_clear_targets_for_you)
