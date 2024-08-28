@@ -35,8 +35,9 @@ _bool_to_color = {
 }
 
 # 軸
-FILE_ID = 1
-RANK_ID = 2
+EMPTY_AXIS = 0
+FILE_AXIS = 1
+RANK_AXIS = 2
 
 # 盤面積
 FILE_LEN = 7
@@ -201,9 +202,14 @@ class Way():
     """路符号
 
     例： '1',  '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f'
+
+    存在しない路の場合：
+        '-'
     """
 
+
     _code_to_obj = None
+
 
     def __init__(self, axis_id, number):
         """初期化
@@ -216,11 +222,16 @@ class Way():
             2: rank
         """
 
-        if axis_id not in (FILE_ID, RANK_ID):
+        if axis_id not in (EMPTY_AXIS, FILE_AXIS, RANK_AXIS):
             raise ValueError(f"undefined axis  {axis_id=}")
 
         self._axis_id = axis_id
         self._number = number
+
+
+    @property
+    def is_empty(self):
+        return self._axis_id == EMPTY_AXIS
 
 
     @property
@@ -244,26 +255,27 @@ class Way():
         """
 
         # フォーマットチェック
-        result = re.match(r"^[1234567abcdef]$", code)
+        result = re.match(r"^[-1234567abcdef]$", code)
         if result is None:
             raise ValueError(f"format error.  way_u:`{code}`")
 
 
         if clazz._code_to_obj is None:
             clazz._code_to_obj = {
-                '1': Way(FILE_ID, 0),
-                '2': Way(FILE_ID, 1),
-                '3': Way(FILE_ID, 2),
-                '4': Way(FILE_ID, 3),
-                '5': Way(FILE_ID, 4),
-                '6': Way(FILE_ID, 5),
-                '7': Way(FILE_ID, 6),
-                'a': Way(RANK_ID, 0),
-                'b': Way(RANK_ID, 1),
-                'c': Way(RANK_ID, 2),
-                'd': Way(RANK_ID, 3),
-                'e': Way(RANK_ID, 4),
-                'f': Way(RANK_ID, 5),
+                '-': Way(EMPTY_AXIS, -1),
+                '1': Way(FILE_AXIS, 0),
+                '2': Way(FILE_AXIS, 1),
+                '3': Way(FILE_AXIS, 2),
+                '4': Way(FILE_AXIS, 3),
+                '5': Way(FILE_AXIS, 4),
+                '6': Way(FILE_AXIS, 5),
+                '7': Way(FILE_AXIS, 6),
+                'a': Way(RANK_AXIS, 0),
+                'b': Way(RANK_AXIS, 1),
+                'c': Way(RANK_AXIS, 2),
+                'd': Way(RANK_AXIS, 3),
+                'e': Way(RANK_AXIS, 4),
+                'f': Way(RANK_AXIS, 5),
             }
 
 
@@ -277,14 +289,17 @@ class Way():
         """
         Returns
         -------
-        '1' ～ '7' や、 'a' ～ 'f' といった文字
+        '-' や '1' ～ '7'、 'a' ～ 'f' といった文字
         """
         global _num_to_rank
 
-        if self._axis_id == FILE_ID:
+        if self.is_empty:
+            return '-'
+
+        if self._axis_id == FILE_AXIS:
             return str(self._number + 1)
 
-        if self._axis_id == RANK_ID:
+        if self._axis_id == RANK_AXIS:
             return _num_to_rank[self._number]
         
         raise ValueError(f"axis_id:{self._axis_id}  number:{self._number}")
@@ -293,24 +308,27 @@ class Way():
     def low_way(self, diff = 1):
         """１つ小さい方の路"""
         if self._number < diff:
-            return None
+            return Way.code_to_obj('-')
         
-        return Way(self._axis_id, self._number - diff)
+        # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
+        return Way.code_to_obj(Way(self._axis_id, self._number - diff).to_code())
 
 
     def high_way(self, diff = 1):
         """１つ大きい方の路"""
-        if self._axis_id == FILE_ID:
+        if self._axis_id == FILE_AXIS:
             if self._number < FILE_LEN - diff:
-                return Way(self._axis_id, self._number + diff)
+                # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
+                return Way.code_to_obj(Way(self._axis_id, self._number + diff).to_code())
 
-            return None
+            return Way.code_to_obj('-')
 
-        elif self._axis_id == RANK_ID:
+        elif self._axis_id == RANK_AXIS:
             if self._number < RANK_LEN - diff:
-                return Way(self._axis_id, self._number + diff)
+                # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
+                return Way.code_to_obj(Way(self._axis_id, self._number + diff).to_code())
 
-            return None
+            return Way.code_to_obj('-')
 
         raise ValueError(f"{self._axis_id=}")
 
@@ -318,20 +336,26 @@ class Way():
     def absorb_axes(self):
         """筋と段のコードを共通化する仕掛け"""
         # 筋方向
-        if self.axis_id == FILE_ID:
+        if self.axis_id == FILE_AXIS:
             return AxesAbsorber(
                 swap_axes=False,
                 axis_length=FILE_LEN,
                 opponent_axis_length=RANK_LEN)
         
         # 段方向
-        if self.axis_id == RANK_ID:
+        if self.axis_id == RANK_AXIS:
             return AxesAbsorber(
                 swap_axes=True,
                 axis_length=RANK_LEN,
                 opponent_axis_length=FILE_LEN)
         
-        raise ValueError(f"undefined axis_id  {self.axis_id=}")
+        raise ValueError(f"unsupported axis_id  {self.axis_id=}")
+
+
+# 全ての種類の路を生成
+_all_ways = []
+for way_u in _way_characters:
+    _all_ways.append(Way.code_to_obj(way_u))
 
 
 class WaySegment():
@@ -934,7 +958,7 @@ class Sfen():
 
             # [盤面]
 
-            # usinewgame コマンドの直後に selfmatch をするとこの例外になる
+            # usinewgame コマンドの直後に selfmatch をするとこの例外になる。暫定で position startpos まで打鍵してほしい
             if self._squares  is None:
                 raise ValueError("self._squares is None")
 
@@ -1540,8 +1564,6 @@ class Board():
         sq = Square.code_to_sq_obj('3c').as_num
         self._squares[sq] = C_WHITE
 
-        self.update_legal_moves()
-
 
     def set_way_lock_by_code(self, way_u, value, is_it_init=False):
         """路ロックする"""
@@ -1672,6 +1694,9 @@ class Board():
             路オブジェクト
         """
 
+        if way.is_empty:
+            return False
+
         # 筋（段）方向両用
         axes_absorber = way.absorb_axes()
 
@@ -1700,8 +1725,14 @@ class Board():
         f | . . . . . . . |
           +---------------+
 
-        上図の c 段を指定すると、 start:2, length:4 のような数を返す
+        上図の c 段を指定すると、 begin:2, length:4 のような数を返す
+
+        `-` 路を指定すると、 begin:0, length:0 のような数を返す
         """
+
+        if way.is_empty:
+            return WaySegment(0, 0)
+
 
         # 筋（段）方向両用
         axes_absorber = way.absorb_axes()
@@ -1915,6 +1946,10 @@ class Board():
             move=move,
             stones_before_change=stones_before_change))
 
+        self._cached_legal_moves = None
+        ## DEBUG
+        #print(f"[on_exit_push_usi] キャッシュ・クリアー  {self._cached_legal_moves=}")
+
 
     def get_unary_src_way_1_number(self, way):
         # 左（上）端なら、右（下）側確定
@@ -1994,7 +2029,7 @@ class Board():
 
             # 対象の路に石が置いてない
             else:
-                raise ValueError("c演算では、石の置いてない対象路を指定してはいけません")
+                raise ValueError(f"c演算では、石の置いてない対象路を指定してはいけません  {move.to_code()=}")
 
 
         # エディット演算子
@@ -2083,7 +2118,7 @@ class Board():
 
             # 対象の路に石が置いてない
             else:
-                raise ValueError("s演算では、石の置いてない対象路を指定してはいけません")
+                raise ValueError(f"s演算では、石の置いてない対象路を指定してはいけません  {move.to_code()=}")
 
 
         # ノット（単項演算子）
@@ -2091,7 +2126,7 @@ class Board():
 
             # 対象の路に石が置いてある
             if self.exists_stone_on_way(move.way):
-                raise ValueError("n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください")
+                raise ValueError(f"n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください  {move.to_code()=}")
 
             # 対象の路に石が置いてない
             else:
@@ -2140,7 +2175,7 @@ class Board():
 
             # 対象の路に石が置いてない
             else:
-                raise ValueError("nL演算では、石の置いてない対象路を指定してはいけません")
+                raise ValueError(f"nL演算では、石の置いてない対象路を指定してはいけません  {move.to_code()=}")
 
 
         # ノット（単項演算子 Reverse）路上の大きい方
@@ -2171,7 +2206,7 @@ class Board():
 
             # 対象の路に石が置いてない
             else:
-                raise ValueError("nH演算では、石の置いてない対象路を指定してはいけません")
+                raise ValueError(f"nH演算では、石の置いてない対象路を指定してはいけません  {move.to_code()=}")
 
 
         # アンド, オア, ゼロ, ノア, エクソア, ナンド, エクスノア, ワン
@@ -2199,7 +2234,7 @@ class Board():
                 return
 
 
-        raise ValueError(f"undefined operator code: {op}")
+        raise ValueError(f"undefined operator code.  {op=}  {move.to_code()=}")
 
 
     def get_edge_way_from_adjacent_space(self, space_way):
@@ -2211,35 +2246,18 @@ class Board():
             石のない路。ただし、その隣には石があるものとする
         """
 
-        # 筋方向
-        if space_way.axis_id == FILE_ID:
-            left_way = space_way.low_way()
-            if left_way is not None:
-                way_segment = self.get_stone_segment_on_way(left_way)
-                if 0 < way_segment.length:
-                    return left_way
+        # 筋（段）方向両用
+        adjacent_way = space_way.low_way()
+        way_segment = self.get_stone_segment_on_way(adjacent_way)
+        if 0 < way_segment.length:
+            return adjacent_way
 
-            right_way = space_way.high_way()
-            if right_way is not None:
-                way_segment = self.get_stone_segment_on_way(right_way)
-                if 0 < way_segment.length:
-                    return right_way
+        adjacent_way = space_way.high_way()
+        way_segment = self.get_stone_segment_on_way(adjacent_way)
+        if 0 < way_segment.length:
+            return adjacent_way
 
-        # 段方向
-        if space_way.axis_id == RANK_ID:
-            top_way = space_way.low_way()
-            if top_way is not None:
-                way_segment = self.get_stone_segment_on_way(top_way)
-                if 0 < way_segment.length:
-                    return top_way
-
-            bottom_way = space_way.high_way()
-            if bottom_way is not None:
-                way_segment = self.get_stone_segment_on_way(bottom_way)
-                if 0 < way_segment.length:
-                    return bottom_way
-
-        None
+        return None
 
 
     def pop(self):
@@ -2262,7 +2280,6 @@ class Board():
 
         #print(f"[pop] 盤面編集として、逆操作を実行  {inverse_move_for_edit_u=}  {inverse_move_for_edit.is_way_unlock=}")
         self.push_usi(inverse_move_for_edit_u)
-        #self._board.update_legal_moves()
 
         # さっきの逆操作を履歴から除去
         popped_item = self._board_editing_history.pop()
@@ -2323,7 +2340,7 @@ class Board():
 
         # とりあえず各筋について
         for dst_file in range(0, FILE_LEN):
-            dst_file_way = Way(FILE_ID, dst_file)
+            dst_file_way = Way(FILE_AXIS, dst_file)
 
             # 縦連の場所を調べる
             way_segment = self.get_stone_segment_on_way(dst_file_way)
@@ -2341,7 +2358,7 @@ class Board():
 
         # とりあえず各段について
         for dst_rank in range(0, RANK_LEN):
-            dst_rank_way = Way(RANK_ID, dst_rank)
+            dst_rank_way = Way(RANK_AXIS, dst_rank)
 
             # 横連の場所を調べる
             way_segment = self.get_stone_segment_on_way(dst_rank_way)
@@ -2365,11 +2382,11 @@ class Board():
 
 
         # 筋方向
-        if target_way.axis_id == FILE_ID:
+        if target_way.axis_id == FILE_AXIS:
             opponent_axis_length = FILE_LEN
 
         # 段方向
-        elif target_way.axis_id == RANK_ID:
+        elif target_way.axis_id == RANK_AXIS:
             opponent_axis_length = RANK_LEN
 
         else:
@@ -2402,7 +2419,7 @@ class Board():
                     return (first_way, second_way)
 
 
-    def _make_legal_moves(self, operator_u, for_edit_mode=False):
+    def _make_legal_moves_binary_operation(self, operator_u, for_edit_mode=False):
         """
         Parameters
         ----------
@@ -2413,18 +2430,10 @@ class Board():
             盤面編集用
         """
 
-        # 全ての種類の路を生成
-        all_ways = []
+        # 全ての種類の路
+        global _all_ways
 
-        # 筋
-        for file in range(0, FILE_LEN):
-            all_ways.append(Way(FILE_ID, file))
-        
-        # 段
-        for rank in range(0, RANK_LEN):
-            all_ways.append(Way(RANK_ID, rank))
-
-        for way in all_ways:
+        for way in _all_ways:
             axes_absorber = way.absorb_axes()
 
             # 石が置いてある路
@@ -2435,25 +2444,21 @@ class Board():
                     continue
 
                 # ロウ、ハイの両方に石が置いてある必要がある
+                #print(f"[_make_legal_moves_binary_operation] modify  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.high_way().to_code()=}")
                 if 0 < way.number and way.number < axes_absorber.axis_length - 1 and self.exists_stone_on_way(way.low_way()) and self.exists_stone_on_way(way.high_way()):
                     # 対象路上にある石を Or して Reverse できる
                     move = Move(way, Operator.code_to_obj(operator_u))
-                    if for_edit_mode:
-                        self._cached_legal_moves.append(move, for_edit=True)
-                    else:
-                        self._cached_legal_moves.append(move)
+                    self._cached_legal_moves.append(move, for_edit=for_edit_mode)
 
             # 石が置いてない路
             else:
                 # 隣のどちらかに２つ続けて石が置いているか？
+                #print(f"[_make_legal_moves_binary_operation] new  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.low_way(diff=2)=}  {way.high_way().to_code()=}  {way.high_way(diff=2)=}")
                 if ((1 < way.number and self.exists_stone_on_way(way.low_way()) and self.exists_stone_on_way(way.low_way(diff=2))) or
                     (way.number < axes_absorber.axis_length - 2 and self.exists_stone_on_way(way.high_way()) and self.exists_stone_on_way(way.high_way(diff=2)))):
                     # Or で New できる
                     move = Move(way, Operator.code_to_obj(operator_u))
-                    if for_edit_mode:
-                        self._cached_legal_moves.append(move, for_edit=True)
-                    else:
-                        self._cached_legal_moves.append(move)
+                    self._cached_legal_moves.append(move, for_edit=for_edit_mode)
 
 
     def update_legal_moves(self):
@@ -2461,150 +2466,139 @@ class Board():
 
         #print("[update_legal_moves] 実行")
 
-        # キャッシュ・クリアー → 初期化
+        # キャッシュの生成
         self._cached_legal_moves = LegalMoves()
 
         # 終局判定のキャッシュをクリアー
         self._gameover_reason = ''
 
-        (rect_exists, left_file, right_file, top_rank, bottom_rank) = self.get_edges()
+
+        def update_cut_the_edge():
+            """カットザエッジ（Cut the edge）の合法手生成（盤面編集用）"""
+            (rect_exists, left_file, right_file, top_rank, bottom_rank) = self.get_edges()
+
+            if rect_exists:
+                if 0 < right_file - left_file:
+                    self._cached_legal_moves.append(Move(Way(FILE_AXIS, left_file), Operator.code_to_obj('c')), for_edit=True)
+                    self._cached_legal_moves.append(Move(Way(FILE_AXIS, right_file), Operator.code_to_obj('c')), for_edit=True)
+                
+                if 0 < bottom_rank - top_rank:
+                    self._cached_legal_moves.append(Move(Way(RANK_AXIS, top_rank), Operator.code_to_obj('c')), for_edit=True)
+                    self._cached_legal_moves.append(Move(Way(RANK_AXIS, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
 
 
         # カットザエッジ（Cut the edge）の合法手生成（盤面編集用）
-        if rect_exists:
-            if 0 < right_file - left_file:
-                self._cached_legal_moves.append(Move(Way(FILE_ID, left_file), Operator.code_to_obj('c')), for_edit=True)
-                self._cached_legal_moves.append(Move(Way(FILE_ID, right_file), Operator.code_to_obj('c')), for_edit=True)
+        update_cut_the_edge()
+
+
+        def update_shift():
+            """シフト（Shift）の合法手生成
             
-            if 0 < bottom_rank - top_rank:
-                self._cached_legal_moves.append(Move(Way(RANK_ID, top_rank), Operator.code_to_obj('c')), for_edit=True)
-                self._cached_legal_moves.append(Move(Way(RANK_ID, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
+            例えば：
+            
+                1 2 3 4 5 6 7
+              +---------------+
+            a | . . . . . . . |
+            b | . . . . . . . |
+            c | . . 0 1 0 1 . |
+            d | . . . . . . . |
+            e | . . . . . . . |
+            f | . . . . . . . |
+              +---------------+
+            
+            上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
+            ゼロビットシフトは禁止する
+            枝が増えてしまうのを防ぐ
+            """
+            global _way_characters
+
+            # 筋（段）方向両用
+            for way_u in _way_characters:
+                way = Way.code_to_obj(way_u)
+
+                # 路にロックが掛かっていたら Shift は禁止
+                if self._way_locks[way.to_code()]:
+                    continue
+
+                way_segment = self.get_stone_segment_on_way(way)
+
+                # 石が置いてる路
+                if 0 < way_segment.length:
+                    # Shift できる
+                    for i in range(1, way_segment.length):
+                        move = Move(way, Operator.code_to_obj(f's{i}'))
+
+                        # 合法手として記憶
+                        self._cached_legal_moves.append(move)
 
 
         # シフト（Shift）の合法手生成
-        #
-        # 例えば：
-        # 
-        #     1 2 3 4 5 6 7
-        #   +---------------+
-        # a | . . . . . . . |
-        # b | . . . . . . . |
-        # c | . . 0 1 0 1 . |
-        # d | . . . . . . . |
-        # e | . . . . . . . |
-        # f | . . . . . . . |
-        #   +---------------+
-        # 
-        # 上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
-        # ゼロビットシフトは禁止する
-        # 枝が増えてしまうのを防ぐ
+        update_shift()
 
-        # 筋（段）方向両用
-        for way_u in _way_characters:
-            way = Way.code_to_obj(way_u)
 
-            # 路にロックが掛かっていたら Shift は禁止
-            if self._way_locks[way.to_code()]:
-                continue
+        def update_not():
+            """ノット（Not）の合法手生成"""
 
-            way_segment = self.get_stone_segment_on_way(way)
+            # 全ての種類の路
+            global _all_ways
 
-            # 石が置いてる路
-            if 0 < way_segment.length:
-                # Shift できる
-                for i in range(1, way_segment.length):
-                    move = Move(way, Operator.code_to_obj(f's{i}'))
+            for way in _all_ways:
+                axes_absorber = way.absorb_axes()
 
-                    # 合法手として記憶
-                    self._cached_legal_moves.append(move)
+                # 石が置いてある路
+                if self.exists_stone_on_way(way):
+
+                    # 路にロックが掛かっていたら Not の Reverse は禁止
+                    if self._way_locks[way.to_code()]:
+                        continue
+
+                    if 0 < way.number and self.exists_stone_on_way(way.low_way()):
+                        # 路上で小さい方にある石を Not して Reverse できる
+                        self._cached_legal_moves.append(Move(way, Operator.code_to_obj('nL')))
+
+                    if way.number < axes_absorber.axis_length - 1 and self.exists_stone_on_way(way.high_way()):
+                        # 路上で大きい方にある石を Not して Reverse できる
+                        self._cached_legal_moves.append(Move(way, Operator.code_to_obj('nH')))
+
+                # 石が置いてない路
+                else:
+                    # 隣のどちらかに石が置いているか？
+                    if 0 < way.number and self.exists_stone_on_way(way.low_way()):
+                        # Not で New できる
+                        self._cached_legal_moves.append(Move(way, Operator.code_to_obj('n')))
+
+                    if way.number < axes_absorber.axis_length - 1 and self.exists_stone_on_way(way.high_way()):
+                        # Not で New できる
+                        self._cached_legal_moves.append(Move(way, Operator.code_to_obj('n')))
 
 
         # ノット（Not）の合法手生成
-        # 筋方向
-        for dst_file in range(0, FILE_LEN):
-            dst_file_way = Way(FILE_ID, dst_file)
-
-            # 石が置いてある路
-            if self.exists_stone_on_way(dst_file_way):
-
-                # 路にロックが掛かっていたら Not の Reverse は禁止
-                if self._way_locks[dst_file_way.to_code()]:
-                    continue
-
-                if 0 < dst_file and self.exists_stone_on_way(dst_file_way.low_way()):
-                    # 路上で小さい方にある石を Not して Reverse できる
-                    self._cached_legal_moves.append(Move(dst_file_way, Operator.code_to_obj('nL')))
-
-                if dst_file < FILE_LEN - 1 and self.exists_stone_on_way(dst_file_way.high_way()):
-                    # 路上で大きい方にある石を Not して Reverse できる
-                    self._cached_legal_moves.append(Move(dst_file_way, Operator.code_to_obj('nH')))
-
-            # 石が置いてない路
-            else:
-                # 隣のどちらかに石が置いているか？
-                if 0 < dst_file and self.exists_stone_on_way(dst_file_way.low_way()):
-                    # Not で New できる
-                    self._cached_legal_moves.append(Move(dst_file_way, Operator.code_to_obj('n')))
-
-                if dst_file < FILE_LEN - 1 and self.exists_stone_on_way(dst_file_way.high_way()):
-                    # Not で New できる
-                    self._cached_legal_moves.append(Move(dst_file_way, Operator.code_to_obj('n')))
-
-
-        # 段方向
-        for dst_rank in range(0, RANK_LEN):
-            dst_rank_way = Way(RANK_ID, dst_rank)
-
-            # 石が置いてある路
-            if self.exists_stone_on_way(dst_rank_way):
-
-                # 路にロックが掛かっていたら Not の Reverse は禁止
-                if self._way_locks[dst_rank_way.to_code()]:
-                    continue
-
-                if 0 < dst_rank and self.exists_stone_on_way(dst_rank_way.low_way()):
-                    # 路上で小さい方にある石を Not して Reverse できる
-                    self._cached_legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('nL')))
-
-                if dst_rank < RANK_LEN - 1 and self.exists_stone_on_way(dst_rank_way.high_way()):
-                    # 路上で大きい方にある石を Not して Reverse できる
-                    self._cached_legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('nH')))
-
-            # 石が置いてない路
-            else:
-                # 隣のどちらかに石が置いているか？
-                if 0 < dst_rank and self.exists_stone_on_way(dst_rank_way.low_way()):
-                    # Not で New できる
-                    self._cached_legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('n')))
-
-                if dst_rank < RANK_LEN - 1 and self.exists_stone_on_way(dst_rank_way.high_way()):
-                    # Not で New できる
-                    self._cached_legal_moves.append(Move(dst_rank_way, Operator.code_to_obj('n')))
+        update_not()
 
 
         # アンド（AND）の合法手生成
-        self._make_legal_moves(operator_u='a')
+        self._make_legal_moves_binary_operation(operator_u='a')
 
         # オア（OR）の合法手生成
-        self._make_legal_moves(operator_u='o')
+        self._make_legal_moves_binary_operation(operator_u='o')
 
         # ゼロ（ZERO）の合法手生成
-        self._make_legal_moves(operator_u='ze', for_edit_mode=True)
+        self._make_legal_moves_binary_operation(operator_u='ze', for_edit_mode=True)
 
         # ノア（NOR）の合法手生成
-        self._make_legal_moves(operator_u='no')
+        self._make_legal_moves_binary_operation(operator_u='no')
 
         # エクソア（XOR）の合法手生成
-        self._make_legal_moves(operator_u='xo')
+        self._make_legal_moves_binary_operation(operator_u='xo')
 
         # ナンド（NAND）の合法手生成
-        self._make_legal_moves(operator_u='na')
+        self._make_legal_moves_binary_operation(operator_u='na')
 
         # エクスノア（XNOR）の合法手生成
-        self._make_legal_moves(operator_u='xn')
+        self._make_legal_moves_binary_operation(operator_u='xn')
 
         # ワン（ONE）の合法手生成
-        self._make_legal_moves(operator_u='on', for_edit_mode=True)
+        self._make_legal_moves_binary_operation(operator_u='on', for_edit_mode=True)
 
 
     def _update_gameover(self):
@@ -3030,15 +3024,18 @@ class Board():
             clear_targets_list_str = ''
 
 
-        # 次の手番、または、終局理由
-        if self.is_gameover():
-            next_turn_str = self.gameover_reason
+        # 次の手番
+        # NOTE is_gameover() を取得するには、一手指していないと分からない。盤を表示するだけなのに一手指すのは激重すぎる。したがって終局理由は盤表示には含めないことにする
+        #if self.is_gameover():
+        #    next_turn_str = self.gameover_reason
+        #else:
+        next_turn = self.get_next_turn()
+        if next_turn == C_BLACK:
+            next_turn_str = 'next black'
+        elif next_turn == C_WHITE:
+            next_turn_str = 'next white'
         else:
-            next_turn = self.get_next_turn()
-            if next_turn == C_BLACK:
-                next_turn_str = 'next black'
-            else:
-                next_turn_str = 'next white'
+            raise ValueError(f"unsupported turn  {next_turn}")
 
 
         print(f"[{self.moves_number:2} moves {edits_num_str}| {latest_move_str}{clear_targets_list_str} | {next_turn_str}]")

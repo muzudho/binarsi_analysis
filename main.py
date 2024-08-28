@@ -38,7 +38,7 @@ class UsiEngine():
 
             # 局面データ解析
             elif cmd[0] == 'position':
-                self.position(cmd)
+                self.position(input_str)
 
             # 思考開始～最善手返却
             elif cmd[0] == 'go':
@@ -126,6 +126,11 @@ class UsiEngine():
             elif cmd[0] == 'mate1':
                 self.print_mate1()
 
+            # 動作テスト
+            #   code: test
+            elif cmd[0] == 'test':
+                self.test()
+
 
     def usi(self):
         """usi握手"""
@@ -156,8 +161,10 @@ class UsiEngine():
         print(f"[{datetime.datetime.now()}] usinewgame end", flush=True)
 
 
-    def position(self, cmd):
+    def position(self, input_str):
         """局面データ解析"""
+
+        cmd = input_str.split(' ', 1)
 
         # 余計な半角空白は入っていない前提
         pos_list = cmd[1].split(' moves ')
@@ -199,13 +206,9 @@ class UsiEngine():
         # 初期局面を記憶（SFENで初期局面を出力したいときのためのもの）
         self._board.update_squares_at_init()
 
-        # １手も指していない添付図の合法手を判定
-        self._board.update_legal_moves()
-
         # 盤面編集履歴（対局棋譜のスーパーセット）再生
         for move_u in move_u_list:
             self._board.push_usi(move_u)
-            self._board.update_legal_moves()
 
 
     def sub_go(self):
@@ -421,7 +424,6 @@ class UsiEngine():
             例： "4n"
         """
         self._board.push_usi(move_u)
-        self._board.update_legal_moves()
 
 
     def do(self, cmd):
@@ -488,7 +490,11 @@ class UsiEngine():
             code: undo
         """
         self._board.pop()
-        self._board.update_legal_moves()
+
+        # キャッシュ・クリアー
+        self._cached_legal_moves = None
+        ## DEBUG
+        #print(f"[undo] キャッシュ・クリアー  {self._cached_legal_moves=}")
 
         # 現在の盤表示
         self.print_board()
@@ -502,6 +508,11 @@ class UsiEngine():
         """
         print(self._board.as_str())
 
+    
+    def _get_distinct_sorted_legal_move_list(self):
+        """指し手のリストから冗長な指し手を省き、さらにコードをキーにして降順にソートする"""
+        return sorted(self._board.legal_moves.get_distinct_items(self._board), key=lambda x:x.to_code())
+
 
     def print_legal_moves(self):
         """合法手一覧表示
@@ -513,8 +524,8 @@ LEGAL MOVES
 |Distinct|All|
 +--------+---+""")
 
-        # 冗長な指し手を省いたリストから、さらにコードを降順にソートする
-        move_list = sorted(self._board.legal_moves.get_distinct_items(self._board), key=lambda x:x.to_code())
+        # 指し手のリストから冗長な指し手を省き、さらにコードをキーにして降順にソートする
+        move_list = self._get_distinct_sorted_legal_move_list()
 
         # 冗長な指し手を省いた通し番号
         j = 0
@@ -637,7 +648,6 @@ CLEAR TARGETS
 
             # １手指す
             self._board.push_usi(best_move.to_code())
-            self._board.update_legal_moves()
 
             # 現在の盤表示
             self.print_board()
@@ -678,7 +688,7 @@ CLEAR TARGETS
         for i in range(0, max_match_count):
 
             self.usinewgame()
-            self.position(['position', 'startpos'])
+            self.position('position startpos')
 
             # 自己対局
             self.self_match_once(match_count=i)
@@ -922,6 +932,46 @@ CLEAR TARGETS
             return
 
         print(mate_move.to_code())
+
+
+    def test(self):
+        """TODO 動作テスト"""
+
+        print("TODO 動作テスト")
+
+        self.usi()
+        self.isready()
+        self.usinewgame()
+        self.position('position sfen 7/7/2o4/7/7/7 w - - 1 moves 4n')
+
+        # 指し手のリストから冗長な指し手を省き、さらにコードをキーにして降順にソートする
+        actual_move_list = self._get_distinct_sorted_legal_move_list()
+
+        # FIXME 間違ってる
+        expected_move_u_list = [
+            '2a',
+            '2n',
+            '3nH',
+            '5n',
+            '5o',
+            'bn',
+            'cs1',
+            'dn',
+        ]
+
+        if len(actual_move_list) != len(expected_move_u_list):
+            print(f"error  {len(actual_move_list)=}  {len(expected_move_u_list):=}")
+            return
+
+        for i in range(0, len(actual_move_list)):
+            actual_move = actual_move_list[i]
+            expected_move_u = expected_move_u_list[i]
+
+            if actual_move.to_code() == expected_move_u:
+                print(f"ok  {actual_move.to_code()}")
+
+            else:
+                print(f"error  {actual_move.to_code()=}  {expected_move_u=}")
 
 
 if __name__ == '__main__':

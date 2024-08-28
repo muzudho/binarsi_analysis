@@ -1,0 +1,30 @@
+# [ ] 2024-08-28 ... 3nH が合法手なのはおかしい。 2o, 2xo, 2na, 2no, 2xn が合法手に無いのはおかしい
+
+[ 1 moves | moved 4n | next white]
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . . . . . . |
+c | . . 0 1 . . . |
+d | . . . . . . . |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 w - - 1 moves 4n
+                 stones_before_change -
+[from present]   sfen 7/7/2ox3/7/7/7 w - - 1
+
+legal_moves
+LEGAL MOVES
++--------+---+
+|Distinct|All|
++--------+---+
+|       1|  1| do 2a 
+|       2|  2| do 2n 
+|       3|  3| do 3nH
+|       4|  4| do 5n 
+|       5|  5| do 5o 
+|       6|  6| do bn 
+|       7|  7| do cs1
+|       8|  8| do dn 
++--------+---+
