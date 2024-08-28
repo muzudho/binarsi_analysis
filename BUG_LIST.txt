@@ -68,7 +68,7 @@ f | . . . . . . . |
 
 # [x] 2024-06-27 ムーブ en 以外の eへのニュー操作が出ない
 
-* make_legal_moves() を修正
+* generate_legal_moves() を修正
 
 [ 5 moves | moved 4xn | next white]
     1 2 3 # 5 6 7

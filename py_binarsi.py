@@ -1209,9 +1209,6 @@ class LegalMoves():
         # 結果が同じになる指し手を除外した指し手のリスト
         self._distinct_items = []
 
-        # １手詰めの手。無ければ pass、未調査ならナン
-        self._cached_mate_move_in_1ply = None
-
         # 一手指す前に、現局面が載っている sfen を取得しておく
         #
         #   例： 7/7/2o4/2x4/7/7 b - 1
@@ -1258,16 +1255,6 @@ class LegalMoves():
     def distinct_items(self):
         """結果が同じになる指し手を除外した指し手のリスト"""
         return self._distinct_items
-
-
-    def get_mate_move_in_1ply(self, board):
-        """１手詰めの手。無ければナンを返す"""
-
-        # self._cached_mate_move_in_1ply に一手詰めの指し手が設定される
-        if not self.find_mate_move_in_1ply(board):
-            return None
-
-        return self._cached_mate_move_in_1ply
 
 
     def append(self, board, move, for_edit=False):
@@ -1352,84 +1339,6 @@ class LegalMoves():
 
             # move は差し替えしたり、しなかったりされている
             self._items.append(move)
-
-
-    def find_mate_move_in_1ply(self, board):
-        """１手詰めがあるか調べる"""
-
-        if self._cached_mate_move_in_1ply is not None:
-            move = self._cached_mate_move_in_1ply
-
-            # パスが入っていたら、１手詰めが無かったという符牒にしておく
-            if move.is_pass:
-                return False
-            
-            return True
-
-
-        current_turn = board.get_next_turn()
-
-        found_move = None
-
-        # DO 合法手を取得
-        move_list = self.distinct_items
-
-        for move in move_list:
-
-            # DO 一手指す
-            board.push_usi(move.to_code())
-
-            search = Search(board)
-
-            # DO 勝ちかどうか判定する。価値が有ったら真を返す
-            if board.is_gameover(search):
-
-                if board.gameover_reason == 'black win':
-                    if current_turn == C_BLACK:
-                        # You win!  ※一手戻すまでスコープから抜けないこと
-                        found_move = move
-                    
-                    elif current_turn == C_WHITE:
-                        # You lose!
-                        pass
-
-                elif board.gameover_reason == 'white win':
-                    if current_turn == C_BLACK:
-                        # You lose!
-                        pass
-                    
-                    elif current_turn == C_WHITE:
-                        # You win!  ※一手戻すまでスコープから抜けないこと
-                        found_move = move
-
-                elif board.gameover_reason == 'draw (illegal move)':
-                    # Illegal move
-                    pass
-
-                elif board.gameover_reason == 'stalemate':
-                    # You lose!
-                    pass
-
-                else:
-                    raise ValueError(f"undefined gameover. {board.gameover_reason=}")
-
-
-            # DO 一手戻す
-            board.pop()
-
-            if found_move is not None:
-                break
-
-
-        # 一手詰めの手
-        if found_move is not None:
-            self._cached_mate_move_in_1ply = found_move
-            return True
-
-
-        # DO 勝ちは無かった。パスを設定する
-        self._cached_mate_move_in_1ply = Move.code_to_obj('pass')
-        return False
 
 
 class Board():
@@ -2418,14 +2327,19 @@ class Board():
         return (Way.code_to_obj('-'), Way.code_to_obj('-'), 'there is not 2 stones')
 
 
-    def _update_gameover(self, search):
+    def _update_gameover(self, legal_moves):
         """終局判定を更新
         
-        先に update_legal_moves() メソッドを呼び出すように働きます
+        先に generate_legal_moves() メソッドを呼び出すように働きます
+
+        Parameters
+        ----------
+        legal_moves : LegalMoves
+            合法手一覧
         """
 
         # ステールメートしている
-        if len(search.legal_moves.items) < 1:
+        if len(legal_moves.items) < 1:
             self._gameover_reason = 'stalemate'
             return
 
@@ -2771,18 +2685,23 @@ class Board():
         self._gameover_reason = 'playing'
 
 
-    def is_gameover(self, search):
+    def is_gameover(self, legal_moves):
         """終局しているか？
         
-        cshogi では is_gameover() は board のメソッドあり、 search 引数はありませんが、ビナーシでは引数として受け取ります
+        cshogi では is_gameover() は board のメソッドあり、 legal_moves 引数はありませんが、ビナーシでは引数として受け取ります
 
         _update_gameover() メソッド使用後に使う必要があります
+
+        Parameters
+        ----------
+        legal_moves : LegalMoves
+            合法手一覧
         """
 
         # FIXME 探索時、アンドゥしたらキャッシュをクリアーする必要があるが大変
         if self._gameover_reason == '':
             # 終局判定を更新
-            self._update_gameover(search)
+            self._update_gameover(legal_moves)
 
         return self._gameover_reason != 'playing'
 
@@ -3067,31 +2986,21 @@ class Board():
 
 
 class Search():
-    """探索部"""
-
-    def __init__(self, board):
-        """初期化"""
-
-        # 現局面から合法手を生成する
-        self._legal_moves = LegalMoves(board)
-        self.update_legal_moves(board)
+    """探索部
+    
+    cshogi では board が legal_moves を持っているが、ビナーシでは search が legal_moves を生成するという違いがある
+    """
 
 
-    @property
-    def legal_moves(self):
-        """合法手一覧
-        
-        cshogi では board が legal_moves を持っているが、ビナーシでは search が legal_moves を持つという違いがある
-
-        ビナーシでは、 moves は、同じ局面での指し手の選択肢方向に長い
-        """
-        return self._legal_moves
-
-
-    def _make_binary_operation(self, board, operator_u, for_edit_mode=False):
+    @staticmethod
+    def _make_binary_operation(legal_moves, board, operator_u, for_edit_mode=False):
         """
         Parameters
         ----------
+        legal_moves : LegalMoves
+            合法手一覧
+        board : Board
+            盤
         operator_u : str
             演算子コード
             例： 'o'
@@ -3130,7 +3039,7 @@ class Search():
                     #if operator_u=='xo':
                     #    print(f"[_make_binary_operation] append modify  {move.to_code()=}  {for_edit_mode=}")
 
-                    self._legal_moves.append(board, move, for_edit=for_edit_mode)
+                    legal_moves.append(board, move, for_edit=for_edit_mode)
 
             # 石が置いてない路
             else:
@@ -3150,37 +3059,46 @@ class Search():
                     #if operator_u=='xo':
                     #    print(f"[_make_binary_operation] append new  {move.to_code()=}  {for_edit_mode=}")
 
-                    self._legal_moves.append(board, move, for_edit=for_edit_mode)
+                    legal_moves.append(board, move, for_edit=for_edit_mode)
 
 
-    def update_legal_moves(self, board):
-        """合法手の一覧生成"""
+    @staticmethod
+    def generate_legal_moves(board):
+        """現局面から合法手一覧を生成する
+        
+        Returns
+        -------
+        legal_moves : LegalMoves
+            合法手一覧
+        """
 
-        #print("[update_legal_moves] 実行")
+        #print("[Search > generate_legal_moves] 実行")
 
         # 終局判定のキャッシュをクリアー
         board._gameover_reason = ''
 
+        # 現局面から合法手を生成する
+        legal_moves = LegalMoves(board)
 
-        def update_cut_the_edge():
+        def update_cut_the_edge(legal_moves):
             """カットザエッジ（Cut the edge）の合法手生成（盤面編集用）"""
             (rect_exists, left_file, right_file, top_rank, bottom_rank) = board.get_edges()
 
             if rect_exists:
                 if 0 < right_file - left_file:
-                    self._legal_moves.append(board=board, move=Move(Way(FILE_AXIS, left_file), Operator.code_to_obj('c')), for_edit=True)
-                    self._legal_moves.append(board=board, move=Move(Way(FILE_AXIS, right_file), Operator.code_to_obj('c')), for_edit=True)
+                    legal_moves.append(board=board, move=Move(Way(FILE_AXIS, left_file), Operator.code_to_obj('c')), for_edit=True)
+                    legal_moves.append(board=board, move=Move(Way(FILE_AXIS, right_file), Operator.code_to_obj('c')), for_edit=True)
                 
                 if 0 < bottom_rank - top_rank:
-                    self._legal_moves.append(board=board, move=Move(Way(RANK_AXIS, top_rank), Operator.code_to_obj('c')), for_edit=True)
-                    self._legal_moves.append(board=board, move=Move(Way(RANK_AXIS, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
+                    legal_moves.append(board=board, move=Move(Way(RANK_AXIS, top_rank), Operator.code_to_obj('c')), for_edit=True)
+                    legal_moves.append(board=board, move=Move(Way(RANK_AXIS, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
 
 
         # カットザエッジ（Cut the edge）の合法手生成（盤面編集用）
-        update_cut_the_edge()
+        update_cut_the_edge(legal_moves)
 
 
-        def update_shift():
+        def update_shift(legal_moves):
             """シフト（Shift）の合法手生成
             
             例えば：
@@ -3218,14 +3136,14 @@ class Search():
                         move = Move(way, Operator.code_to_obj(f's{i}'))
 
                         # 合法手として記憶
-                        self._legal_moves.append(board=board, move=move)
+                        legal_moves.append(board=board, move=move)
 
 
         # シフト（Shift）の合法手生成
-        update_shift()
+        update_shift(legal_moves)
 
 
-        def update_not():
+        def update_not(legal_moves):
             """ノット（Not）の合法手生成"""
 
             # 全ての種類の路
@@ -3243,59 +3161,121 @@ class Search():
 
                     if 0 < way.number and board.exists_stone_on_way(way.low_way()):
                         # 路上で小さい方にある石を Not して Reverse できる
-                        self._legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nL')))
+                        legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nL')))
 
                     if way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.high_way()):
                         # 路上で大きい方にある石を Not して Reverse できる
-                        self._legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nH')))
+                        legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nH')))
 
                 # 石が置いてない路
                 else:
                     # 隣のどちらかに石が置いているか？
                     if 0 < way.number and board.exists_stone_on_way(way.low_way()):
                         # Not で New できる
-                        self._legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
+                        legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
 
                     if way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.high_way()):
                         # Not で New できる
-                        self._legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
+                        legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
 
 
         # ノット（Not）の合法手生成
-        update_not()
+        update_not(legal_moves)
 
 
         # アンド（AND）の合法手生成
-        self._make_binary_operation(board=board, operator_u='a')
+        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='a')
 
         # オア（OR）の合法手生成
-        self._make_binary_operation(board=board, operator_u='o')
+        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='o')
 
         # ゼロ（ZERO）の合法手生成
-        self._make_binary_operation(board=board, operator_u='ze', for_edit_mode=True)
+        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='ze', for_edit_mode=True)
 
         # ノア（NOR）の合法手生成
-        self._make_binary_operation(board=board, operator_u='no')
+        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='no')
 
         # エクソア（XOR）の合法手生成
-        self._make_binary_operation(board=board, operator_u='xo')
+        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='xo')
 
         # ナンド（NAND）の合法手生成
-        self._make_binary_operation(board=board, operator_u='na')
+        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='na')
 
         # エクスノア（XNOR）の合法手生成
-        self._make_binary_operation(board=board, operator_u='xn')
+        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='xn')
 
         # ワン（ONE）の合法手生成
-        self._make_binary_operation(board=board, operator_u='on', for_edit_mode=True)
+        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='on', for_edit_mode=True)
+
+        return legal_moves
 
 
-    def mate_move_in_1ply(self, board):
-        """一手詰めの手を返す
+class SearchMateMoveIn1Play():
+    """１手詰め探索"""
 
-        cshogi では Board のメソッド。 board 引数もなかった
 
-        なければナンを返す
-        """
+    @staticmethod
+    def find_mate_move_in_1ply(board, move_list):
+        """１手詰めがあるか調べる
         
-        return self.legal_moves.get_mate_move_in_1ply(board)
+        cshogi では Board のメソッド mate_move_in_1ply()。ビナーシでは変更した
+
+        Return
+        ------
+        mate_move_in_1ply : Move
+            １手詰めの指し手。１手詰めが無ければナンを返す
+        """
+
+        current_turn = board.get_next_turn()
+
+        found_move = None
+
+        for move in move_list:
+
+            # DO 一手指す
+            board.push_usi(move.to_code())
+
+            legal_moves = Search.generate_legal_moves(board)
+
+            # DO 勝ちかどうか判定する。価値が有ったら真を返す
+            if board.is_gameover(legal_moves):
+
+                if board.gameover_reason == 'black win':
+                    if current_turn == C_BLACK:
+                        # You win!  ※一手戻すまでスコープから抜けないこと
+                        found_move = move
+                    
+                    elif current_turn == C_WHITE:
+                        # You lose!
+                        pass
+
+                elif board.gameover_reason == 'white win':
+                    if current_turn == C_BLACK:
+                        # You lose!
+                        pass
+                    
+                    elif current_turn == C_WHITE:
+                        # You win!  ※一手戻すまでスコープから抜けないこと
+                        found_move = move
+
+                elif board.gameover_reason == 'draw (illegal move)':
+                    # Illegal move
+                    pass
+
+                elif board.gameover_reason == 'stalemate':
+                    # You lose!
+                    pass
+
+                else:
+                    raise ValueError(f"undefined gameover. {board.gameover_reason=}")
+
+
+            # DO 一手戻す
+            board.pop()
+
+            if found_move is not None:
+                break
+
+
+        # 一手詰めの手
+        return found_move

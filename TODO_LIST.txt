@@ -5,7 +5,9 @@
 * cshogi との違い
     * [x] is_gameover() は board ではなく、 search に持たせたい
     * [x] legal_moves は、Board が所有するのではなく、UsiLoop が Search を所有し、 Search が合法手を所有するようにしたい
-    * [ ] mate_move_in_1ply() は board ではなく、 search に持たせたい
+    * [ ] mate_move_in_1ply() は cshogi のように board に持たせるのではなく、それ専用のクラスを作る
+* 探索
+    * [ ] 探索中にクリアーターゲットを獲得して、アンドゥしたとき、クリアーターゲットがアンドゥされてない？
 * 指し手
     * [x] 左右反転や、上下反転したとき、盤面が変わらないような指し手は禁じ手にしたい
     * [ ] 一手詰めを実装したい
