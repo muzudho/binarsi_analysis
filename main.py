@@ -734,14 +734,14 @@ CLEAR TARGETS
             # 終局判定
             searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
 
-            if self._board.is_gameover(searched_gameover):
-                print(f"# gameover  {searched_gameover.reason=}")
-                break
-
             # 現在の盤表示
             self.print_board(searched_clear_targets)
             self.print_sfen(searched_clear_targets, from_present=True)
             print("") # 空行
+
+            if self._board.is_gameover(searched_gameover):
+                print(f"# gameover  {searched_gameover.reason=}  {searched_clear_targets.clear_targets_list=}")
+                break
 
             # １つ選ぶ
             (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
@@ -793,10 +793,10 @@ CLEAR TARGETS
             # 終局判定
             searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
 
-            if searched_gameover.reason == 'black win':
+            if searched_gameover.is_black_win:
                 black_win_count += 1
 
-            elif searched_gameover.reason == 'white win':
+            elif searched_gameover.is_white_win:
                 white_win_count += 1
             
             else:
@@ -971,7 +971,7 @@ CLEAR TARGETS
         def print_if_end_of_game(searched_clear_targets):
             current_turn = Colors.Opponent(self._board.get_next_turn())
             
-            if searched_gameover.reason == 'black win':
+            if searched_gameover.is_black_win:
                 if current_turn == C_BLACK:
                     self.print_you()
                     self.print_win()
@@ -980,7 +980,7 @@ CLEAR TARGETS
                     self.print_you()
                     self.print_lose()
 
-            elif searched_gameover.reason == 'white win':
+            elif searched_gameover.is_white_win:
                 if current_turn == C_BLACK:
                     self.print_you()
                     self.print_lose()
@@ -989,10 +989,10 @@ CLEAR TARGETS
                     self.print_you()
                     self.print_win()
 
-            elif searched_gameover.reason == 'draw (illegal move)':
+            elif searched_gameover.is_double_win:
                 self.print_lose()
 
-            elif searched_gameover.reason == 'stalemate':
+            elif searched_gameover.is_stalemate:
                 self.print_lose()
             
             else:

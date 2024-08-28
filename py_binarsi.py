@@ -2340,7 +2340,7 @@ class Board():
         """
 
         # FIXME 探索時、アンドゥしたらキャッシュをクリアーする必要があるが大変
-        return searched_gameover.reason != 'playing'
+        return not searched_gameover.is_playing
 
 
     def as_str(self, searched_clear_targets=None):
@@ -2410,7 +2410,7 @@ class Board():
 
 
         # 次の手番
-        # NOTE is_gameover() を取得するには、一手指していないと分からない。盤を表示するだけなのに一手指すのは激重すぎる。したがって終局理由は盤表示には含めないことにする
+        # NOTE 終局理由を取得するには、一手指していないと分からない。盤を表示するだけなのに一手指すのは激重すぎる。したがって終局理由は盤表示には含めないことにする
         next_turn = self.get_next_turn()
         if next_turn == C_BLACK:
             next_turn_str = 'next black'
@@ -3269,7 +3269,7 @@ class SearchMateMoveIn1Play():
             # DO 勝ちかどうか判定する。価値が有ったら真を返す
             if board.is_gameover(searched_gameover):
 
-                if searched_gameover.reason == 'black win':
+                if searched_gameover.is_black_win:
                     if current_turn == C_BLACK:
                         # You win!  ※一手戻すまでスコープから抜けないこと
                         found_move = move
@@ -3278,7 +3278,7 @@ class SearchMateMoveIn1Play():
                         # You lose!
                         pass
 
-                elif searched_gameover.reason == 'white win':
+                elif searched_gameover.is_white_win:
                     if current_turn == C_BLACK:
                         # You lose!
                         pass
@@ -3287,11 +3287,11 @@ class SearchMateMoveIn1Play():
                         # You win!  ※一手戻すまでスコープから抜けないこと
                         found_move = move
 
-                elif searched_gameover.reason == 'draw (illegal move)':
+                elif searched_gameover.is_double_win:
                     # Illegal move
                     pass
 
-                elif searched_gameover.reason == 'stalemate':
+                elif searched_gameover.is_stalemate:
                     # You lose!
                     pass
 
@@ -3325,7 +3325,7 @@ class SearchedGameover():
     """ゲームオーバー探索"""
 
 
-    def __init__(self, is_black_win, is_white_win, reason):
+    def __init__(self, is_black_win, is_white_win, is_stalemate, reason):
         """初期化
         
         Parameters
@@ -3334,12 +3334,15 @@ class SearchedGameover():
             黒勝ち
         is_white_win : bool
             白勝ち
+        is_stalemate : bool
+            ステールメート
         reason : str
             ゲームオーバーと判定された理由の説明
         """
 
         self._is_black_win = is_black_win
         self._is_white_win = is_white_win
+        self._is_stalemate = is_stalemate
         self._reason = reason
 
 
@@ -3362,10 +3365,20 @@ class SearchedGameover():
 
 
     @property
-    def reason(self):
-        """ゲームオーバーと判定された理由の説明
+    def is_stalemate(self):
+        """ステールメート"""
+        return self._is_stalemate
 
-        終局していなければ 'playing'、判定がまだなら空文字列"""
+
+    @property
+    def is_playing(self):
+        """終局していません"""
+        return not self._is_black_win and not self._is_white_win
+
+
+    @property
+    def reason(self):
+        """ゲームオーバーと判定された理由の説明"""
         return self._reason
 
 
@@ -3387,6 +3400,7 @@ class SearchedGameover():
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
+                is_stalemate=False,
                 reason='draw (illegal move)')
 
         if is_black_win:
@@ -3394,6 +3408,7 @@ class SearchedGameover():
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
+                is_stalemate=False,
                 reason='black win')
 
         if is_white_win:
@@ -3401,6 +3416,7 @@ class SearchedGameover():
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
+                is_stalemate=False,
                 reason='white win')
 
         # ステールメートしている
@@ -3408,6 +3424,7 @@ class SearchedGameover():
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
+                is_stalemate=True,
                 reason='stalemate')
 
         # TODO 投了しているケースに対応したい
@@ -3416,4 +3433,5 @@ class SearchedGameover():
         return SearchedGameover(
             is_black_win=is_black_win,
             is_white_win=is_white_win,
+            is_stalemate=False,
             reason='playing')
