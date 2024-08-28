@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board
+from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, Search
 
 
 class UsiEngine():
@@ -211,9 +211,14 @@ class UsiEngine():
             self._board.push_usi(move_u)
 
 
-    def sub_go(self):
+    def sub_go(self, search):
         """思考開始～最善手返却
         
+        Parameters
+        ----------
+        search : Search
+            探索部
+
         Returns
         -------
         best_move : Move
@@ -222,7 +227,7 @@ class UsiEngine():
             説明
         """
 
-        if self._board.is_gameover():
+        if self._board.is_gameover(search):
             """投了局面時"""
 
             # 投了
@@ -239,7 +244,7 @@ class UsiEngine():
 
         # 投了のケースは対応済みなので、これ以降は指し手が１つ以上ある
         
-        move_list = self._board.legal_moves.get_distinct_items(self._board)
+        move_list = search.legal_moves.distinct_items
 
         # ランダムムーブ
         is_random_move = False
@@ -367,8 +372,10 @@ class UsiEngine():
     def go(self):
         """思考開始～最善手返却"""
 
+        search = Search(self._board)
+
         # 次の１手取得
-        (best_move, reason) = self.sub_go()
+        (best_move, reason) = self.sub_go(search)
 
         if reason == 'resign':
             # 投了
@@ -491,11 +498,6 @@ class UsiEngine():
         """
         self._board.pop()
 
-        # キャッシュ・クリアー
-        self._cached_legal_moves = None
-        ## DEBUG
-        #print(f"[undo] キャッシュ・クリアー  {self._cached_legal_moves=}")
-
         # 現在の盤表示
         self.print_board()
         self.print_sfen(from_present=True)
@@ -508,11 +510,6 @@ class UsiEngine():
         """
         print(self._board.as_str())
 
-    
-    def _get_distinct_sorted_legal_move_list(self):
-        """指し手のリストから冗長な指し手を省き、さらにコードをキーにして降順にソートする"""
-        return sorted(self._board.legal_moves.get_distinct_items(self._board), key=lambda x:x.to_code())
-
 
     def print_legal_moves(self):
         """合法手一覧表示
@@ -524,14 +521,17 @@ LEGAL MOVES
 |Distinct|All|
 +--------+---+""")
 
-        # 指し手のリストから冗長な指し手を省き、さらにコードをキーにして降順にソートする
-        move_list = self._get_distinct_sorted_legal_move_list()
+        search = Search(self._board)
+
+        # 指した結果が同じになるような指し手も表示する
+        # コードをキーにして降順にソートする
+        legal_move_list = sorted(search.legal_moves.items, key=lambda x:x.to_code())
 
         # 冗長な指し手を省いた通し番号
         j = 0
 
-        for i in range(0, len(move_list)):
-            move = move_list[i]
+        for i in range(0, len(legal_move_list)):
+            move = legal_move_list[i]
 
             #print(f"    <{i+1:2}>  {move.to_code()}  {move.same_move_u=}")
 
@@ -557,8 +557,10 @@ LEGAL MOVES
         """
         print("編集用の手一覧表示（合法手除く）　ここから：")
 
-        for i in range(0, len(self._board.legal_moves.items_for_edit)):
-            move = self._board.legal_moves.items_for_edit[i]
+        search = Search(self._board)
+
+        for i in range(0, len(search.legal_moves.items_for_edit)):
+            move = search.legal_moves.items_for_edit[i]
             print(f"    ({i + 1:2}) move_for_edit:{move.to_code()}")
 
         print("編集用の手一覧表示（合法手除く）　ここまで：")
@@ -638,13 +640,14 @@ CLEAR TARGETS
         # 100手も使わない
         for i in range(1, 100):
 
-            if self._board.is_gameover():
+            search = Search(self._board)
+
+            if self._board.is_gameover(search):
                 print("# gameover")
                 break
 
             # １つ選ぶ
-            (best_move, reason) = self.sub_go()
-            #best_move = random.sample(self._board.legal_moves.items, 1)[0]
+            (best_move, reason) = self.sub_go(search)
 
             # １手指す
             self._board.push_usi(best_move.to_code())
@@ -872,7 +875,9 @@ CLEAR TARGETS
                 raise ValueError(f"undefined gameover. {self._board.gameover_reason=}")
 
 
-        if self._board.is_gameover():
+        search = Search(self._board)
+
+        if self._board.is_gameover(search):
             print_if_end_of_game()
             return
 
@@ -882,7 +887,7 @@ CLEAR TARGETS
         time.sleep(0.7)
 
         # DO コンピュータが次の一手を算出する
-        (best_move, reason) = self.sub_go()
+        (best_move, reason) = self.sub_go(search)
 
         if best_move is None:
             # ターミナルが見づらいので、空行を挟む
@@ -900,6 +905,8 @@ CLEAR TARGETS
         # DO コンピュータが一手指す
         self.sub_do(best_move.to_code())
 
+        search = Search(self._board)
+
         # 現在の盤表示
         self.print_board()
         self.print_sfen(from_present=True)
@@ -908,7 +915,7 @@ CLEAR TARGETS
         # 今クリアーしたものがあれば、クリアー目標表示
         print_clear_target_if_it_now()
 
-        if self._board.is_gameover():
+        if self._board.is_gameover(search):
             print_if_end_of_game()
             return
 
@@ -925,7 +932,9 @@ CLEAR TARGETS
     def print_mate1(self):
         """TODO １手詰めがあれば、その手をどれか１つ表示"""
 
-        mate_move = self._board.legal_moves.get_mate_move_in_1ply(self._board)
+        search = Search(self._board)
+
+        mate_move = search.legal_moves.get_mate_move_in_1ply(self._board)
 
         if mate_move is None:
             print(f"there is no checkmate")
@@ -944,15 +953,22 @@ CLEAR TARGETS
         self.usinewgame()
         self.position('position sfen 7/7/2o4/7/7/7 w - - 1 moves 4n')
 
+        search = Search(self._board)
+
         # 指し手のリストから冗長な指し手を省き、さらにコードをキーにして降順にソートする
-        actual_move_list = self._get_distinct_sorted_legal_move_list()
+        actual_move_list = sorted(search.legal_moves.distinct_items, key=lambda x:x.to_code())
 
         # FIXME 間違ってる
         expected_move_u_list = [
             '2a',
             '2n',
+            '2no',
+            '2o',
             '3nH',
+            '4nL',
+            '5a',
             '5n',
+            '5no',
             '5o',
             'bn',
             'cs1',

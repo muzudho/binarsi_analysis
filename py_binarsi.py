@@ -241,6 +241,10 @@ class Way():
 
     @property
     def number(self):
+
+        if self.is_empty:
+            raise ValueError("unsupported number. this is empty")
+
         return self._number
 
 
@@ -307,6 +311,10 @@ class Way():
 
     def low_way(self, diff = 1):
         """１つ小さい方の路"""
+
+        if self.is_empty:
+            return '-'
+
         if self._number < diff:
             return Way.code_to_obj('-')
         
@@ -316,6 +324,10 @@ class Way():
 
     def high_way(self, diff = 1):
         """１つ大きい方の路"""
+
+        if self.is_empty:
+            return '-'
+
         if self._axis_id == FILE_AXIS:
             if self._number < FILE_LEN - diff:
                 # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
@@ -1188,17 +1200,47 @@ class LegalMoves():
     """合法手"""
 
 
-    def __init__(self):
+    def __init__(self, board):
         self._items = []
 
         # 現局面の盤面編集用の手（合法手除く）
         self._items_for_edit = []
 
-        # 冗長な指し手を省いたリスト
-        self._cached_distinct_items = None
+        # 結果が同じになる指し手を除外した指し手のリスト
+        self._distinct_items = []
 
         # １手詰めの手。無ければ pass、未調査ならナン
         self._cached_mate_move_in_1ply = None
+
+        # 一手指す前に、現局面が載っている sfen を取得しておく
+        #
+        #   例： 7/7/2o4/2x4/7/7 b - 1
+        #
+        #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
+        #
+        sub_sfen_1_before_push = board.as_sfen(from_present=True)
+        sub_sfen_2_before_push = sub_sfen_1_before_push.to_upside_down()
+        sub_sfen_3_before_push = sub_sfen_1_before_push.to_flip_left_and_right()
+
+        # 現局面で指す前の盤面の部分SFEN文字列
+        self._sub_sfen_u_before_push_normal = sub_sfen_1_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
+
+        # 現局面で指す前の盤面の部分SFEN文字列（上下反転）
+        self._sub_sfen_u_before_push_upside_down = sub_sfen_2_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
+
+        # 現局面で指す前の盤面の部分SFEN文字列（左右反転）
+        self._sub_sfen_u_before_push_flip_left_and_right = sub_sfen_3_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
+
+        #print(f"[LegalMoves > __init__] {self._sub_sfen_u_before_push_normal=}")
+        #print(f"[LegalMoves > __init__] {self._sub_sfen_u_before_push_upside_down=}")
+        #print(f"[LegalMoves > __init__] {self._sub_sfen_u_before_push_flip_left_and_right=}")
+
+        self._sfen_memory_dict = {}
+
+        # 現局面と同じになる指し手も省きたいので、内部的に pass として追加している
+        self._sfen_memory_dict[self._sub_sfen_u_before_push_normal] = 'pass'
+        self._sfen_memory_dict[self._sub_sfen_u_before_push_upside_down] = 'pass'
+        self._sfen_memory_dict[self._sub_sfen_u_before_push_flip_left_and_right] = 'pass'
 
 
     @property
@@ -1212,6 +1254,12 @@ class LegalMoves():
         return self._items_for_edit
 
 
+    @property
+    def distinct_items(self):
+        """結果が同じになる指し手を除外した指し手のリスト"""
+        return self._distinct_items
+
+
     def get_mate_move_in_1ply(self, board):
         """１手詰めの手。無ければナンを返す"""
 
@@ -1222,125 +1270,87 @@ class LegalMoves():
         return self._cached_mate_move_in_1ply
 
 
-    def append(self, item, for_edit=False):
-        if for_edit:
-            self._items_for_edit.append(item)
+    def append(self, board, move, for_edit=False):
+        """指し手の追加
 
-        else:
-            self._items.append(item)
-
-            # キャッシュ・クリアー
-            self._cached_distinct_items = None
-
-
-    def _distinct_legal_moves(self, board):
-        """指してみると結果が同じになる指し手は、印をつけたい
-
-        左右反転、上下反転で同形のものも弾きたい。
-        縦横比が異なるので、９０°回転は対象外とする。
-        上下左右反転の形を作る操作は、対局中にはないはずなので対象外とする
+        Parameters
+        ----------
+        board : Board
+            盤。一手指した結果を事前に調べるために使う
+        move : Move
+            指し手
+        for_edit : bool
+            盤面編集用
         """
 
-        sfen_memory_dict = {}
+        if for_edit:
+            self._items_for_edit.append(move)
 
-        # 一手指す前に、現局面が載っている sfen を取得しておく
-        #
-        #   例： 7/7/2o4/2x4/7/7 b - 1
-        #
-        #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
-        #
-        sub_sfen_1_before_push = board.as_sfen(from_present=True)
-        sub_sfen_2_before_push = sub_sfen_1_before_push.to_upside_down()
-        sub_sfen_3_before_push = sub_sfen_1_before_push.to_flip_left_and_right()
-        sub_sfen_1_before_push_u = sub_sfen_1_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
-        sub_sfen_2_before_push_u = sub_sfen_2_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
-        sub_sfen_3_before_push_u = sub_sfen_3_before_push.to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
-        #print(f"[distinct_legal_moves] {sub_sfen_1_before_push_u=}")
-        #print(f"[distinct_legal_moves] {sub_sfen_2_before_push_u=}")
-        #print(f"[distinct_legal_moves] {sub_sfen_3_before_push_u=}")
-
-        # FIXME パスという指し手はないが、現局面と同じになる指し手も省きたいので、暫定で追加している
-        sfen_memory_dict[sub_sfen_1_before_push_u] = 'pass'
-        sfen_memory_dict[sub_sfen_2_before_push_u] = 'pass'
-        sfen_memory_dict[sub_sfen_3_before_push_u] = 'pass'
-
-        for i in range(0, len(self.items)):
-            move = self.items[i]
+        else:
+            # 指してみると結果が同じになる指し手は、印をつけたい
+            #
+            # 左右反転、上下反転で同形のものも弾きたい。
+            # 縦横比が異なるので、９０°回転は対象外とする。
+            # 上下左右反転の形を作る操作は、対局中にはないはずなので対象外とする
 
             # TODO とりあえず、逆操作が実装されている演算だけ調べる
             # １～６ビットシフト、ノット、ノットＬ、ノットＨ、アンド、オア、エクソア、ナンド、ノア、エクスノア、ゼロ、ワン
-            if move.operator.code not in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
-                continue
+            if move.operator.code in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
 
-            # 試しに一手指してみる
-            #print(f"[distinct_legal_moves] 試しに一手指してみる  {move.to_code()=}")
-            board.push_usi(move.to_code())
+                # DO 一手指す
+                #print(f"[LegalMoves > append] 一手指す  {move.to_code()=}")
+                board.push_usi(move.to_code())
 
-            # 一般的に長さが短い方の形式の SFEN を記憶
-            #
-            #   例： 7/7/2x4/2o4/7/7 b 3 2
-            #
-            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
-            #
-            sub_sfen_after_push_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
-            #print(f"[distinct_legal_moves] 一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push_u=}")
-            
-            # 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
-            if sub_sfen_after_push_u in sfen_memory_dict.keys():
-                same_move_u = sfen_memory_dict[sub_sfen_after_push_u]
-                #print(f"[distinct_legal_moves] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}  {sub_sfen_after_push_u=}")
-                replaced_move = move.replaced_by_same(same_move_u)
+                # DO 一般的に長さが短い方の形式の SFEN を記憶
+                #
+                #   例： 7/7/2x4/2o4/7/7 b 3 2
+                #
+                #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
+                #
+                sub_sfen_after_push_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
+                #print(f"[LegalMoves > append] 一般的に長さが短い方の形式の SFEN を記憶  {sub_sfen_after_push_u=}")
 
-                # 格納し直す
-                # FIXME 一手進んだ局面のリーガルムーブを設定しても意味ないのでは？ 一手進んだり、戻ったりするたびにリセットしないように要注意
-                #print(f"[distinct_legal_moves] 格納し直す  {replaced_move.to_code()}  {replaced_move.same_move_u=}")
-                self.items[i] = replaced_move
-                #print(f"[distinct_legal_moves] 格納し直した  {self.items[i].to_code()}  {self.items[i].same_move_u=}")
-            
-            # 重複していなければ、一時記憶する
-            #
-            #   例： 7/7/2x4/2o4/7/7 b 3 2
-            #
-            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
-            #
-            else:
-                move_u = move.to_code()
-                #print(f"[distinct_legal_moves] 重複していないので、一時記憶する  {move_u=}  {sub_sfen_after_push_u=}")
-                sfen_memory_dict[sub_sfen_after_push_u] = move_u
-            
-            # 一手戻す
-            #print(f"[distinct_legal_moves] 一手戻す")
-            board.pop()
+                # DO 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
+                if sub_sfen_after_push_u in self._sfen_memory_dict.keys():
+                    same_move_u = self._sfen_memory_dict[sub_sfen_after_push_u]
+                    #print(f"[LegalMoves > append] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}  {sub_sfen_after_push_u=}")
 
-            # DEBUG 一手戻した後に、現局面が載っている sfen を取得しておく
-            rollbacked_sfen_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
-            #
-            #   例： 7/7/2o4/2x4/7/7 b - 1
-            #
-            #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
-            #
-
-            # DEBUG 巻き戻せていなければ例外を投げる
-            if sub_sfen_1_before_push_u != rollbacked_sfen_u:
-                raise ValueError(f"undo error  {sub_sfen_1_before_push=}  {rollbacked_sfen_u=}")
+                    # 差し替え
+                    move = move.replaced_by_same(same_move_u)
 
 
-    def get_distinct_items(self, board):
-        """冗長な指し手を省いたリスト"""
+                # DO 重複していなければ、一時記憶する
+                #
+                #   例： 7/7/2x4/2o4/7/7 b 3 2
+                #
+                #   ここで、末尾の［何手目か？］は必ず変わってしまうので、スプリットして省いておく
+                #
+                else:
+                    self._distinct_items.append(move)
 
-        if self._cached_distinct_items is None:
-            # 冗長な指し手を省くフラグを付ける
-            self._distinct_legal_moves(board)
+                    move_u = move.to_code()
+                    #print(f"[LegalMoves > append] 重複していないので、一時記憶する  {move_u=}  {sub_sfen_after_push_u=}")
+                    self._sfen_memory_dict[sub_sfen_after_push_u] = move_u
 
-            self._cached_distinct_items = []
+                # DO 一手戻す
+                #print(f"[LegalMoves > append] 一手戻す")
+                board.pop()
 
-            # 結果が同じになる指し手を省く
-            for move in self._items:
-                if move.same_move_u == '':
-                    self._cached_distinct_items.append(move)
+                # DEBUG 一手戻した後に、現局面が載っている sfen を取得する
+                rollbacked_sfen_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
+                #
+                #   例： 7/7/2o4/2x4/7/7 b - 1
+                #
+                #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
+                #
+
+                # DEBUG 巻き戻せていなければ例外を投げる
+                if self._sub_sfen_u_before_push_normal != rollbacked_sfen_u:
+                    raise ValueError(f"undo error  {self._sub_sfen_u_before_push_normal=}  {rollbacked_sfen_u=}")
 
 
-        return self._cached_distinct_items
+            # move は差し替えしたり、しなかったりされている
+            self._items.append(move)
 
 
     def find_mate_move_in_1ply(self, board):
@@ -1358,15 +1368,17 @@ class LegalMoves():
         current_turn = board.get_next_turn()
 
         # DO 合法手を取得
-        move_list = self.get_distinct_items(board)
+        move_list = self.distinct_items
 
         for move in move_list:
 
             # DO 一手指す
             board.push_usi(move.to_code())
 
+            search = Search(board)
+
             # DO 勝ちかどうか判定する。価値が有ったら真を返す
-            if board.is_gameover():
+            if board.is_gameover(search):
 
                 if board.gameover_reason == 'black win':
                     if current_turn == C_BLACK:
@@ -1464,9 +1476,6 @@ class Board():
         # 現局面の各マス
         self._squares = [C_EMPTY] * BOARD_AREA
 
-        # 現局面の合法手のキャッシュ。未設定ならナン
-        self._cached_legal_moves = None
-
         # 現局面での路ロック
         self._way_locks = {
             '1' : False,
@@ -1516,19 +1525,6 @@ class Board():
     def gameover_reason(self):
         """終局理由"""
         return self._gameover_reason
-
-
-    @property
-    def legal_moves(self):
-        """合法手一覧
-        
-        moves は、同じ局面での指し手の選択肢方向に長い
-        """
-
-        if self._cached_legal_moves is None:
-            self.update_legal_moves()
-
-        return self._cached_legal_moves
 
 
     @property
@@ -1946,10 +1942,6 @@ class Board():
             move=move,
             stones_before_change=stones_before_change))
 
-        self._cached_legal_moves = None
-        ## DEBUG
-        #print(f"[on_exit_push_usi] キャッシュ・クリアー  {self._cached_legal_moves=}")
-
 
     def get_unary_src_way_1_number(self, way):
         # 左（上）端なら、右（下）側確定
@@ -2305,7 +2297,9 @@ class Board():
         
         なければナンを返す
         """
-        return self.legal_moves.get_mate_move_in_1ply(self)
+        
+        search = Search(board=self)
+        return search.legal_moves.get_mate_move_in_1ply(self)
 
 
     def get_edges(self):
@@ -2376,240 +2370,57 @@ class Board():
     def get_input_ways_by_binary_operation(self, target_way):
         """二項演算するときの入力路２つ"""
 
-        # 対象路にロックが掛かっていたら、二項演算禁止
-        if self._way_locks[target_way.to_code()]:
+        # 二項演算が禁止のケース
+        #   - 路を指定していない
+        #   - 対象路にロックが掛かっている
+        if target_way.is_empty or self._way_locks[target_way.to_code()]:
             return (None, None)
 
 
-        # 筋方向
-        if target_way.axis_id == FILE_AXIS:
-            opponent_axis_length = FILE_LEN
-
-        # 段方向
-        elif target_way.axis_id == RANK_AXIS:
-            opponent_axis_length = RANK_LEN
-
-        else:
-            raise ValueError(f"undefined way: {target_way.axis_id=}")
+        # 筋（段）方向両用
+        axes_absorber = target_way.absorb_axes()
 
 
         # 対称路に石が置いてあるなら
         if self.exists_stone_on_way(target_way):
+
             # ロウ、ハイの両方に石が置いてある必要がある
-            if 0 < target_way.number and target_way.number < opponent_axis_length - 1:
+            if 0 < target_way.number and target_way.number < axes_absorber.opponent_axis_length - 1:
                 low_way = target_way.low_way()
                 high_way = target_way.high_way()
                 if self.exists_stone_on_way(low_way) and self.exists_stone_on_way(high_way):
                     return (low_way, high_way)
 
+            return (None, None)
+
         # 対象路に石が置いてないなら
-        else:
-            # ロウの方に２つ続けて石が置いているか？
-            if 1 < target_way.number:
-                first_way = target_way.low_way()
-                second_way = target_way.low_way(diff=2)
-                if self.exists_stone_on_way(first_way) and self.exists_stone_on_way(second_way):
-                    return (first_way, second_way)
-            
-            # ハイの方に２つ続けて石が置いているか？
-            if target_way.number < opponent_axis_length - 2:
-                first_way = target_way.high_way()
-                second_way = target_way.high_way(diff=2)
-                if self.exists_stone_on_way(first_way) and self.exists_stone_on_way(second_way):
-                    return (first_way, second_way)
+        # ------------------------
+
+        # ロウの方に２つ続けて石が置いているか？
+        if 1 < target_way.number:
+            first_way = target_way.low_way()
+            second_way = target_way.low_way(diff=2)
+            if self.exists_stone_on_way(first_way) and self.exists_stone_on_way(second_way):
+                return (first_way, second_way)
+        
+        # ハイの方に２つ続けて石が置いているか？
+        if target_way.number < axes_absorber.opponent_axis_length - 2:
+            first_way = target_way.high_way()
+            second_way = target_way.high_way(diff=2)
+            if self.exists_stone_on_way(first_way) and self.exists_stone_on_way(second_way):
+                return (first_way, second_way)
+
+        return (None, None)
 
 
-    def _make_legal_moves_binary_operation(self, operator_u, for_edit_mode=False):
-        """
-        Parameters
-        ----------
-        operator_u : str
-            演算子コード
-            例： 'o'
-        for_edit_mode : bool
-            盤面編集用
-        """
-
-        # 全ての種類の路
-        global _all_ways
-
-        for way in _all_ways:
-            axes_absorber = way.absorb_axes()
-
-            # 石が置いてある路
-            if self.exists_stone_on_way(way):
-
-                # 路にロックが掛かっていたら Or の Reverse は禁止
-                if self._way_locks[way.to_code()]:
-                    continue
-
-                # ロウ、ハイの両方に石が置いてある必要がある
-                #print(f"[_make_legal_moves_binary_operation] modify  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.high_way().to_code()=}")
-                if 0 < way.number and way.number < axes_absorber.axis_length - 1 and self.exists_stone_on_way(way.low_way()) and self.exists_stone_on_way(way.high_way()):
-                    # 対象路上にある石を Or して Reverse できる
-                    move = Move(way, Operator.code_to_obj(operator_u))
-                    self._cached_legal_moves.append(move, for_edit=for_edit_mode)
-
-            # 石が置いてない路
-            else:
-                # 隣のどちらかに２つ続けて石が置いているか？
-                #print(f"[_make_legal_moves_binary_operation] new  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.low_way(diff=2)=}  {way.high_way().to_code()=}  {way.high_way(diff=2)=}")
-                if ((1 < way.number and self.exists_stone_on_way(way.low_way()) and self.exists_stone_on_way(way.low_way(diff=2))) or
-                    (way.number < axes_absorber.axis_length - 2 and self.exists_stone_on_way(way.high_way()) and self.exists_stone_on_way(way.high_way(diff=2)))):
-                    # Or で New できる
-                    move = Move(way, Operator.code_to_obj(operator_u))
-                    self._cached_legal_moves.append(move, for_edit=for_edit_mode)
-
-
-    def update_legal_moves(self):
-        """合法手の一覧生成"""
-
-        #print("[update_legal_moves] 実行")
-
-        # キャッシュの生成
-        self._cached_legal_moves = LegalMoves()
-
-        # 終局判定のキャッシュをクリアー
-        self._gameover_reason = ''
-
-
-        def update_cut_the_edge():
-            """カットザエッジ（Cut the edge）の合法手生成（盤面編集用）"""
-            (rect_exists, left_file, right_file, top_rank, bottom_rank) = self.get_edges()
-
-            if rect_exists:
-                if 0 < right_file - left_file:
-                    self._cached_legal_moves.append(Move(Way(FILE_AXIS, left_file), Operator.code_to_obj('c')), for_edit=True)
-                    self._cached_legal_moves.append(Move(Way(FILE_AXIS, right_file), Operator.code_to_obj('c')), for_edit=True)
-                
-                if 0 < bottom_rank - top_rank:
-                    self._cached_legal_moves.append(Move(Way(RANK_AXIS, top_rank), Operator.code_to_obj('c')), for_edit=True)
-                    self._cached_legal_moves.append(Move(Way(RANK_AXIS, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
-
-
-        # カットザエッジ（Cut the edge）の合法手生成（盤面編集用）
-        update_cut_the_edge()
-
-
-        def update_shift():
-            """シフト（Shift）の合法手生成
-            
-            例えば：
-            
-                1 2 3 4 5 6 7
-              +---------------+
-            a | . . . . . . . |
-            b | . . . . . . . |
-            c | . . 0 1 0 1 . |
-            d | . . . . . . . |
-            e | . . . . . . . |
-            f | . . . . . . . |
-              +---------------+
-            
-            上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
-            ゼロビットシフトは禁止する
-            枝が増えてしまうのを防ぐ
-            """
-            global _way_characters
-
-            # 筋（段）方向両用
-            for way_u in _way_characters:
-                way = Way.code_to_obj(way_u)
-
-                # 路にロックが掛かっていたら Shift は禁止
-                if self._way_locks[way.to_code()]:
-                    continue
-
-                way_segment = self.get_stone_segment_on_way(way)
-
-                # 石が置いてる路
-                if 0 < way_segment.length:
-                    # Shift できる
-                    for i in range(1, way_segment.length):
-                        move = Move(way, Operator.code_to_obj(f's{i}'))
-
-                        # 合法手として記憶
-                        self._cached_legal_moves.append(move)
-
-
-        # シフト（Shift）の合法手生成
-        update_shift()
-
-
-        def update_not():
-            """ノット（Not）の合法手生成"""
-
-            # 全ての種類の路
-            global _all_ways
-
-            for way in _all_ways:
-                axes_absorber = way.absorb_axes()
-
-                # 石が置いてある路
-                if self.exists_stone_on_way(way):
-
-                    # 路にロックが掛かっていたら Not の Reverse は禁止
-                    if self._way_locks[way.to_code()]:
-                        continue
-
-                    if 0 < way.number and self.exists_stone_on_way(way.low_way()):
-                        # 路上で小さい方にある石を Not して Reverse できる
-                        self._cached_legal_moves.append(Move(way, Operator.code_to_obj('nL')))
-
-                    if way.number < axes_absorber.axis_length - 1 and self.exists_stone_on_way(way.high_way()):
-                        # 路上で大きい方にある石を Not して Reverse できる
-                        self._cached_legal_moves.append(Move(way, Operator.code_to_obj('nH')))
-
-                # 石が置いてない路
-                else:
-                    # 隣のどちらかに石が置いているか？
-                    if 0 < way.number and self.exists_stone_on_way(way.low_way()):
-                        # Not で New できる
-                        self._cached_legal_moves.append(Move(way, Operator.code_to_obj('n')))
-
-                    if way.number < axes_absorber.axis_length - 1 and self.exists_stone_on_way(way.high_way()):
-                        # Not で New できる
-                        self._cached_legal_moves.append(Move(way, Operator.code_to_obj('n')))
-
-
-        # ノット（Not）の合法手生成
-        update_not()
-
-
-        # アンド（AND）の合法手生成
-        self._make_legal_moves_binary_operation(operator_u='a')
-
-        # オア（OR）の合法手生成
-        self._make_legal_moves_binary_operation(operator_u='o')
-
-        # ゼロ（ZERO）の合法手生成
-        self._make_legal_moves_binary_operation(operator_u='ze', for_edit_mode=True)
-
-        # ノア（NOR）の合法手生成
-        self._make_legal_moves_binary_operation(operator_u='no')
-
-        # エクソア（XOR）の合法手生成
-        self._make_legal_moves_binary_operation(operator_u='xo')
-
-        # ナンド（NAND）の合法手生成
-        self._make_legal_moves_binary_operation(operator_u='na')
-
-        # エクスノア（XNOR）の合法手生成
-        self._make_legal_moves_binary_operation(operator_u='xn')
-
-        # ワン（ONE）の合法手生成
-        self._make_legal_moves_binary_operation(operator_u='on', for_edit_mode=True)
-
-
-    def _update_gameover(self):
+    def _update_gameover(self, search):
         """終局判定を更新
         
         先に update_legal_moves() メソッドを呼び出すように働きます
         """
 
         # ステールメートしている
-        if len(self.legal_moves.get_distinct_items(self)) < 1:
-
+        if len(search.legal_moves.items) < 1:
             self._gameover_reason = 'stalemate'
             return
 
@@ -2955,16 +2766,18 @@ class Board():
         self._gameover_reason = 'playing'
 
 
-    def is_gameover(self):
+    def is_gameover(self, search):
         """終局しているか？
         
+        cshogi では is_gameover() は board のメソッドあり、 search 引数はありませんが、ビナーシでは引数として受け取ります
+
         _update_gameover() メソッド使用後に使う必要があります
         """
 
         # FIXME 探索時、アンドゥしたらキャッシュをクリアーする必要があるが大変
         if self._gameover_reason == '':
             # 終局判定を更新
-            self._update_gameover()
+            self._update_gameover(search)
 
         return self._gameover_reason != 'playing'
 
@@ -3026,9 +2839,6 @@ class Board():
 
         # 次の手番
         # NOTE is_gameover() を取得するには、一手指していないと分からない。盤を表示するだけなのに一手指すのは激重すぎる。したがって終局理由は盤表示には含めないことにする
-        #if self.is_gameover():
-        #    next_turn_str = self.gameover_reason
-        #else:
         next_turn = self.get_next_turn()
         if next_turn == C_BLACK:
             next_turn_str = 'next black'
@@ -3249,3 +3059,227 @@ class Board():
             return ' '.join(list1)
         else:
             return ''
+
+
+class Search():
+    """探索部"""
+
+    def __init__(self, board):
+        """初期化"""
+
+        # 現局面から合法手を生成する
+        self._legal_moves = LegalMoves(board)
+        self.update_legal_moves(board)
+
+
+    @property
+    def legal_moves(self):
+        """合法手一覧
+        
+        cshogi では board が legal_moves を持っているが、ビナーシでは search が legal_moves を持つという違いがある
+
+        ビナーシでは、 moves は、同じ局面での指し手の選択肢方向に長い
+        """
+        return self._legal_moves
+
+
+    def _make_binary_operation(self, board, operator_u, for_edit_mode=False):
+        """
+        Parameters
+        ----------
+        operator_u : str
+            演算子コード
+            例： 'o'
+        for_edit_mode : bool
+            盤面編集用
+        """
+
+        ## DEBUG ブレークポイントを付ける
+        #if operator_u=='xo':
+        #    pass
+
+        # 全ての種類の路
+        global _all_ways
+
+        for way in _all_ways:
+            axes_absorber = way.absorb_axes()
+
+            # 石が置いてある路
+            if board.exists_stone_on_way(way):
+
+                # 路にロックが掛かっていたら Or の Reverse は禁止
+                if board._way_locks[way.to_code()]:
+                    continue
+
+                ## DEBUG 表示抑制
+                #if operator_u=='xo':
+                #    print(f"[_make_binary_operation] modify  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.high_way().to_code()=}")
+
+                # ロウ、ハイの両方に石が置いてある必要がある
+                if 0 < way.number and way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.low_way()) and board.exists_stone_on_way(way.high_way()):
+                    # modify 操作追加
+
+                    move = Move(way, Operator.code_to_obj(operator_u))
+
+                    ## DEBUG 表示抑制
+                    #if operator_u=='xo':
+                    #    print(f"[_make_binary_operation] append modify  {move.to_code()=}  {for_edit_mode=}")
+
+                    self._legal_moves.append(board, move, for_edit=for_edit_mode)
+
+            # 石が置いてない路
+            else:
+
+                ## DEBUG 表示抑制
+                #if operator_u=='xo':
+                #    print(f"[_make_binary_operation] new  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.low_way(diff=2).to_code()=}  {way.high_way().to_code()=}  {way.high_way(diff=2).to_code()=}")
+
+                # 隣のどちらかに２つ続けて石が置いているか？
+                if ((1 < way.number and board.exists_stone_on_way(way.low_way()) and board.exists_stone_on_way(way.low_way(diff=2))) or
+                    (way.number < axes_absorber.axis_length - 2 and board.exists_stone_on_way(way.high_way()) and board.exists_stone_on_way(way.high_way(diff=2)))):
+                    # new 操作追加
+
+                    move = Move(way, Operator.code_to_obj(operator_u))
+
+                    ## DEBUG 表示抑制
+                    #if operator_u=='xo':
+                    #    print(f"[_make_binary_operation] append new  {move.to_code()=}  {for_edit_mode=}")
+
+                    self._legal_moves.append(board, move, for_edit=for_edit_mode)
+
+
+    def update_legal_moves(self, board):
+        """合法手の一覧生成"""
+
+        #print("[update_legal_moves] 実行")
+
+        # 終局判定のキャッシュをクリアー
+        board._gameover_reason = ''
+
+
+        def update_cut_the_edge():
+            """カットザエッジ（Cut the edge）の合法手生成（盤面編集用）"""
+            (rect_exists, left_file, right_file, top_rank, bottom_rank) = board.get_edges()
+
+            if rect_exists:
+                if 0 < right_file - left_file:
+                    self._legal_moves.append(board=board, move=Move(Way(FILE_AXIS, left_file), Operator.code_to_obj('c')), for_edit=True)
+                    self._legal_moves.append(board=board, move=Move(Way(FILE_AXIS, right_file), Operator.code_to_obj('c')), for_edit=True)
+                
+                if 0 < bottom_rank - top_rank:
+                    self._legal_moves.append(board=board, move=Move(Way(RANK_AXIS, top_rank), Operator.code_to_obj('c')), for_edit=True)
+                    self._legal_moves.append(board=board, move=Move(Way(RANK_AXIS, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
+
+
+        # カットザエッジ（Cut the edge）の合法手生成（盤面編集用）
+        update_cut_the_edge()
+
+
+        def update_shift():
+            """シフト（Shift）の合法手生成
+            
+            例えば：
+            
+                1 2 3 4 5 6 7
+              +---------------+
+            a | . . . . . . . |
+            b | . . . . . . . |
+            c | . . 0 1 0 1 . |
+            d | . . . . . . . |
+            e | . . . . . . . |
+            f | . . . . . . . |
+              +---------------+
+            
+            上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
+            ゼロビットシフトは禁止する
+            枝が増えてしまうのを防ぐ
+            """
+            global _way_characters
+
+            # 筋（段）方向両用
+            for way_u in _way_characters:
+                way = Way.code_to_obj(way_u)
+
+                # 路にロックが掛かっていたら Shift は禁止
+                if board._way_locks[way.to_code()]:
+                    continue
+
+                way_segment = board.get_stone_segment_on_way(way)
+
+                # 石が置いてる路
+                if 0 < way_segment.length:
+                    # Shift できる
+                    for i in range(1, way_segment.length):
+                        move = Move(way, Operator.code_to_obj(f's{i}'))
+
+                        # 合法手として記憶
+                        self._legal_moves.append(board=board, move=move)
+
+
+        # シフト（Shift）の合法手生成
+        update_shift()
+
+
+        def update_not():
+            """ノット（Not）の合法手生成"""
+
+            # 全ての種類の路
+            global _all_ways
+
+            for way in _all_ways:
+                axes_absorber = way.absorb_axes()
+
+                # 石が置いてある路
+                if board.exists_stone_on_way(way):
+
+                    # 路にロックが掛かっていたら Not の Reverse は禁止
+                    if board._way_locks[way.to_code()]:
+                        continue
+
+                    if 0 < way.number and board.exists_stone_on_way(way.low_way()):
+                        # 路上で小さい方にある石を Not して Reverse できる
+                        self._legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nL')))
+
+                    if way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.high_way()):
+                        # 路上で大きい方にある石を Not して Reverse できる
+                        self._legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nH')))
+
+                # 石が置いてない路
+                else:
+                    # 隣のどちらかに石が置いているか？
+                    if 0 < way.number and board.exists_stone_on_way(way.low_way()):
+                        # Not で New できる
+                        self._legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
+
+                    if way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.high_way()):
+                        # Not で New できる
+                        self._legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
+
+
+        # ノット（Not）の合法手生成
+        update_not()
+
+
+        # アンド（AND）の合法手生成
+        self._make_binary_operation(board=board, operator_u='a')
+
+        # オア（OR）の合法手生成
+        self._make_binary_operation(board=board, operator_u='o')
+
+        # ゼロ（ZERO）の合法手生成
+        self._make_binary_operation(board=board, operator_u='ze', for_edit_mode=True)
+
+        # ノア（NOR）の合法手生成
+        self._make_binary_operation(board=board, operator_u='no')
+
+        # エクソア（XOR）の合法手生成
+        self._make_binary_operation(board=board, operator_u='xo')
+
+        # ナンド（NAND）の合法手生成
+        self._make_binary_operation(board=board, operator_u='na')
+
+        # エクスノア（XNOR）の合法手生成
+        self._make_binary_operation(board=board, operator_u='xn')
+
+        # ワン（ONE）の合法手生成
+        self._make_binary_operation(board=board, operator_u='on', for_edit_mode=True)
