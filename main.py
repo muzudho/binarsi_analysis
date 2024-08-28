@@ -238,7 +238,7 @@ class UsiEngine():
         # ビナーシに王手はありません
 
         # 一手詰めを詰める
-        if (matemove := self._board.mate_move_in_1ply()):
+        if (matemove := search.mate_move_in_1ply(self._board)):
             """一手詰めの指し手があれば、それを取得"""
             return matemove, 'mate 1 move'
 

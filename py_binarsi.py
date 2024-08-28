@@ -1356,6 +1356,7 @@ class LegalMoves():
 
     def find_mate_move_in_1ply(self, board):
         """１手詰めがあるか調べる"""
+
         if self._cached_mate_move_in_1ply is not None:
             move = self._cached_mate_move_in_1ply
 
@@ -1367,6 +1368,8 @@ class LegalMoves():
 
 
         current_turn = board.get_next_turn()
+
+        found_move = None
 
         # DO 合法手を取得
         move_list = self.distinct_items
@@ -1383,9 +1386,8 @@ class LegalMoves():
 
                 if board.gameover_reason == 'black win':
                     if current_turn == C_BLACK:
-                        # You win!
-                        self._cached_mate_move_in_1ply = move
-                        return True
+                        # You win!  ※一手戻すまでスコープから抜けないこと
+                        found_move = move
                     
                     elif current_turn == C_WHITE:
                         # You lose!
@@ -1397,9 +1399,8 @@ class LegalMoves():
                         pass
                     
                     elif current_turn == C_WHITE:
-                        # You win!
-                        self._cached_mate_move_in_1ply = move
-                        return True
+                        # You win!  ※一手戻すまでスコープから抜けないこと
+                        found_move = move
 
                 elif board.gameover_reason == 'draw (illegal move)':
                     # Illegal move
@@ -1415,6 +1416,16 @@ class LegalMoves():
 
             # DO 一手戻す
             board.pop()
+
+            if found_move is not None:
+                break
+
+
+        # 一手詰めの手
+        if found_move is not None:
+            self._cached_mate_move_in_1ply = found_move
+            return True
+
 
         # DO 勝ちは無かった。パスを設定する
         self._cached_mate_move_in_1ply = Move.code_to_obj('pass')
@@ -1830,7 +1841,7 @@ class Board():
         return stones_before_change
 
 
-    def copy_stones_on_line_binary(self, move):
+    def binary_operate_on_way(self, move):
         """入力路 a, b を二項演算して、 c 路へ出力
 
         例えば：
@@ -1857,10 +1868,15 @@ class Board():
 
         stones_before_change = ''
 
-        (input_way_1, input_way_2) = self.get_input_ways_by_binary_operation(move.way)
+        (input_way_1, input_way_2, error_reason) = self.get_input_ways_by_binary_operation(move.way)
 
         if input_way_1.is_empty or input_way_2.is_empty:
-            raise ValueError(f"out of bounds  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {move.to_code()=}")
+
+            # DEBUG 盤面出力
+            print(f"[binary_operate_on_way] error  {error_reason=}  {move.to_code()=}  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {self._way_locks=}")
+            print(self.as_str())
+
+            raise ValueError(f"out of bounds  {move.to_code()=}  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {self._way_locks=}")
 
 
         # 対象の路に石が置いてあれば上書きフラグをOn、そうでなければOff
@@ -2188,7 +2204,7 @@ class Board():
             exists_stone_on_way_before_change = self.exists_stone_on_way(move.way)
 
             # 盤面更新
-            stones_before_change = self.copy_stones_on_line_binary(move)
+            stones_before_change = self.binary_operate_on_way(move)
 
             # もともとは、対象の路に石が置いてあった
             if exists_stone_on_way_before_change:
@@ -2272,16 +2288,6 @@ class Board():
         raise ValueError("このゲームに王手はありません")
 
 
-    def mate_move_in_1ply(self):
-        """一手詰めの手を返す
-        
-        なければナンを返す
-        """
-        
-        search = Search(board=self)
-        return search.legal_moves.get_mate_move_in_1ply(self)
-
-
     def get_edges(self):
         """辺を返す
         例えば：
@@ -2348,13 +2354,28 @@ class Board():
 
 
     def get_input_ways_by_binary_operation(self, target_way):
-        """二項演算するときの入力路２つ"""
+        """二項演算するときの入力路２つ
+        
+        Returns
+        -------
+        input_way_1 : Way
+            路１
+        input_way_2 : Way
+            路２
+        reason : str
+            説明
+        """
+
 
         # 二項演算が禁止のケース
         #   - 路を指定していない
+        if target_way.is_empty:
+            return (Way.code_to_obj('-'), Way.code_to_obj('-'), 'no way')
+
+
         #   - 対象路にロックが掛かっている
-        if target_way.is_empty or self._way_locks[target_way.to_code()]:
-            return (Way.code_to_obj('-'), Way.code_to_obj('-'))
+        if self._way_locks[target_way.to_code()]:
+            return (Way.code_to_obj('-'), Way.code_to_obj('-'), 'way locked')
 
 
         # 筋（段）方向両用
@@ -2364,14 +2385,18 @@ class Board():
         # 対称路に石が置いてあるなら
         if self.exists_stone_on_way(target_way):
 
-            # ロウ、ハイの両方に石が置いてある必要がある
-            if 0 < target_way.number and target_way.number < axes_absorber.opponent_axis_length - 1:
-                low_way = target_way.low_way()
-                high_way = target_way.high_way()
-                if self.exists_stone_on_way(low_way) and self.exists_stone_on_way(high_way):
-                    return (low_way, high_way)
+            # 盤の端ならエラー
+            if target_way.number in [0, axes_absorber.opponent_axis_length - 1]:
+                return (Way.code_to_obj('-'), Way.code_to_obj('-'), f'there was stone on target way. but should not be at both end edge.  {target_way.number=}')
 
-            return (Way.code_to_obj('-'), Way.code_to_obj('-'))
+            # ロウ、ハイの両方に石が置いてある必要がある
+            low_way = target_way.low_way()
+            high_way = target_way.high_way()
+
+            if self.exists_stone_on_way(low_way) and self.exists_stone_on_way(high_way):
+                return (low_way, high_way, '')
+
+            return (Way.code_to_obj('-'), Way.code_to_obj('-'), 'there was stone on target way. but should be stones at low and high')
 
         # 対象路に石が置いてないなら
         # ------------------------
@@ -2381,16 +2406,16 @@ class Board():
             first_way = target_way.low_way()
             second_way = target_way.low_way(diff=2)
             if self.exists_stone_on_way(first_way) and self.exists_stone_on_way(second_way):
-                return (first_way, second_way)
+                return (first_way, second_way, '')
         
         # ハイの方に２つ続けて石が置いているか？
         if target_way.number < axes_absorber.opponent_axis_length - 2:
             first_way = target_way.high_way()
             second_way = target_way.high_way(diff=2)
             if self.exists_stone_on_way(first_way) and self.exists_stone_on_way(second_way):
-                return (first_way, second_way)
+                return (first_way, second_way, '')
 
-        return (Way.code_to_obj('-'), Way.code_to_obj('-'))
+        return (Way.code_to_obj('-'), Way.code_to_obj('-'), 'there is not 2 stones')
 
 
     def _update_gameover(self, search):
@@ -3263,3 +3288,14 @@ class Search():
 
         # ワン（ONE）の合法手生成
         self._make_binary_operation(board=board, operator_u='on', for_edit_mode=True)
+
+
+    def mate_move_in_1ply(self, board):
+        """一手詰めの手を返す
+
+        cshogi では Board のメソッド。 board 引数もなかった
+
+        なければナンを返す
+        """
+        
+        return self.legal_moves.get_mate_move_in_1ply(board)
