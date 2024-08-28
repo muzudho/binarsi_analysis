@@ -143,3 +143,56 @@ LEGAL MOVES
 |       7|  7| do cs1
 |       8|  8| do dn 
 +--------+---+
+
+
+# 2024-08-28 15:57
+
+[13 moves | moved bxo | b3 w3 w5 | next white]
+    # # # # # 6 7
+  +---------------+
+a | . . . . . . . |
+b | 0 0 1 1 1 . . |
+# | 1 0 0 1 0 . . |
+# | 1 0 1 0 1 . . |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 w - 4///13//12 1 moves 4n cs1 5n 2o 4a 2nH 1a 3a 1nH 5nL dn ds3 bxo
+                 stones_before_change - - - - 0 1 - 1 0 1 - - -
+[from present]   sfen 7/ooxxx2/xooxo2/xoxox2/7/7 w 12345cd 4///13//12 13
+
+[unexpected error] err=ValueError("n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください  move.to_code()='en'"), type(err)=<class 'ValueError'>
+Traceback (most recent call last):
+  File "C:\Users\muzud\OneDrive\ドキュメント\GitHub\binarsi_analysis\main.py", line 997, in <module>
+    usi_engine.usi_loop()
+  File "C:\Users\muzud\OneDrive\ドキュメント\GitHub\binarsi_analysis\main.py", line 97, in usi_loop
+    self.self_match(input_str)
+  File "C:\Users\muzud\OneDrive\ドキュメント\GitHub\binarsi_analysis\main.py", line 697, in self_match
+    self.self_match_once(match_count=i)
+  File "C:\Users\muzud\OneDrive\ドキュメント\GitHub\binarsi_analysis\main.py", line 653, in self_match_once
+    self._board.push_usi(best_move.to_code())
+  File "C:\Users\muzud\OneDrive\ドキュメント\GitHub\binarsi_analysis\py_binarsi.py", line 2121, in push_usi
+    raise ValueError(f"n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください  {move.to_code()=}")
+ValueError: n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください  move.to_code()='en'
+
+
+# [ ] 6a を指してしまった？
+
+* 盤面編集操作というわけでもない？
+* 一手詰め判定で指し手を作っているときのようだ
+
+[18 moves | moved 6o | b4 b5 w3 w4 | next black]
+    1 2 # # # 6 7
+  +---------------+
+# | . 1 0 1 0 1 . |
+# | . 0 1 0 1 1 . |
+# | . 1 0 1 0 1 . |
+# | . 0 1 0 1 1 . |
+# | . 1 0 1 0 1 . |
+# | . 1 0 1 0 1 . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 b - /17/12/4/16/ 1 moves dn 3s1 bn ca dnL aa bnL anH eo enL 4n fn 4s2 fs1 5a 2n 5nL 6o
+                 stones_before_change - - - 1 0 - 0 0 - 1 - - - - - - 000000 -
+[from present]   sfen 1xoxox1/1oxoxx1/1xoxox1/1oxoxx1/1xoxox1/1xoxox1 b 345abcdef /17/12/4/16/ 18
+
+[unexpected error] err=ValueError("out of bounds  input_way_1.to_code()='-'  input_way_2.to_code()='-'  move.to_code()='6a'"), type(err)=<class 'ValueError'>

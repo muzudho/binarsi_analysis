@@ -53,7 +53,7 @@ _rank_to_num = {
     'f' : 5,
 }
 
-_num_to_rank = {
+_num_to_rank_str = {
     0 : 'a',
     1 : 'b',
     2 : 'c',
@@ -255,7 +255,7 @@ class Way():
         Parameters
         ----------
         code : str
-            "1" ～ "7"、 "a" ～ "f"
+            '-'、 '1' ～ '7'、 'a' ～ 'f'
         """
 
         # フォーマットチェック
@@ -295,7 +295,7 @@ class Way():
         -------
         '-' や '1' ～ '7'、 'a' ～ 'f' といった文字
         """
-        global _num_to_rank
+        global _num_to_rank_str
 
         if self.is_empty:
             return '-'
@@ -304,7 +304,7 @@ class Way():
             return str(self._number + 1)
 
         if self._axis_id == RANK_AXIS:
-            return _num_to_rank[self._number]
+            return _num_to_rank_str[self._number]
         
         raise ValueError(f"axis_id:{self._axis_id}  number:{self._number}")
 
@@ -780,7 +780,7 @@ class Move():
         return instance
 
 
-    def replaced_by_same(self, same_move_u):
+    def new_with_same(self, same_move_u):
         """冗長フラグを立てたコピー・オブジェクトを返却します
         
         Parameters
@@ -1298,7 +1298,7 @@ class LegalMoves():
             if move.operator.code in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
 
                 # DO 一手指す
-                #print(f"[LegalMoves > append] 一手指す  {move.to_code()=}")
+                #print(f"[LegalMoves > append] 一手指す  {move.to_code()=}  \n{board.as_str()}")
                 board.push_usi(move.to_code())
 
                 # DO 一般的に長さが短い方の形式の SFEN を記憶
@@ -1313,10 +1313,10 @@ class LegalMoves():
                 # DO 既に記憶している SFEN と重複すれば、演算した結果が同じだ。重複を記憶しておく
                 if sub_sfen_after_push_u in self._sfen_memory_dict.keys():
                     same_move_u = self._sfen_memory_dict[sub_sfen_after_push_u]
-                    #print(f"[LegalMoves > append] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶しておく  {same_move_u=}  {sub_sfen_after_push_u=}")
+                    #print(f"[LegalMoves > append] 既に記憶している SFEN と重複した。演算した結果が同じだ。重複を記憶して差し替える  {same_move_u=}  {sub_sfen_after_push_u=}")
 
                     # 差し替え
-                    move = move.replaced_by_same(same_move_u)
+                    move = move.new_with_same(same_move_u)
 
 
                 # DO 重複していなければ、一時記憶する
@@ -1335,6 +1335,7 @@ class LegalMoves():
                 # DO 一手戻す
                 #print(f"[LegalMoves > append] 一手戻す")
                 board.pop()
+                #print(f"[LegalMoves > append] 一手戻した  {board.as_str()}")
 
                 # DEBUG 一手戻した後に、現局面が載っている sfen を取得する
                 rollbacked_sfen_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
@@ -1829,43 +1830,6 @@ class Board():
         return stones_before_change
 
 
-    def copy_stones_on_line_unary(self, move, overwrite=False):
-        """入力路 a を単項演算して、 b 路へ出力
-
-        例えば：
-        
-            1 2 3 4 5 6 7
-          +---------------+
-        a | . . . . . . . |
-        b | . . . . . . . |
-        c | a a a a a a a |
-        d | b b b b b b b |
-        e | . . . . . . . |
-        f | . . . . . . . |
-          +---------------+
-
-        上図の a を単項演算した結果を b へ出力
-        """
-
-        stones_before_change = ''
-
-        # 筋（段）方向両用
-        axes_absorber = move.way.absorb_axes()
-
-        for i in range(0, axes_absorber.opponent_axis_length):
-
-            dst_sq = Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)
-            old_stone = self._squares[dst_sq]
-
-            if overwrite and old_stone != C_EMPTY:
-                stones_before_change += _color_to_str[old_stone]
-
-            self._squares[dst_sq] = move.operator.unary_operate(
-                stone=self._squares[Square.file_rank_to_sq(move.way.number + 1, i, swap=axes_absorber.swap_axes)])
-
-        return stones_before_change
-
-
     def copy_stones_on_line_binary(self, move):
         """入力路 a, b を二項演算して、 c 路へ出力
 
@@ -1894,6 +1858,10 @@ class Board():
         stones_before_change = ''
 
         (input_way_1, input_way_2) = self.get_input_ways_by_binary_operation(move.way)
+
+        if input_way_1.is_empty or input_way_2.is_empty:
+            raise ValueError(f"out of bounds  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {move.to_code()=}")
+
 
         # 対象の路に石が置いてあれば上書きフラグをOn、そうでなければOff
         overwrite = self.exists_stone_on_way(move.way)
@@ -2021,7 +1989,15 @@ class Board():
 
             # 対象の路に石が置いてない
             else:
-                raise ValueError(f"c演算では、石の置いてない対象路を指定してはいけません  {move.to_code()=}")
+
+                # # DEBUG ブレークポイントを置いてもう一回
+                # print(f"[push_usi]  {move.to_code()=}  {move.way.to_code()=}  {move.operator.code=}")
+                # print(self.as_str())
+                # self.exists_stone_on_way(move.way)
+
+                # 対局中に c演算を使ってはいけないことに注意
+                # 盤面編集中であってもここを通るのはおかしい
+                raise ValueError(f"c演算では、石の置いてない対象路を指定してはいけません  {move.to_code()=}  {move.way.to_code()=}  {move.operator.code=}")
 
 
         # エディット演算子
@@ -2118,6 +2094,10 @@ class Board():
 
             # 対象の路に石が置いてある
             if self.exists_stone_on_way(move.way):
+
+                # DEBUG ブレークポイントを付けてもういっかい確認
+                #self.exists_stone_on_way(move.way)
+
                 raise ValueError(f"n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください  {move.to_code()=}")
 
             # 対象の路に石が置いてない
@@ -2270,7 +2250,7 @@ class Board():
         inverse_move_for_edit = inverse_move.to_edit_mode().to_unlock_mode()
         inverse_move_for_edit_u = inverse_move_for_edit.to_code()
 
-        #print(f"[pop] 盤面編集として、逆操作を実行  {inverse_move_for_edit_u=}  {inverse_move_for_edit.is_way_unlock=}")
+        #print(f"[pop] 盤面編集として、逆操作を実行  {latest_edit.move.to_code()=}  {inverse_move.to_code()=}  {inverse_move_for_edit.is_way_unlock=}  {inverse_move_for_edit_u=}")
         self.push_usi(inverse_move_for_edit_u)
 
         # さっきの逆操作を履歴から除去
@@ -2374,7 +2354,7 @@ class Board():
         #   - 路を指定していない
         #   - 対象路にロックが掛かっている
         if target_way.is_empty or self._way_locks[target_way.to_code()]:
-            return (None, None)
+            return (Way.code_to_obj('-'), Way.code_to_obj('-'))
 
 
         # 筋（段）方向両用
@@ -2391,7 +2371,7 @@ class Board():
                 if self.exists_stone_on_way(low_way) and self.exists_stone_on_way(high_way):
                     return (low_way, high_way)
 
-            return (None, None)
+            return (Way.code_to_obj('-'), Way.code_to_obj('-'))
 
         # 対象路に石が置いてないなら
         # ------------------------
@@ -2410,7 +2390,7 @@ class Board():
             if self.exists_stone_on_way(first_way) and self.exists_stone_on_way(second_way):
                 return (first_way, second_way)
 
-        return (None, None)
+        return (Way.code_to_obj('-'), Way.code_to_obj('-'))
 
 
     def _update_gameover(self, search):

@@ -952,6 +952,7 @@ CLEAR TARGETS
         self.isready()
         self.usinewgame()
         self.position('position sfen 7/7/2o4/7/7/7 w - - 1 moves 4n')
+        self.print_board()
 
         search = Search(self._board)
 
@@ -962,22 +963,29 @@ CLEAR TARGETS
         expected_move_u_list = [
             '2a',
             '2n',
-            '2no',
-            '2o',
+            # '2na'
+            # '2no'
+            # '2o',
+            # '2xn',
+            # '2xo',
             '3nH',
-            '4nL',
-            '5a',
+            # '4nL',
+            # '5a',
             '5n',
-            '5no',
+            # '5na',
+            # '5no',
             '5o',
+            # '5xn', 
+            # '5xo',
             'bn',
             'cs1',
             'dn',
         ]
 
+
         if len(actual_move_list) != len(expected_move_u_list):
-            print(f"error  {len(actual_move_list)=}  {len(expected_move_u_list):=}")
-            return
+            print(f"error  {len(actual_move_list)=}  {len(expected_move_u_list)=}")
+
 
         for i in range(0, len(actual_move_list)):
             actual_move = actual_move_list[i]
