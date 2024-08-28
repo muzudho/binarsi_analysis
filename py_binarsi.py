@@ -1211,7 +1211,7 @@ class LegalMoves():
 
         # 一手指す前に、現局面が載っている sfen を取得しておく
         #
-        #   例： 7/7/2o4/2x4/7/7 b - 1
+        #   例： 7/7/2o4/2x4/7/7 b - - 1
         #
         #   ここで、末尾の［何手目か？］は必ず変わってしまうので、それは省いておく
         #
@@ -1286,7 +1286,7 @@ class LegalMoves():
 
                 # DO 一手指す
                 #print(f"[LegalMoves > append] 一手指す  {move.to_code()=}  \n{board.as_str()}")
-                board.push_usi(move.to_code())
+                board.push_usi(move.to_code())  # 指し手生成中では、クリアーターゲットは更新しません
 
                 # DO 一般的に長さが短い方の形式の SFEN を記憶
                 #
@@ -1321,7 +1321,7 @@ class LegalMoves():
 
                 # DO 一手戻す
                 #print(f"[LegalMoves > append] 一手戻す")
-                board.pop()
+                board.pop() # 指し手生成中では、クリアーターゲットは更新しません
                 #print(f"[LegalMoves > append] 一手戻した  {board.as_str()}")
 
                 # DEBUG 一手戻した後に、現局面が載っている sfen を取得する
@@ -1420,12 +1420,6 @@ class Board():
         # 盤面編集履歴（対局棋譜を含む）
         self._board_editing_history = BoardEditingHistory()
 
-        # 終局理由。終局していなければ 'playing'、判定がまだなら空文字列
-        self._gameover_reason = ''
-
-        # 勝利条件をクリアーしたのが何手目か
-        self._clear_targets_list = [-1, -1, -1, -1, -1, -1]
-
 
     @property
     def moves_number_at_init(self):
@@ -1434,18 +1428,6 @@ class Board():
         途中局面から開始したのでもなければ、手数は 0 で始まります
         """        
         return self._moves_number_at_init
-
-
-    @property
-    def clear_targets_list(self):
-        """クリアーターゲット一覧"""
-        return self._clear_targets_list
-
-
-    @property
-    def gameover_reason(self):
-        """終局理由"""
-        return self._gameover_reason
 
 
     @property
@@ -1585,6 +1567,8 @@ class Board():
 
         # 添付盤面でのクリアー済ターゲット一覧
         # ---------------------------------
+        clear_targets_list = [-1, -1, -1, -1, -1, -1]
+
         if parts[3] != '-':
             # 勝利条件をクリアーしたのが何手目か、６つの要素がスラッシュ区切りで入っている。クリアーしていなければ空文字列
             tokens = parts[3].split('/')
@@ -1593,11 +1577,18 @@ class Board():
                 token = tokens[i]
 
                 if 0 < len(token):
-                    self._clear_targets_list[i] = int(token)
+                    clear_targets_list[i] = int(token)
+
+        searched_clear_targets = SearchedClearTargets(
+            gameover_reason='',
+            clear_targets_list=clear_targets_list)
 
         # 手数の解析
         # ---------
         self._moves_number_at_init = int(parts[4])
+
+
+        return searched_clear_targets
 
 
     def exists_stone_on_way(self, way):
@@ -2327,370 +2318,12 @@ class Board():
         return (Way.code_to_obj('-'), Way.code_to_obj('-'), 'there is not 2 stones')
 
 
-    def _update_gameover(self, legal_moves):
-        """終局判定を更新
-        
-        先に generate_legal_moves() メソッドを呼び出すように働きます
-
-        Parameters
-        ----------
-        legal_moves : LegalMoves
-            合法手一覧
-        """
-
-        # ステールメートしている
-        if len(legal_moves.items) < 1:
-            self._gameover_reason = 'stalemate'
-            return
-
-        # TODO クリアー条件はアンドゥしたあと消すよう注意
-
-        # クリアー条件　黒番１　横に３つ 1 が並んでいること
-        #
-        #          [b3]
-        #       1 2 3 4 5 6 7  
-        #     +---------------+
-        #   a | 1 1 1 ^ ^ . . |
-        #   b | ^ ^ ^ ^ ^ . . |
-        #   c | ^ ^ ^ ^ ^ . . |
-        #   d | ^ ^ ^ ^ ^ . . |
-        #   e | ^ ^ ^ ^ ^ . . |
-        #   f | ^ ^ ^ ^ ^ . . |
-        #     +---------------+
-        #
-        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
-        #
-        def update_clear_target_b3():
-            # 棒サイズ
-            line_length = 3
-            my_stone_color = C_BLACK
-            is_not_hit = False  # 外側の file ループを続行
-
-            for rank in range(0, RANK_LEN):
-                #             0,        6
-
-                for file in range(0, FILE_LEN-line_length+1):
-                    #             0,        7-          3+1
-                    #             0,       =5 
-
-                    for i in range(0, line_length):
-                        if self._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
-                            is_not_hit = True
-                            break
-
-                    if is_not_hit:
-                        is_not_hit = False
-                        continue
-
-                    self._clear_targets_list[0] = self.moves_number
-                    return
-
-        if self._clear_targets_list[0] == -1:
-            update_clear_target_b3()
-
-
-        # クリアー条件　黒番２　斜め（左右反転でも構わない）に４つ 1 が並んでいること
-        #
-        #   Sinister Diagonal     Baroque Diagonal
-        #           [b4]
-        #      1 2 3 4 5 6 7          1 2 3 4 5 6 7
-        #    +---------------+      +---------------+
-        #  a | 1 ^ ^ ^ . . . |    a | . . . 1 ^ ^ ^ |
-        #  b | ^ 1 ^ ^ . . . |    b | . . 1 ^ ^ ^ ^ |
-        #  c | ^ ^ 1 ^ . . . |    c | . 1 . ^ ^ ^ ^ |
-        #  d | . . . 1 . . . |    d | 1 . . . . . . |
-        #  e | . . . . . . . |    e | . . . . . . . |
-        #  f | . . . . . . . |    f | . . . . . . . |
-        #    +---------------+      +---------------+
-        #
-        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
-        #
-        def update_clear_target_b4():
-            # 棒サイズ
-            line_length = 4
-            my_stone_color = C_BLACK
-            is_not_hit = False  # 外側の file ループを続行
-
-            # Sinister Diagonal
-            for rank in range(0, RANK_LEN-line_length+1):
-                #             0,        6-          4+1
-                #             0,       =3
-
-                for file in range(0, FILE_LEN-line_length+1):
-                    #             0,        7-          4+1
-                    #             0,       =4
-
-                    for i in range(0, line_length):
-                        if self._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
-                            is_not_hit = True
-                            break
-
-                    if is_not_hit:
-                        is_not_hit = False
-                        continue
-
-                    self._clear_targets_list[1] = self.moves_number
-                    return
-
-            # Baroque Diagonal
-            for rank in range(0, RANK_LEN-(RANK_LEN-line_length)-1):
-                #             0,        6-(       6-          4)-1
-                #             0,       =3 
-                for file in range(line_length-1, FILE_LEN):
-                    #                       4-1,        7
-                    #                      =3  ,        7
-
-                    for i in range(0, line_length):
-                        if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
-                            is_not_hit = True
-                            break
-
-                    if is_not_hit:
-                        is_not_hit = False
-                        break
-
-                    self._clear_targets_list[1] = self.moves_number
-                    return
-
-        if self._clear_targets_list[1] == -1:
-            update_clear_target_b4()
-
-
-        # クリアー条件　黒番３　縦に５つ 1 が並んでいること
-        #
-        #          [b5]
-        #       1 2 3 4 5 6 7
-        #     +---------------+
-        #   a | 1 ^ ^ ^ ^ ^ ^ |
-        #   b | 1 ^ ^ ^ ^ ^ ^ |
-        #   c | 1 . . . . . . |
-        #   d | 1 . . . . . . |
-        #   e | 1 . . . . . . |
-        #   f | . . . . . . . |
-        #     +---------------+
-        #
-        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
-        #
-        def update_clear_target_b5():
-            # 棒サイズ
-            line_length = 5
-            my_stone_color = C_BLACK
-            is_not_hit = False  # 外側の file ループを続行
-
-            for rank in range(0, RANK_LEN-line_length+1):
-                #             0,        6-          5+1
-                #             0,       =2
-
-                for file in range(0, FILE_LEN):
-                    #             0,        7
-
-                    for i in range(0, line_length):
-                        if self._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
-                            is_not_hit = True
-                            break
-
-                    if is_not_hit:
-                        is_not_hit = False
-                        continue
-
-                    self._clear_targets_list[2] = self.moves_number
-                    return
-
-        if self._clear_targets_list[2] == -1:
-            update_clear_target_b5()
-
-
-
-        # クリアー条件　白番１　縦に３つ 0 が並んでいること
-        #          [w3]
-        #       1 2 3 4 5 6 7
-        #     +---------------+
-        #   a | 0 ^ ^ ^ ^ ^ ^ |
-        #   b | 0 ^ ^ ^ ^ ^ ^ |
-        #   c | 0 ^ ^ ^ ^ ^ ^ |
-        #   d | ^ ^ ^ ^ ^ ^ ^ |
-        #   e | . . . . . . . |
-        #   f | . . . . . . . |
-        #     +---------------+
-        #
-        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
-        #
-        def update_clear_target_w3():
-            # 棒サイズ
-            line_length = 3
-            my_stone_color = C_WHITE
-            is_not_hit = False  # 外側の file ループを続行
-
-            for rank in range(0, RANK_LEN-line_length+1):
-                #             0,        6-          3+1
-                #             0,       =4
-
-                for file in range(0, FILE_LEN):
-                    #             0,        7
-
-                    for i in range(0, line_length):
-                        if self._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
-                            is_not_hit = True
-                            break
-
-                    if is_not_hit:
-                        is_not_hit = False
-                        continue
-
-                    self._clear_targets_list[3] = self.moves_number
-                    return
-
-        if self._clear_targets_list[3] == -1:
-            update_clear_target_w3()
-
-
-        # クリアー条件　白番２　斜め（左右反転でも構わない）に４つ 0 が並んでいること
-        #
-        #   Sinister Diagonal     Baroque Diagonal
-        #           [w4]
-        #      1 2 3 4 5 6 7          1 2 3 4 5 6 7
-        #    +---------------+      +---------------+
-        #  a | 0 ^ ^ ^ . . . |    a | . . . 0 ^ ^ ^ |
-        #  b | ^ 0 ^ ^ . . . |    b | . . 0 ^ ^ ^ ^ |
-        #  c | ^ ^ 0 ^ . . . |    c | . 0 . ^ ^ ^ ^ |
-        #  d | . . . 0 . . . |    d | 0 . . . . . . |
-        #  e | . . . . . . . |    e | . . . . . . . |
-        #  f | . . . . . . . |    f | . . . . . . . |
-        #    +---------------+      +---------------+
-        #
-        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
-        #
-        def update_clear_target_w4():
-            # 棒サイズ
-            line_length = 4
-            my_stone_color = C_WHITE
-            is_not_hit = False  # 外側の file ループを続行
-
-            # Sinister Diagonal
-            for rank in range(0, RANK_LEN-line_length+1):
-                #             0,        6-          4+1
-                #             0,       =3
-
-                for file in range(0, FILE_LEN-line_length+1):
-                    #             0,        7-          4+1
-                    #             0,       =4
-
-                    for i in range(0, line_length):
-                        if self._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
-                            is_not_hit = True
-                            break
-
-                    if is_not_hit:
-                        is_not_hit = False
-                        continue
-
-                    self._clear_targets_list[4] = self.moves_number
-                    return
-
-            # Baroque Diagonal
-            for rank in range(0, RANK_LEN-(RANK_LEN-line_length)-1):
-                #             0,        6-(       6-          4)-1
-                #             0,       =3
-
-                for file in range(line_length-1, FILE_LEN):
-                    #                       4-1,        7
-                    #                      =3  ,        7
-
-                    for i in range(0, line_length):
-                        if self._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
-                            is_not_hit = True
-                            break
-
-                    if is_not_hit:
-                        is_not_hit = False
-                        break
-
-                    self._clear_targets_list[4] = self.moves_number
-                    return
-
-        if self._clear_targets_list[4] == -1:
-            update_clear_target_w4()
-
-
-        # クリアー条件　白番３　横に５つ 0 が並んでいること
-        #
-        #          [w5]
-        #       1 2 3 4 5 6 7
-        #     +---------------+
-        #   a | 0 0 0 0 0 . . |
-        #   b | ^ ^ ^ . . . . |
-        #   c | ^ ^ ^ . . . . |
-        #   d | ^ ^ ^ . . . . |
-        #   e | ^ ^ ^ . . . . |
-        #   f | ^ ^ ^ . . . . |
-        #     +---------------+
-        #
-        # 図中の ^ は、ループでスキャンする開始地点の範囲を表現している
-        #
-        def update_clear_target_w5():
-            # 棒サイズ
-            line_length = 5
-            my_stone_color = C_WHITE
-            is_not_hit = False  # 外側の file ループを続行
-
-            for rank in range(0, RANK_LEN):
-                #             0,        6
-
-                for file in range(0, FILE_LEN-line_length+1):
-                    #             0,        7-          5+1
-                    #             0,       =3
-
-                    for i in range(0, line_length):
-                        if self._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
-                            is_not_hit = True
-                            break
-
-                    if is_not_hit:
-                        is_not_hit = False
-                        continue
-
-                    self._clear_targets_list[5] = self.moves_number
-                    return
-
-        if self._clear_targets_list[5] == -1:
-            update_clear_target_w5()
-
-
-        # どちらかのプレイヤーが３つのターゲットを完了した
-        is_black_win = False
-        is_white_win = False
-        if self._clear_targets_list[0] != -1 and self._clear_targets_list[1] != -1 and self._clear_targets_list[2] != -1:
-            is_black_win = True
-
-        if self._clear_targets_list[3] != -1 and self._clear_targets_list[4] != -1 and self._clear_targets_list[5] != -1:
-            is_white_win = True
-
-        if is_black_win and is_white_win:
-            # TODO 同着になる手は禁じ手
-            self._gameover_reason = 'draw (illegal move)'
-            return
-
-        if is_black_win:
-            self._gameover_reason = 'black win'
-            return
-
-        if is_white_win:
-            self._gameover_reason = 'white win'
-            return
-
-
-        # TODO 投了している
-
-        # 終局していない
-        self._gameover_reason = 'playing'
-
-
-    def is_gameover(self, legal_moves):
+    def is_gameover(self, searched_clear_targets):
         """終局しているか？
         
         cshogi では is_gameover() は board のメソッドあり、 legal_moves 引数はありませんが、ビナーシでは引数として受け取ります
 
-        _update_gameover() メソッド使用後に使う必要があります
+        SearchedClearTargets.update_clear_targets() メソッド使用後に使う必要があります
 
         Parameters
         ----------
@@ -2699,14 +2332,10 @@ class Board():
         """
 
         # FIXME 探索時、アンドゥしたらキャッシュをクリアーする必要があるが大変
-        if self._gameover_reason == '':
-            # 終局判定を更新
-            self._update_gameover(legal_moves)
-
-        return self._gameover_reason != 'playing'
+        return searched_clear_targets.gameover_reason != 'playing'
 
 
-    def as_str(self):
+    def as_str(self, searched_clear_targets=None):
         """（拡張仕様）盤のテキスト形式
         例：
             [ 2 moves | moved 3s1]
@@ -2719,7 +2348,14 @@ class Board():
             e | . . . . . . . |
             f | . . . . . . . |
               +---------------+
+        
+        Parameters
+        ----------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
+            指し手生成中はナン
         """
+        
         global _color_to_str
 
         # １行目表示
@@ -2741,24 +2377,28 @@ class Board():
 
 
         # クリアーターゲット状況
-        clear_targets_u_list = []
-        if self._clear_targets_list[0] != -1:
-            clear_targets_u_list.append('b3')
-        if self._clear_targets_list[1] != -1:
-            clear_targets_u_list.append('b4')
-        if self._clear_targets_list[2] != -1:
-            clear_targets_u_list.append('b5')
-        if self._clear_targets_list[3] != -1:
-            clear_targets_u_list.append('w3')
-        if self._clear_targets_list[4] != -1:
-            clear_targets_u_list.append('w4')
-        if self._clear_targets_list[5] != -1:
-            clear_targets_u_list.append('w5')
-
-        if 0 < len(clear_targets_u_list):
-            clear_targets_list_str = f" | {' '.join(clear_targets_u_list)}"
-        else:
+        if searched_clear_targets is None:
             clear_targets_list_str = ''
+
+        else:
+            clear_targets_u_list = []
+            if searched_clear_targets.clear_targets_list[0] != -1:
+                clear_targets_u_list.append('b3')
+            if searched_clear_targets.clear_targets_list[1] != -1:
+                clear_targets_u_list.append('b4')
+            if searched_clear_targets.clear_targets_list[2] != -1:
+                clear_targets_u_list.append('b5')
+            if searched_clear_targets.clear_targets_list[3] != -1:
+                clear_targets_u_list.append('w3')
+            if searched_clear_targets.clear_targets_list[4] != -1:
+                clear_targets_u_list.append('w4')
+            if searched_clear_targets.clear_targets_list[5] != -1:
+                clear_targets_u_list.append('w5')
+
+            if 0 < len(clear_targets_u_list):
+                clear_targets_list_str = f" | {' '.join(clear_targets_u_list)}"
+            else:
+                clear_targets_list_str = ''
 
 
         # 次の手番
@@ -2874,7 +2514,7 @@ class Board():
         return C_WHITE
 
 
-    def as_sfen(self, from_present=False):
+    def as_sfen(self, searched_clear_targets=None, from_present=False):
         """（拡張仕様）盤のSFEN形式
 
         空欄： 数に置き換え
@@ -2883,6 +2523,8 @@ class Board():
 
         Parameters
         ----------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
         from_present : bool
             現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
@@ -2946,12 +2588,19 @@ class Board():
                 move_u_list.append(game_record_item.move.to_code())
 
 
+        if searched_clear_targets is None:
+            # FIXME 毎回生成するのは改善したい？
+            clear_targets_list = SearchedClearTargets.make_new_obj()
+        else:
+            clear_targets_list = searched_clear_targets.clear_targets_list
+
+
         return Sfen(
             from_present=from_present,
             squares=squares,
             next_turn=next_turn,
             way_locks=way_locks,
-            clear_targets_list=self._clear_targets_list,
+            clear_targets_list=clear_targets_list,
             moves_number=moves_number,
             move_u_list=move_u_list)
 
@@ -2985,7 +2634,422 @@ class Board():
             return ''
 
 
-class Search():
+class SearchedClearTargets():
+    """クリアーターゲット探索"""
+
+
+    def __init__(self, gameover_reason, clear_targets_list):
+        self._gameover_reason = gameover_reason
+        self._clear_targets_list = clear_targets_list
+
+
+    @property
+    def gameover_reason(self):
+        """終局理由。終局していなければ 'playing'、判定がまだなら空文字列"""
+        return self._gameover_reason
+
+
+    @property
+    def clear_targets_list(self):
+        """勝利条件をクリアーしたのが何手目かの一覧"""
+        return self._clear_targets_list
+
+
+    @staticmethod
+    def make_new_obj():
+        return SearchedClearTargets(
+            gameover_reason='',
+            clear_targets_list=[-1, -1, -1, -1, -1, -1])
+
+
+    @staticmethod
+    def update_clear_target_b3(board, clear_targets_list):
+        """クリアー条件　黒番１　横に３つ 1 が並んでいること
+        
+                 [b3]
+              1 2 3 4 5 6 7  
+            +---------------+
+          a | 1 1 1 ^ ^ . . |
+          b | ^ ^ ^ ^ ^ . . |
+          c | ^ ^ ^ ^ ^ . . |
+          d | ^ ^ ^ ^ ^ . . |
+          e | ^ ^ ^ ^ ^ . . |
+          f | ^ ^ ^ ^ ^ . . |
+            +---------------+
+        
+        図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        """
+
+        # 棒サイズ
+        line_length = 3
+        my_stone_color = C_BLACK
+        is_not_hit = False  # 外側の file ループを続行
+
+        for rank in range(0, RANK_LEN):
+            #             0,        6
+
+            for file in range(0, FILE_LEN-line_length+1):
+                #             0,        7-          3+1
+                #             0,       =5 
+
+                for i in range(0, line_length):
+                    if board._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
+                        is_not_hit = True
+                        break
+
+                if is_not_hit:
+                    is_not_hit = False
+                    continue
+
+                clear_targets_list[0] = board.moves_number
+                return
+
+
+    @staticmethod
+    def update_clear_target_b4(board, clear_targets_list):
+        """クリアー条件　黒番２　斜め（左右反転でも構わない）に４つ 1 が並んでいること
+        
+          Sinister Diagonal     Baroque Diagonal
+                  [b4]
+             1 2 3 4 5 6 7          1 2 3 4 5 6 7
+           +---------------+      +---------------+
+         a | 1 ^ ^ ^ . . . |    a | . . . 1 ^ ^ ^ |
+         b | ^ 1 ^ ^ . . . |    b | . . 1 ^ ^ ^ ^ |
+         c | ^ ^ 1 ^ . . . |    c | . 1 . ^ ^ ^ ^ |
+         d | . . . 1 . . . |    d | 1 . . . . . . |
+         e | . . . . . . . |    e | . . . . . . . |
+         f | . . . . . . . |    f | . . . . . . . |
+           +---------------+      +---------------+
+        
+        図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        
+        """
+
+        # 棒サイズ
+        line_length = 4
+        my_stone_color = C_BLACK
+        is_not_hit = False  # 外側の file ループを続行
+
+        # Sinister Diagonal
+        for rank in range(0, RANK_LEN-line_length+1):
+            #             0,        6-          4+1
+            #             0,       =3
+
+            for file in range(0, FILE_LEN-line_length+1):
+                #             0,        7-          4+1
+                #             0,       =4
+
+                for i in range(0, line_length):
+                    if board._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
+                        is_not_hit = True
+                        break
+
+                if is_not_hit:
+                    is_not_hit = False
+                    continue
+
+                clear_targets_list[1] = board.moves_number
+                return
+
+        # Baroque Diagonal
+        for rank in range(0, RANK_LEN-(RANK_LEN-line_length)-1):
+            #             0,        6-(       6-          4)-1
+            #             0,       =3 
+            for file in range(line_length-1, FILE_LEN):
+                #                       4-1,        7
+                #                      =3  ,        7
+
+                for i in range(0, line_length):
+                    if board._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
+                        is_not_hit = True
+                        break
+
+                if is_not_hit:
+                    is_not_hit = False
+                    break
+
+                clear_targets_list[1] = board.moves_number
+                return
+
+
+    @staticmethod
+    def update_clear_target_b5(board, clear_targets_list):
+        """クリアー条件　黒番３　縦に５つ 1 が並んでいること
+        
+                 [b5]
+              1 2 3 4 5 6 7
+            +---------------+
+          a | 1 ^ ^ ^ ^ ^ ^ |
+          b | 1 ^ ^ ^ ^ ^ ^ |
+          c | 1 . . . . . . |
+          d | 1 . . . . . . |
+          e | 1 . . . . . . |
+          f | . . . . . . . |
+            +---------------+
+        
+        図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        
+        """
+
+        # 棒サイズ
+        line_length = 5
+        my_stone_color = C_BLACK
+        is_not_hit = False  # 外側の file ループを続行
+
+        for rank in range(0, RANK_LEN-line_length+1):
+            #             0,        6-          5+1
+            #             0,       =2
+
+            for file in range(0, FILE_LEN):
+                #             0,        7
+
+                for i in range(0, line_length):
+                    if board._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
+                        is_not_hit = True
+                        break
+
+                if is_not_hit:
+                    is_not_hit = False
+                    continue
+
+                clear_targets_list[2] = board.moves_number
+                return
+
+
+    @staticmethod
+    def update_clear_target_w3(board, clear_targets_list):
+        """クリアー条件　白番１　縦に３つ 0 が並んでいること
+
+                 [w3]
+              1 2 3 4 5 6 7
+            +---------------+
+          a | 0 ^ ^ ^ ^ ^ ^ |
+          b | 0 ^ ^ ^ ^ ^ ^ |
+          c | 0 ^ ^ ^ ^ ^ ^ |
+          d | ^ ^ ^ ^ ^ ^ ^ |
+          e | . . . . . . . |
+          f | . . . . . . . |
+            +---------------+
+        
+        図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        """
+
+        # 棒サイズ
+        line_length = 3
+        my_stone_color = C_WHITE
+        is_not_hit = False  # 外側の file ループを続行
+
+        for rank in range(0, RANK_LEN-line_length+1):
+            #             0,        6-          3+1
+            #             0,       =4
+
+            for file in range(0, FILE_LEN):
+                #             0,        7
+
+                for i in range(0, line_length):
+                    if board._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
+                        is_not_hit = True
+                        break
+
+                if is_not_hit:
+                    is_not_hit = False
+                    continue
+
+                clear_targets_list[3] = board.moves_number
+                return
+
+
+    @staticmethod
+    def update_clear_target_w4(board, clear_targets_list):
+        """クリアー条件　白番２　斜め（左右反転でも構わない）に４つ 0 が並んでいること
+        
+          Sinister Diagonal     Baroque Diagonal
+                  [w4]
+             1 2 3 4 5 6 7          1 2 3 4 5 6 7
+           +---------------+      +---------------+
+         a | 0 ^ ^ ^ . . . |    a | . . . 0 ^ ^ ^ |
+         b | ^ 0 ^ ^ . . . |    b | . . 0 ^ ^ ^ ^ |
+         c | ^ ^ 0 ^ . . . |    c | . 0 . ^ ^ ^ ^ |
+         d | . . . 0 . . . |    d | 0 . . . . . . |
+         e | . . . . . . . |    e | . . . . . . . |
+         f | . . . . . . . |    f | . . . . . . . |
+           +---------------+      +---------------+
+        
+        図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        """
+
+        # 棒サイズ
+        line_length = 4
+        my_stone_color = C_WHITE
+        is_not_hit = False  # 外側の file ループを続行
+
+        # Sinister Diagonal
+        for rank in range(0, RANK_LEN-line_length+1):
+            #             0,        6-          4+1
+            #             0,       =3
+
+            for file in range(0, FILE_LEN-line_length+1):
+                #             0,        7-          4+1
+                #             0,       =4
+
+                for i in range(0, line_length):
+                    if board._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
+                        is_not_hit = True
+                        break
+
+                if is_not_hit:
+                    is_not_hit = False
+                    continue
+
+                clear_targets_list[4] = board.moves_number
+                return
+
+        # Baroque Diagonal
+        for rank in range(0, RANK_LEN-(RANK_LEN-line_length)-1):
+            #             0,        6-(       6-          4)-1
+            #             0,       =3
+
+            for file in range(line_length-1, FILE_LEN):
+                #                       4-1,        7
+                #                      =3  ,        7
+
+                for i in range(0, line_length):
+                    if board._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
+                        is_not_hit = True
+                        break
+
+                if is_not_hit:
+                    is_not_hit = False
+                    break
+
+                clear_targets_list[4] = board.moves_number
+                return
+
+
+    @staticmethod
+    def update_clear_target_w5(board, clear_targets_list):
+        """クリアー条件　白番３　横に５つ 0 が並んでいること
+        
+                 [w5]
+              1 2 3 4 5 6 7
+            +---------------+
+          a | 0 0 0 0 0 . . |
+          b | ^ ^ ^ . . . . |
+          c | ^ ^ ^ . . . . |
+          d | ^ ^ ^ . . . . |
+          e | ^ ^ ^ . . . . |
+          f | ^ ^ ^ . . . . |
+            +---------------+
+        
+        図中の ^ は、ループでスキャンする開始地点の範囲を表現している
+        """
+
+        # 棒サイズ
+        line_length = 5
+        my_stone_color = C_WHITE
+        is_not_hit = False  # 外側の file ループを続行
+
+        for rank in range(0, RANK_LEN):
+            #             0,        6
+
+            for file in range(0, FILE_LEN-line_length+1):
+                #             0,        7-          5+1
+                #             0,       =3
+
+                for i in range(0, line_length):
+                    if board._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
+                        is_not_hit = True
+                        break
+
+                if is_not_hit:
+                    is_not_hit = False
+                    continue
+
+                clear_targets_list[5] = board.moves_number
+                return
+
+
+    @staticmethod
+    def update_clear_targets(board, legal_moves, clear_targets_list):
+        """クリアーターゲット判定を更新
+        
+        先に generate_legal_moves() メソッドを呼び出すように働きます
+
+        Parameters
+        ----------
+        legal_moves : LegalMoves
+            合法手一覧
+        clear_targets_list : list
+            引き継ぐ
+        """
+
+        # ステールメートしている
+        if len(legal_moves.items) < 1:
+            return SearchedClearTargets(
+                gameover_reason='stalemate',
+                clear_targets_list=[-1, -1, -1, -1, -1, -1])
+
+
+        # TODO クリアー条件はアンドゥしたあと消すよう注意
+
+
+        if clear_targets_list[0] == -1:
+            SearchedClearTargets.update_clear_target_b3(board, clear_targets_list)
+
+        if clear_targets_list[1] == -1:
+            SearchedClearTargets.update_clear_target_b4(board, clear_targets_list)
+
+        if clear_targets_list[2] == -1:
+            SearchedClearTargets.update_clear_target_b5(board, clear_targets_list)
+
+        if clear_targets_list[3] == -1:
+            SearchedClearTargets.update_clear_target_w3(board, clear_targets_list)
+
+        if clear_targets_list[4] == -1:
+            SearchedClearTargets.update_clear_target_w4(board, clear_targets_list)
+
+        if clear_targets_list[5] == -1:
+            SearchedClearTargets.update_clear_target_w5(board, clear_targets_list)
+
+
+        # どちらかのプレイヤーが３つのターゲットを完了した
+        is_black_win = False
+        is_white_win = False
+        if clear_targets_list[0] != -1 and clear_targets_list[1] != -1 and clear_targets_list[2] != -1:
+            is_black_win = True
+
+        if clear_targets_list[3] != -1 and clear_targets_list[4] != -1 and clear_targets_list[5] != -1:
+            is_white_win = True
+
+        if is_black_win and is_white_win:
+            return SearchedClearTargets(
+                # FIXME 同着になる手は禁じ手
+                gameover_reason='draw (illegal move)',
+                clear_targets_list=clear_targets_list)
+
+        if is_black_win:
+            return SearchedClearTargets(
+                # 黒勝ち
+                gameover_reason='black win',
+                clear_targets_list=clear_targets_list)
+
+        if is_white_win:
+            return SearchedClearTargets(
+                # 白勝ち
+                gameover_reason='white win',
+                clear_targets_list=clear_targets_list)
+
+
+        # TODO 投了している
+
+
+        return SearchedClearTargets(
+            # 終局していない
+            gameover_reason='playing',
+            clear_targets_list=clear_targets_list)
+
+
+class SearchLegalMoves():
     """探索部
     
     cshogi では board が legal_moves を持っているが、ビナーシでは search が legal_moves を生成するという違いがある
@@ -3072,7 +3136,7 @@ class Search():
             合法手一覧
         """
 
-        #print("[Search > generate_legal_moves] 実行")
+        #print("[SearchLegalMoves > generate_legal_moves] 実行")
 
         # 終局判定のキャッシュをクリアー
         board._gameover_reason = ''
@@ -3184,28 +3248,28 @@ class Search():
 
 
         # アンド（AND）の合法手生成
-        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='a')
+        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='a')
 
         # オア（OR）の合法手生成
-        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='o')
+        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='o')
 
         # ゼロ（ZERO）の合法手生成
-        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='ze', for_edit_mode=True)
+        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='ze', for_edit_mode=True)
 
         # ノア（NOR）の合法手生成
-        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='no')
+        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='no')
 
         # エクソア（XOR）の合法手生成
-        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='xo')
+        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='xo')
 
         # ナンド（NAND）の合法手生成
-        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='na')
+        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='na')
 
         # エクスノア（XNOR）の合法手生成
-        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='xn')
+        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='xn')
 
         # ワン（ONE）の合法手生成
-        Search._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='on', for_edit_mode=True)
+        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='on', for_edit_mode=True)
 
         return legal_moves
 
@@ -3215,7 +3279,7 @@ class SearchMateMoveIn1Play():
 
 
     @staticmethod
-    def find_mate_move_in_1ply(board, move_list):
+    def find_mate_move_in_1ply(board, move_list, searched_clear_targets):
         """１手詰めがあるか調べる
         
         cshogi では Board のメソッド mate_move_in_1ply()。ビナーシでは変更した
@@ -3235,10 +3299,17 @@ class SearchMateMoveIn1Play():
             # DO 一手指す
             board.push_usi(move.to_code())
 
-            legal_moves = Search.generate_legal_moves(board)
+            legal_moves = SearchLegalMoves.generate_legal_moves(board)
+
+            # 終局判定を更新
+            searched_clear_targets = SearchedClearTargets.update_clear_targets(
+                board=board,
+                legal_moves=legal_moves,
+                # 引き継ぎ
+                clear_targets_list=searched_clear_targets.clear_targets_list)
 
             # DO 勝ちかどうか判定する。価値が有ったら真を返す
-            if board.is_gameover(legal_moves):
+            if board.is_gameover(searched_clear_targets):
 
                 if board.gameover_reason == 'black win':
                     if current_turn == C_BLACK:
@@ -3272,6 +3343,15 @@ class SearchMateMoveIn1Play():
 
             # DO 一手戻す
             board.pop()
+
+            legal_moves = SearchLegalMoves.generate_legal_moves(board)
+
+            # 終局判定を更新
+            searched_clear_targets = SearchedClearTargets.update_clear_targets(
+                board=board,
+                legal_moves=legal_moves,
+                # 引き継ぎ
+                clear_targets_list=searched_clear_targets.clear_targets_list)
 
             if found_move is not None:
                 break

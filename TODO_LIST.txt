@@ -4,8 +4,8 @@
         * 自分の色の石が多くなるように打ち続けると 黒 30%、白 28%、 無 40% ぐらいの勝率。白が有利になるばかり
 * cshogi との違い
     * [x] is_gameover() は board ではなく、 search に持たせたい
-    * [x] legal_moves は、Board が所有するのではなく、UsiLoop が Search を所有し、 Search が合法手を所有するようにしたい
-    * [ ] mate_move_in_1ply() は cshogi のように board に持たせるのではなく、それ専用のクラスを作る
+    * [x] legal_moves は、Board が所有するのではなく、 SearchLegalMoves が合法手を生成するようにしたい
+    * [x] mate_move_in_1ply() は cshogi のように board に持たせるのではなく、それ専用のクラスが生成するようにしたい
 * 探索
     * [ ] 探索中にクリアーターゲットを獲得して、アンドゥしたとき、クリアーターゲットがアンドゥされてない？
 * 指し手

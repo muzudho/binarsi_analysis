@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, Search, SearchMateMoveIn1Play
+from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play
 
 
 class UsiEngine():
@@ -17,6 +17,9 @@ class UsiEngine():
 
     def usi_loop(self):
         """USIループ"""
+
+        # 終局判定を新規作成
+        searched_clear_targets = SearchedClearTargets.make_new_obj()
 
         while True:
 
@@ -38,11 +41,13 @@ class UsiEngine():
 
             # 局面データ解析
             elif cmd[0] == 'position':
-                self.position(input_str)
+                searched_clear_targets = self.position(input_str)
+                if searched_clear_targets is None:
+                    raise ValueError("searched_clear_targets is None")
 
             # 思考開始～最善手返却
             elif cmd[0] == 'go':
-                self.go()
+                self.go(searched_clear_targets)
 
             # 中断
             elif cmd[0] == 'stop':
@@ -61,7 +66,9 @@ class UsiEngine():
             # 一手指す
             #   code: do 4n
             elif cmd[0] == 'do':
-                self.do(cmd)
+                searched_clear_targets = self.do(cmd, searched_clear_targets)
+                if searched_clear_targets is None:
+                    raise ValueError("searched_clear_targets is None")
 
             # 逆操作コードの表示
             #   code: inverse 4n
@@ -71,12 +78,14 @@ class UsiEngine():
             # 一手戻す
             #   code: undo
             elif cmd[0] == 'undo':
-                self.undo()
+                searched_clear_targets = self.undo(searched_clear_targets)
+                if searched_clear_targets is None:
+                    raise ValueError("searched_clear_targets is None")
 
             # 盤表示
             #   code: board
             elif cmd[0] == 'board':
-                self.print_board()
+                self.print_board(searched_clear_targets)
 
             # 合法手一覧表示
             #   code: legal_moves
@@ -99,7 +108,7 @@ class UsiEngine():
             # SFENを出力
             #   code: sfen
             elif cmd[0] == 'sfen':
-                self.print_sfen()
+                self.print_sfen(searched_clear_targets)
 
             # 操作履歴を出力
             #   code: history
@@ -109,12 +118,14 @@ class UsiEngine():
             # クリアーターゲットを出力
             #   code: clear_targets
             elif cmd[0] == 'clear_targets':
-                self.print_clear_targets()
+                self.print_clear_targets(searched_clear_targets)
 
             # プレイ
             #   code: play 4n
             elif cmd[0] == 'play':
-                self.play(input_str)
+                searched_clear_targets = self.play(input_str, searched_clear_targets)
+                if searched_clear_targets is None:
+                    raise ValueError("searched_clear_targets is None")
 
             # デバッグ情報表示
             #   code: dump
@@ -124,7 +135,7 @@ class UsiEngine():
             # １手詰めがあれば、その手をどれか１つ表示
             #   code: mate1
             elif cmd[0] == 'mate1':
-                self.print_mate1()
+                self.print_mate1(searched_clear_targets)
 
             # 動作テスト
             #   code: test
@@ -155,10 +166,49 @@ class UsiEngine():
 
 
     def usinewgame(self):
-        """新しい対局"""
-        # 盤をクリアー
+        """対局中モードに遷移する
+        
+        対局終了するまで、 setoption などの対局外のコマンドを無視する
+        """
+
+        # （しなくていいが？）盤をクリアー
         self._board.clear()
+
         print(f"[{datetime.datetime.now()}] usinewgame end", flush=True)
+
+
+    def position_detail(self, sfen_u, move_u_list):
+        """局面データ解析
+
+        Parameters
+        ----------
+        sfen_u : str
+            SFEN文字列
+        move_u_list : list
+            盤面編集履歴。実体は指し手コードの空白区切りリスト。対局棋譜のスーパーセット
+        """
+
+        # 平手初期局面に変更
+        if sfen_u == 'startpos':
+            self._board.reset()
+            searched_clear_targets = SearchedClearTargets.make_new_obj()
+
+        # 指定局面に変更
+        elif sfen_u[:5] == 'sfen ':
+            searched_clear_targets = self._board.set_sfen(sfen_u[5:])
+        
+        else:
+            raise ValueError(f"unsupported position  {sfen_u=}")
+
+
+        # 初期局面を記憶（SFENで初期局面を出力したいときのためのもの）
+        self._board.update_squares_at_init()
+
+        # 盤面編集履歴（対局棋譜のスーパーセット）再生
+        for move_u in move_u_list:
+            self._board.push_usi(move_u)
+
+        return searched_clear_targets
 
 
     def position(self, input_str):
@@ -177,41 +227,12 @@ class UsiEngine():
 
         #print(f"[position] {move_u_list=}")
 
-        self.position_detail(sfen_text, move_u_list)
+        searched_clear_targets = self.position_detail(sfen_text, move_u_list)
+
+        return searched_clear_targets
 
 
-    def position_detail(self, sfen_u, move_u_list):
-        """局面データ解析
-
-        Parameters
-        ----------
-        sfen_u : str
-            SFEN文字列
-        move_u_list : list
-            盤面編集履歴。実体は指し手コードの空白区切りリスト。対局棋譜のスーパーセット
-        """
-
-        # 平手初期局面に変更
-        if sfen_u == 'startpos':
-            self._board.reset()
-
-        # 指定局面に変更
-        elif sfen_u[:5] == 'sfen ':
-            self._board.set_sfen(sfen_u[5:])
-        
-        else:
-            raise ValueError(f"unsupported position  {sfen_u=}")
-
-
-        # 初期局面を記憶（SFENで初期局面を出力したいときのためのもの）
-        self._board.update_squares_at_init()
-
-        # 盤面編集履歴（対局棋譜のスーパーセット）再生
-        for move_u in move_u_list:
-            self._board.push_usi(move_u)
-
-
-    def sub_go(self, legal_moves, mate_move_in_1ply):
+    def sub_go(self, legal_moves, mate_move_in_1ply, searched_clear_targets):
         """思考開始～最善手返却
         
         Parameters
@@ -220,6 +241,8 @@ class UsiEngine():
             合法手一覧
         mate_move_in_1ply : Move
             一手詰めの指し手。無ければナン
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
 
         Returns
         -------
@@ -229,7 +252,7 @@ class UsiEngine():
             説明
         """
 
-        if self._board.is_gameover(legal_moves):
+        if self._board.is_gameover(searched_clear_targets):
             """投了局面時"""
 
             # 投了
@@ -296,6 +319,17 @@ class UsiEngine():
                 # DO １手指す
                 self._board.push_usi(move.to_code())
 
+                legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+
+                # 終局判定を更新
+                searched_clear_targets = SearchedClearTargets.update_clear_targets(
+                    board=self._board,
+                    legal_moves=legal_moves,
+                    # 引き継ぎ
+                    clear_targets_list=searched_clear_targets.clear_targets_list)
+
+                # TODO ここでクリアーターゲットを獲得したら profit を増やしていいと思う
+
                 # DO （１手指した後の）対象となる路の石（または空欄）の並びを取得
                 next_colors = self._board.get_colors_on_way(move.way, way_segment)
 
@@ -314,6 +348,15 @@ class UsiEngine():
 
                 # DO １手戻す
                 self._board.pop()
+
+                legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+
+                # 終局判定を更新
+                searched_clear_targets = SearchedClearTargets.update_clear_targets(
+                    board=self._board,
+                    legal_moves=legal_moves,
+                    # 引き継ぎ
+                    clear_targets_list=searched_clear_targets.clear_targets_list)
 
                 # DO 手番の石の差分から、相手番の石の差分を引く。これを［利］と呼ぶとする
 
@@ -371,19 +414,26 @@ class UsiEngine():
             return best_move, 'best move'
 
 
-    def go(self):
+    def go(self, searched_clear_targets):
         """思考開始～最善手返却"""
 
-        legal_moves = Search.generate_legal_moves(self._board)
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
         
         # 一手詰めの手を返す。無ければナンを返す
         mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
             board=self._board,
-            move_list=legal_moves.distinct_items)
+            move_list=legal_moves.distinct_items,
+            searched_clear_targets=searched_clear_targets)
 
+        # 終局判定を更新
+        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+            board=self._board,
+            legal_moves=legal_moves,
+            # 引き継ぎ
+            clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # 次の１手取得
-        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply)
+        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets)
 
         if reason == 'resign':
             # 投了
@@ -430,24 +480,20 @@ class UsiEngine():
                 print(f"（・＿・）何だろな？：'{cmd[1]}'")
 
 
-    def sub_do(self, move_u):
-        """一手指す
-
-        Parameters
-        ----------
-        move_u : str
-            例： "4n"
-        """
-        self._board.push_usi(move_u)
-
-
-    def do(self, cmd):
+    def do(self, cmd, searched_clear_targets):
         """一手指す　～　盤表示
 
         Parameters
         ----------
         cmd : list
             例： ["do", "4n"]
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
+        
+        Returns
+        -------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
         """
 
         move_u = cmd[1]
@@ -456,12 +502,24 @@ class UsiEngine():
             print("illegal move")
             return
 
-        self.sub_do(move_u)
+        # 一手指す
+        self._board.push_usi(move_u)
+
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+
+        # 終局判定を更新
+        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+            board=self._board,
+            legal_moves=legal_moves,
+            # 引き継ぎ
+            clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
-        self.print_board()
-        self.print_sfen(from_present=True)
+        self.print_board(searched_clear_targets)
+        self.print_sfen(searched_clear_targets, from_present=True)
         print("") # 空行
+
+        return searched_clear_targets
 
 
     def print_inverse_move(self, input_str):
@@ -500,23 +558,34 @@ class UsiEngine():
         print(f"{move_u} --inverse--> {inverse_move.to_code()}")
 
 
-    def undo(self):
+    def undo(self, searched_clear_targets):
         """一手戻す
             code: undo
         """
         self._board.pop()
 
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+
+        # 終局判定を更新
+        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+            board=self._board,
+            legal_moves=legal_moves,
+            # 引き継ぎ
+            clear_targets_list=searched_clear_targets.clear_targets_list)
+
         # 現在の盤表示
-        self.print_board()
-        self.print_sfen(from_present=True)
+        self.print_board(searched_clear_targets)
+        self.print_sfen(searched_clear_targets, from_present=True)
         print("") # 空行
 
+        return searched_clear_targets
 
-    def print_board(self):
+
+    def print_board(self, searched_clear_targets):
         """盤表示
             code: board
         """
-        print(self._board.as_str())
+        print(self._board.as_str(searched_clear_targets))
 
 
     def print_legal_moves(self):
@@ -529,12 +598,7 @@ LEGAL MOVES
 |Distinct|All|
 +--------+---+""")
 
-        legal_moves = Search.generate_legal_moves(self._board)
-
-        # 一手詰めの手を返す。無ければナンを返す
-        mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
-            board=self._board,
-            move_list=legal_moves.distinct_items)
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
         # 指した結果が同じになるような指し手も表示する
         # コードをキーにして降順にソートする
@@ -570,12 +634,7 @@ LEGAL MOVES
         """
         print("編集用の手一覧表示（合法手除く）　ここから：")
 
-        legal_moves = Search.generate_legal_moves(self._board)
-
-        # 一手詰めの手を返す。無ければナンを返す
-        mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
-            board=self._board,
-            move_list=legal_moves.distinct_items)
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
         for i in range(0, len(legal_moves.items_for_edit)):
             move = legal_moves.items_for_edit[i]
@@ -619,16 +678,22 @@ HISTORY
 """)
 
 
-    def print_clear_targets(self):
-        """クリアーターゲットの一覧表示"""
+    def print_clear_targets(self, searched_clear_targets):
+        """クリアーターゲットの一覧表示
+        
+        Parameters
+        ----------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
+        """
 
         # Top と Bottom
         disp1 = ['             '] * CLEAR_TARGETS_LEN
         disp2 = ['    WANTED   '] * CLEAR_TARGETS_LEN
 
         for i in range(0, CLEAR_TARGETS_LEN):
-            if self._board._clear_targets_list[i] != -1:
-                disp1[i] = f' CLEAR in {self._board._clear_targets_list[i]:2} '
+            if searched_clear_targets.clear_targets_list[i] != -1:
+                disp1[i] = f' CLEAR in {searched_clear_targets.clear_targets_list[i]:2} '
                 disp2[i] = '             '
 
         print(f"""\
@@ -655,30 +720,42 @@ CLEAR TARGETS
 
         print(f"{match_count + 1} 局目ここから：")
 
+        # 終局判定を新規作成
+        searched_clear_targets = SearchedClearTargets.make_new_obj()
+
         # 100手も使わない
         for i in range(1, 100):
 
-            legal_moves = Search.generate_legal_moves(self._board)
+            legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
             # 一手詰めの手を返す。無ければナンを返す
             mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
                 board=self._board,
-                move_list=legal_moves.distinct_items)
+                move_list=legal_moves.distinct_items,
+                searched_clear_targets=searched_clear_targets)
 
-            if self._board.is_gameover(legal_moves):
+            # 終局判定を更新
+            searched_clear_targets = SearchedClearTargets.update_clear_targets(
+                board=self._board,
+                legal_moves=legal_moves,
+                # 引き継ぎ
+                clear_targets_list=searched_clear_targets.clear_targets_list)
+
+            if self._board.is_gameover(searched_clear_targets):
                 print("# gameover")
                 break
 
+            # 現在の盤表示
+            self.print_board(searched_clear_targets)
+            self.print_sfen(searched_clear_targets, from_present=True)
+            print("") # 空行
+
             # １つ選ぶ
-            (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply)
+            (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets)
 
             # １手指す
             self._board.push_usi(best_move.to_code())
 
-            # 現在の盤表示
-            self.print_board()
-            self.print_sfen(from_present=True)
-            print("") # 空行
 
         print(f"{match_count + 1} 局目ここまで")
 
@@ -694,10 +771,10 @@ CLEAR TARGETS
         """
         print("自己対局　ここから：")
 
-        # 現在の盤表示
-        self.print_board()
-        self.print_sfen(from_present=True)
-        print("") # 空行
+        ## 現在の盤表示
+        #self.print_board()
+        #self.print_sfen(searched_clear_targets, from_present=True)
+        #print("") # 空行
 
         # 連続対局回数
         tokens = input_str.split(' ')
@@ -738,21 +815,23 @@ CLEAR TARGETS
 """)
 
 
-    def print_sfen(self, from_present=False):
+    def print_sfen(self, searched_clear_targets, from_present=False):
         """SFEN を出力
 
         Parameters
         ----------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
         from_present : bool
             現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
-        print(f"[from beginning] sfen {self._board.as_sfen().to_code()}")
+        print(f"[from beginning] sfen {self._board.as_sfen(searched_clear_targets).to_code()}")
 
         stone_before_change_str = self._board.as_stones_before_change()
         if stone_before_change_str != '':
             print(f"                 stones_before_change {stone_before_change_str}")
 
-        print(f"[from present]   sfen {self._board.as_sfen(from_present=True).to_code()}")
+        print(f"[from present]   sfen {self._board.as_sfen(searched_clear_targets, from_present=True).to_code()}")
 
         stone_before_change_str = self._board.as_stones_before_change(from_present=True)
         if stone_before_change_str != '':
@@ -826,8 +905,14 @@ CLEAR TARGETS
 
 
 
-    def play(self, input_str):
-        """一手入力すると、相手番をコンピュータが指してくれる"""
+    def play(self, input_str, searched_clear_targets):
+        """一手入力すると、相手番をコンピュータが指してくれる
+        
+        Returns
+        -------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
+        """
 
         # 待ち時間（秒）を置く。ターミナルの行が詰まって見づらいので、イラストでも挟む
         if self._board.get_next_turn() == C_BLACK:
@@ -842,30 +927,47 @@ CLEAR TARGETS
 
         if not Move.validate_code(move_u, no_panic=True):
             print("illegal move")
-            return
+            return searched_clear_targets
 
-        self.sub_do(move_u)
+        # 一手指す
+        self._board.push_usi(move_u)
+
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+
+        # 一手詰めの手を返す。無ければナンを返す
+        mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
+            board=self._board,
+            move_list=legal_moves.distinct_items,
+            searched_clear_targets=searched_clear_targets)
+
+        # 終局判定を更新
+        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+            board=self._board,
+            legal_moves=legal_moves,
+            # 引き継ぎ
+            clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
-        self.print_board()
-        self.print_sfen(from_present=True)
+        self.print_board(searched_clear_targets)
+        self.print_sfen(searched_clear_targets, from_present=True)
         print("") # 空行
 
 
         def print_clear_target_if_it_now():
             """今クリアーしたものがあれば、クリアー目標表示"""
             one_cleared = False
-            for clear_target in self._board.clear_targets_list:
+            for clear_target in searched_clear_targets.clear_targets_list:
                 if clear_target == self._board.moves_number:
                     one_cleared = True
                     break
             
             if one_cleared:
-                self.print_clear_targets()
+                self.print_clear_targets(searched_clear_targets)
                 time.sleep(0.7)
 
         # 今クリアーしたものがあれば、クリアー目標表示
         print_clear_target_if_it_now()
+
 
         def print_if_end_of_game():
             current_turn = Colors.Opponent(self._board.get_next_turn())
@@ -898,16 +1000,9 @@ CLEAR TARGETS
                 raise ValueError(f"undefined gameover. {self._board.gameover_reason=}")
 
 
-        legal_moves = Search.generate_legal_moves(self._board)
-
-        # 一手詰めの手を返す。無ければナンを返す
-        mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
-            board=self._board,
-            move_list=legal_moves.distinct_items)
-
-        if self._board.is_gameover(legal_moves):
+        if self._board.is_gameover(searched_clear_targets):
             print_if_end_of_game()
-            return
+            return searched_clear_targets
 
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
         time.sleep(0.7)
@@ -915,12 +1010,12 @@ CLEAR TARGETS
         time.sleep(0.7)
 
         # DO コンピュータが次の一手を算出する
-        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply)
+        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets)
 
         if best_move is None:
             # ターミナルが見づらいので、空行を挟む
             self.print_win()
-            return
+            return searched_clear_targets
         
         # ターミナルが見づらいので、イラストを挟む
         if self._board.get_next_turn() == C_BLACK:
@@ -931,30 +1026,34 @@ CLEAR TARGETS
         time.sleep(0.7)
 
         # DO コンピュータが一手指す
-        self.sub_do(best_move.to_code())
+        self._board.push_usi(best_move.to_code())
 
-        legal_moves = Search.generate_legal_moves(self._board)
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
-        ## 一手詰めの手を返す。無ければナンを返す
-        #mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
-        #    board=self._board,
-        #    move_list=legal_moves.distinct_items)
+        # 終局判定を更新
+        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+            board=self._board,
+            legal_moves=legal_moves,
+            # 引き継ぎ
+            clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
-        self.print_board()
-        self.print_sfen(from_present=True)
+        self.print_board(searched_clear_targets)
+        self.print_sfen(searched_clear_targets, from_present=True)
         print("") # 空行
 
         # 今クリアーしたものがあれば、クリアー目標表示
         print_clear_target_if_it_now()
 
-        if self._board.is_gameover(legal_moves):
+        if self._board.is_gameover(searched_clear_targets):
             print_if_end_of_game()
-            return
+            return searched_clear_targets
 
         # ターミナルが見づらいので、イラストを挟む
         time.sleep(0.7)
         self.print_you()
+
+        return searched_clear_targets
 
 
     def dump(self):
@@ -962,15 +1061,16 @@ CLEAR TARGETS
         print(f"[dump] {self._board._next_turn_at_init=}")
 
 
-    def print_mate1(self):
+    def print_mate1(self, searched_clear_targets):
         """TODO １手詰めがあれば、その手をどれか１つ表示"""
 
-        legal_moves = Search.generate_legal_moves(self._board)
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
         # 一手詰めの手を返す。無ければナンを返す
         mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
             board=self._board,
-            move_list=legal_moves.distinct_items)
+            move_list=legal_moves.distinct_items,
+            searched_clear_targets=searched_clear_targets)
 
         if mate_move_in_1ply is None:
             print(f"there is no checkmate")
@@ -987,15 +1087,10 @@ CLEAR TARGETS
         self.usi()
         self.isready()
         self.usinewgame()
-        self.position('position sfen 7/7/2o4/7/7/7 w - - 1 moves 4n')
-        self.print_board()
+        searched_clear_targets = self.position('position sfen 7/7/2o4/7/7/7 w - - 1 moves 4n')
+        self.print_board(searched_clear_targets)
 
-        legal_moves = Search.generate_legal_moves(self._board)
-
-        # # 一手詰めの手を返す。無ければナンを返す
-        # mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
-        #     board=self._board,
-        #     move_list=legal_moves.distinct_items)
+        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
         # 指し手のリストから冗長な指し手を省き、さらにコードをキーにして降順にソートする
         actual_move_list = sorted(legal_moves.distinct_items, key=lambda x:x.to_code())
