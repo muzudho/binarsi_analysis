@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play
+from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover
 
 
 class UsiEngine():
@@ -232,7 +232,7 @@ class UsiEngine():
         return searched_clear_targets
 
 
-    def sub_go(self, legal_moves, mate_move_in_1ply, searched_clear_targets):
+    def sub_go(self, legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover):
         """思考開始～最善手返却
         
         Parameters
@@ -243,6 +243,8 @@ class UsiEngine():
             一手詰めの指し手。無ければナン
         searched_clear_targets : SearchedClearTargets
             クリアーターゲット
+        searched_gameover : SearchedGameover
+            終局判定
 
         Returns
         -------
@@ -252,7 +254,7 @@ class UsiEngine():
             説明
         """
 
-        if self._board.is_gameover(searched_clear_targets):
+        if self._board.is_gameover(searched_gameover):
             """投了局面時"""
 
             # 投了
@@ -408,15 +410,17 @@ class UsiEngine():
             move_list=legal_moves.distinct_items,
             searched_clear_targets=searched_clear_targets)
 
-        # 終局判定を更新
+        # クリアーターゲット更新
         searched_clear_targets = SearchedClearTargets.update_clear_targets(
             board=self._board,
-            legal_moves=legal_moves,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
 
+        # 終局判定
+        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+
         # 次の１手取得
-        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets)
+        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
 
         if reason == 'resign':
             # 投了
@@ -490,12 +494,14 @@ class UsiEngine():
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
-        # 終局判定を更新
+        # クリアーターゲット更新
         searched_clear_targets = SearchedClearTargets.update_clear_targets(
             board=self._board,
-            legal_moves=legal_moves,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
+
+        # 終局判定
+        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
         self.print_board(searched_clear_targets)
@@ -549,12 +555,14 @@ class UsiEngine():
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
-        # 終局判定を更新
+        # クリアーターゲット更新
         searched_clear_targets = SearchedClearTargets.update_clear_targets(
             board=self._board,
-            legal_moves=legal_moves,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
+
+        # 終局判定
+        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
         self.print_board(searched_clear_targets)
@@ -717,15 +725,17 @@ CLEAR TARGETS
                 move_list=legal_moves.distinct_items,
                 searched_clear_targets=searched_clear_targets)
 
-            # 終局判定を更新
+            # クリアーターゲット更新
             searched_clear_targets = SearchedClearTargets.update_clear_targets(
                 board=self._board,
-                legal_moves=legal_moves,
                 # 引き継ぎ
                 clear_targets_list=searched_clear_targets.clear_targets_list)
 
-            if self._board.is_gameover(searched_clear_targets):
-                print(f"# gameover  {searched_clear_targets.gameover_reason=}")
+            # 終局判定
+            searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+
+            if self._board.is_gameover(searched_gameover):
+                print(f"# gameover  {searched_gameover.reason=}")
                 break
 
             # 現在の盤表示
@@ -734,7 +744,7 @@ CLEAR TARGETS
             print("") # 空行
 
             # １つ選ぶ
-            (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets)
+            (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
 
             # １手指す
             self._board.push_usi(best_move.to_code())
@@ -774,12 +784,19 @@ CLEAR TARGETS
             self.position('position startpos')
 
             # 自己対局
+            # クリアーターゲット更新
             searched_clear_targets = self.self_match_once(match_count=i)
 
-            if searched_clear_targets.gameover_reason == 'black win':
+            # 終局判定のために、しかたなく終局後に合法手生成
+            legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+
+            # 終局判定
+            searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+
+            if searched_gameover.reason == 'black win':
                 black_win_count += 1
 
-            elif searched_clear_targets.gameover_reason == 'white win':
+            elif searched_gameover.reason == 'white win':
                 white_win_count += 1
             
             else:
@@ -920,12 +937,14 @@ CLEAR TARGETS
             move_list=legal_moves.distinct_items,
             searched_clear_targets=searched_clear_targets)
 
-        # 終局判定を更新
+        # クリアーターゲット更新
         searched_clear_targets = SearchedClearTargets.update_clear_targets(
             board=self._board,
-            legal_moves=legal_moves,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
+
+        # 終局判定
+        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
         self.print_board(searched_clear_targets)
@@ -952,7 +971,7 @@ CLEAR TARGETS
         def print_if_end_of_game(searched_clear_targets):
             current_turn = Colors.Opponent(self._board.get_next_turn())
             
-            if searched_clear_targets.gameover_reason == 'black win':
+            if searched_gameover.reason == 'black win':
                 if current_turn == C_BLACK:
                     self.print_you()
                     self.print_win()
@@ -961,7 +980,7 @@ CLEAR TARGETS
                     self.print_you()
                     self.print_lose()
 
-            elif searched_clear_targets.gameover_reason == 'white win':
+            elif searched_gameover.reason == 'white win':
                 if current_turn == C_BLACK:
                     self.print_you()
                     self.print_lose()
@@ -970,17 +989,17 @@ CLEAR TARGETS
                     self.print_you()
                     self.print_win()
 
-            elif searched_clear_targets.gameover_reason == 'draw (illegal move)':
+            elif searched_gameover.reason == 'draw (illegal move)':
                 self.print_lose()
 
-            elif searched_clear_targets.gameover_reason == 'stalemate':
+            elif searched_gameover.reason == 'stalemate':
                 self.print_lose()
             
             else:
-                raise ValueError(f"undefined gameover. {searched_clear_targets.gameover_reason=}")
+                raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
 
 
-        if self._board.is_gameover(searched_clear_targets):
+        if self._board.is_gameover(searched_gameover):
             print_if_end_of_game(searched_clear_targets)
             return searched_clear_targets
 
@@ -990,7 +1009,7 @@ CLEAR TARGETS
         time.sleep(0.7)
 
         # DO コンピュータが次の一手を算出する
-        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets)
+        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
 
         if best_move is None:
             # ターミナルが見づらいので、空行を挟む
@@ -1010,12 +1029,14 @@ CLEAR TARGETS
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
-        # 終局判定を更新
+        # クリアーターゲット更新
         searched_clear_targets = SearchedClearTargets.update_clear_targets(
             board=self._board,
-            legal_moves=legal_moves,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
+
+        # 終局判定
+        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
         self.print_board(searched_clear_targets)
@@ -1025,7 +1046,7 @@ CLEAR TARGETS
         # 今クリアーしたものがあれば、クリアー目標表示
         print_clear_target_if_it_now()
 
-        if self._board.is_gameover(searched_clear_targets):
+        if self._board.is_gameover(searched_gameover):
             print_if_end_of_game()
             return searched_clear_targets
 

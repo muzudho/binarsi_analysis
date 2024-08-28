@@ -1591,7 +1591,6 @@ class Board():
                     clear_targets_list[i] = int(token)
 
         searched_clear_targets = SearchedClearTargets(
-            gameover_reason='',
             clear_targets_list=clear_targets_list)
 
         # 手数の解析
@@ -2329,19 +2328,19 @@ class Board():
         return (Way.code_to_obj('-'), Way.code_to_obj('-'), 'there is not 2 stones')
 
 
-    def is_gameover(self, searched_clear_targets):
+    def is_gameover(self, searched_gameover):
         """終局しているか？
         
         cshogi では is_gameover() は board のメソッドあり、引数はありませんが、ビナーシでは引数を受け取ります
 
         Parameters
         ----------
-        searched_clear_targets : SearchedClearTargets
-            クリアーターゲット
+        searched_gameover : SearchedGameover
+            ゲームオーバー探索
         """
 
         # FIXME 探索時、アンドゥしたらキャッシュをクリアーする必要があるが大変
-        return searched_clear_targets.gameover_reason != 'playing'
+        return searched_gameover.reason != 'playing'
 
 
     def as_str(self, searched_clear_targets=None):
@@ -2648,15 +2647,8 @@ class SearchedClearTargets():
     """クリアーターゲット探索"""
 
 
-    def __init__(self, gameover_reason, clear_targets_list):
-        self._gameover_reason = gameover_reason
+    def __init__(self, clear_targets_list):
         self._clear_targets_list = clear_targets_list
-
-
-    @property
-    def gameover_reason(self):
-        """終局理由。終局していなければ 'playing'、判定がまだなら空文字列"""
-        return self._gameover_reason
 
 
     @property
@@ -2668,8 +2660,7 @@ class SearchedClearTargets():
     @staticmethod
     def make_new_obj():
         return SearchedClearTargets(
-            gameover_reason='',
-            clear_targets_list=[-1, -1, -1, -1, -1, -1])
+            clear_targets_list=[-1] * CLEAR_TARGETS_LEN)
 
 
     @staticmethod
@@ -2980,15 +2971,13 @@ class SearchedClearTargets():
 
 
     @staticmethod
-    def update_clear_targets(board, legal_moves, clear_targets_list):
+    def update_clear_targets(board, clear_targets_list):
         """クリアーターゲット判定を更新
         
         先に generate_legal_moves() メソッドを呼び出すように働きます
 
         Parameters
         ----------
-        legal_moves : LegalMoves
-            合法手一覧
         clear_targets_list : list
             引き継ぐ
         """
@@ -3013,14 +3002,9 @@ class SearchedClearTargets():
         if clear_targets_list[5] == -1:
             SearchedClearTargets.update_clear_target_w5(board, clear_targets_list)
 
-
-        # ゲームオーバー判定
-        searched_gameover = SearchedGameover.search(legal_moves, clear_targets_list)
-
         # TODO 投了しているケースに対応したい
 
         return SearchedClearTargets(
-            gameover_reason=searched_gameover.reason,
             clear_targets_list=clear_targets_list)
 
 
@@ -3273,17 +3257,19 @@ class SearchMateMoveIn1Play():
 
             legal_moves = SearchLegalMoves.generate_legal_moves(board)
 
-            # 終局判定を更新
+            # クリアーターゲット更新
             searched_clear_targets = SearchedClearTargets.update_clear_targets(
                 board=board,
-                legal_moves=legal_moves,
                 # 引き継ぎ
                 clear_targets_list=searched_clear_targets.clear_targets_list)
 
+            # 終局判定
+            searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+
             # DO 勝ちかどうか判定する。価値が有ったら真を返す
-            if board.is_gameover(searched_clear_targets):
+            if board.is_gameover(searched_gameover):
 
-                if searched_clear_targets.gameover_reason == 'black win':
+                if searched_gameover.reason == 'black win':
                     if current_turn == C_BLACK:
                         # You win!  ※一手戻すまでスコープから抜けないこと
                         found_move = move
@@ -3292,7 +3278,7 @@ class SearchMateMoveIn1Play():
                         # You lose!
                         pass
 
-                elif searched_clear_targets.gameover_reason == 'white win':
+                elif searched_gameover.reason == 'white win':
                     if current_turn == C_BLACK:
                         # You lose!
                         pass
@@ -3301,16 +3287,16 @@ class SearchMateMoveIn1Play():
                         # You win!  ※一手戻すまでスコープから抜けないこと
                         found_move = move
 
-                elif searched_clear_targets.gameover_reason == 'draw (illegal move)':
+                elif searched_gameover.reason == 'draw (illegal move)':
                     # Illegal move
                     pass
 
-                elif searched_clear_targets.gameover_reason == 'stalemate':
+                elif searched_gameover.reason == 'stalemate':
                     # You lose!
                     pass
 
                 else:
-                    raise ValueError(f"undefined gameover. {searched_clear_targets.gameover_reason=}")
+                    raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
 
 
             # DO 一手戻す
@@ -3318,12 +3304,14 @@ class SearchMateMoveIn1Play():
 
             legal_moves = SearchLegalMoves.generate_legal_moves(board)
 
-            # 終局判定を更新
+            # クリアーターゲット更新
             searched_clear_targets = SearchedClearTargets.update_clear_targets(
                 board=board,
-                legal_moves=legal_moves,
                 # 引き継ぎ
                 clear_targets_list=searched_clear_targets.clear_targets_list)
+
+            # 終局判定
+            searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
 
             if found_move is not None:
                 break
@@ -3375,7 +3363,9 @@ class SearchedGameover():
 
     @property
     def reason(self):
-        """ゲームオーバーと判定された理由の説明"""
+        """ゲームオーバーと判定された理由の説明
+
+        終局していなければ 'playing'、判定がまだなら空文字列"""
         return self._reason
 
 
