@@ -196,3 +196,50 @@ ValueError: n演算では、石の置いている対象路を指定してはい�
 [from present]   sfen 1xoxox1/1oxoxx1/1xoxox1/1oxoxx1/1xoxox1/1xoxox1 b 345abcdef /17/12/4/16/ 18
 
 [unexpected error] err=ValueError("out of bounds  input_way_1.to_code()='-'  input_way_2.to_code()='-'  move.to_code()='6a'"), type(err)=<class 'ValueError'>
+
+
+# [ ] 2024-08-29 クリアーターゲットがおかしい
+
+[ 2 moves | moved 4n | next black]
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . . . . . . |
+c | . . 0 1 . . . |
+d | . . 1 0 . . . |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 b - - 1 moves dn 4n
+                 stones_before_change - -
+[from present]   sfen 7/7/2ox3/2xo3/7/7 b - - 2
+
+     __     ___   ________    __    __ 
+    |  |   /  /  /   __   |  |  |  |  |
+    |  |__/  /   |  |  |  |  |  |  |  |
+    |__    _/    |  |  |  |  |  |  |  |
+       |  |      |  |  |  |  |  |  |  |
+       |  |      |  |_/   |  |  |_/   |
+       |__|      |_______/   |_______/
+play eo
+       ___
+      /   |
+     /    |
+    |__   |
+      |   |
+      |   |
+      |___|
+[ 3 moves | moved eo | b3 w3 | next white]
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . . . . . . |
+c | . . 0 1 . . . |
+d | . . 1 0 . . . |
+e | . . 1 1 . . . |
+f | . . . . . . . |
+  +---------------+
+[from beginning] sfen 7/7/2o4/7/7/7 w - 4///4// 1 moves dn 4n eo
+                 stones_before_change - - -
+[from present]   sfen 7/7/2ox3/2xo3/2xx3/7 w - 4///4// 3
+

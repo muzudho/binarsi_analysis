@@ -319,16 +319,8 @@ class UsiEngine():
                 # DO １手指す
                 self._board.push_usi(move.to_code())
 
-                legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
-
-                # 終局判定を更新
-                searched_clear_targets = SearchedClearTargets.update_clear_targets(
-                    board=self._board,
-                    legal_moves=legal_moves,
-                    # 引き継ぎ
-                    clear_targets_list=searched_clear_targets.clear_targets_list)
-
-                # TODO ここでクリアーターゲットを獲得したら profit を増やしていいと思う
+                # 指し手生成中に合法手生成したら処理速度が激減するので、やってはいけない
+                # 指し手生成中にクリアーターゲット判定をしたら処理速度が激減するので、やってはいけない
 
                 # DO （１手指した後の）対象となる路の石（または空欄）の並びを取得
                 next_colors = self._board.get_colors_on_way(move.way, way_segment)
@@ -348,15 +340,6 @@ class UsiEngine():
 
                 # DO １手戻す
                 self._board.pop()
-
-                legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
-
-                # 終局判定を更新
-                searched_clear_targets = SearchedClearTargets.update_clear_targets(
-                    board=self._board,
-                    legal_moves=legal_moves,
-                    # 引き継ぎ
-                    clear_targets_list=searched_clear_targets.clear_targets_list)
 
                 # DO 手番の石の差分から、相手番の石の差分を引く。これを［利］と呼ぶとする
 
