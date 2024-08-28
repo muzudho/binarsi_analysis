@@ -3411,7 +3411,7 @@ class SearchedGameover():
                 reason='white win')
 
         # ステールメートしている
-        if len(legal_moves.items) < 1:
+        if len(legal_moves.distinct_items) < 1:
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,

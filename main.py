@@ -273,6 +273,9 @@ class UsiEngine():
         
         move_list = legal_moves.distinct_items
 
+        if len(move_list) < 1:
+            raise ValueError(f"ステールメートで弾けなかった？")
+
         # ランダムムーブ
         is_random_move = False
 
@@ -395,9 +398,12 @@ class UsiEngine():
                 return best_move, 'best move'
 
             # DO 利が負の指し手のリストが空でなければ、そこから１つ選んで返す。ここで関数終了
-            # FIXME ここでエラーになる？
-            best_move = random.choice(negative_move_list)
-            return best_move, 'best move'
+            if 0 < len(negative_move_list):
+                best_move = random.choice(negative_move_list)
+                return best_move, 'best move'
+
+            # FIXME どのリストも空のケースがある？
+            raise ValueError(f"どのリストも空のケースがある？  {len(positive_move_list)=}  {len(come_out_even_move_list)=}  {len(negative_move_list)=}")
 
 
     def go(self, searched_clear_targets):
@@ -902,6 +908,49 @@ CLEAR TARGETS
     |________|  |_______/   |______/   |_______/""", flush=True)
 
 
+    def print_clear_target_if_it_now(searched_clear_targets):
+        """今クリアーしたものがあれば、クリアー目標表示"""
+        one_cleared = False
+        for clear_target in searched_clear_targets.clear_targets_list:
+            if clear_target == self._board.moves_number:
+                one_cleared = True
+                break
+        
+        if one_cleared:
+            self.print_clear_targets(searched_clear_targets)
+            time.sleep(0.7)
+
+
+    def print_if_end_of_game(searched_clear_targets, searched_gameover):
+        current_turn = Colors.Opponent(self._board.get_next_turn())
+        
+        if searched_gameover.is_black_win:
+            if current_turn == C_BLACK:
+                self.print_you()
+                self.print_win()
+            
+            elif current_turn == C_WHITE:
+                self.print_you()
+                self.print_lose()
+
+        elif searched_gameover.is_white_win:
+            if current_turn == C_BLACK:
+                self.print_you()
+                self.print_lose()
+            
+            elif current_turn == C_WHITE:
+                self.print_you()
+                self.print_win()
+
+        elif searched_gameover.is_double_win:
+            self.print_lose()
+
+        elif searched_gameover.is_stalemate:
+            self.print_lose()
+        
+        else:
+            raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
+
 
     def play(self, input_str, searched_clear_targets):
         """一手入力すると、相手番をコンピュータが指してくれる
@@ -920,89 +969,46 @@ CLEAR TARGETS
 
         time.sleep(0.7)
 
-        # DO 一手指す
+        # DO あなたが一手指す
         move_u = input_str.split(' ')[1]
 
         if not Move.validate_code(move_u, no_panic=True):
             print("illegal move")
             return searched_clear_targets
 
-        # 一手指す
         self._board.push_usi(move_u)
 
-        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+        # コンピューター側の合法手一覧
+        legal_moves_for_computer = SearchLegalMoves.generate_legal_moves(self._board)
 
         # 一手詰めの手を返す。無ければナンを返す
         mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
             board=self._board,
-            move_list=legal_moves.distinct_items,
+            move_list=legal_moves_for_computer.distinct_items,
             searched_clear_targets=searched_clear_targets)
 
-        # クリアーターゲット更新
-        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+        # コンピューター側のためのクリアーターゲット更新
+        searched_clear_targets_for_computer = SearchedClearTargets.update_clear_targets(
             board=self._board,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
 
-        # 終局判定
-        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+        # コンピューター側のための終局判定
+        searched_gameover_for_computer = SearchedGameover.search(legal_moves_for_computer, searched_clear_targets_for_computer.clear_targets_list)
 
         # 現在の盤表示
-        self.print_board(searched_clear_targets)
-        self.print_sfen(searched_clear_targets, from_present=True)
+        self.print_board(searched_clear_targets_for_computer)
+        self.print_sfen(searched_clear_targets_for_computer, from_present=True)
         print("") # 空行
 
 
-        def print_clear_target_if_it_now(searched_clear_targets):
-            """今クリアーしたものがあれば、クリアー目標表示"""
-            one_cleared = False
-            for clear_target in searched_clear_targets.clear_targets_list:
-                if clear_target == self._board.moves_number:
-                    one_cleared = True
-                    break
-            
-            if one_cleared:
-                self.print_clear_targets(searched_clear_targets)
-                time.sleep(0.7)
-
         # 今クリアーしたものがあれば、クリアー目標表示
-        print_clear_target_if_it_now(searched_clear_targets)
-
-
-        def print_if_end_of_game(searched_clear_targets):
-            current_turn = Colors.Opponent(self._board.get_next_turn())
-            
-            if searched_gameover.is_black_win:
-                if current_turn == C_BLACK:
-                    self.print_you()
-                    self.print_win()
-                
-                elif current_turn == C_WHITE:
-                    self.print_you()
-                    self.print_lose()
-
-            elif searched_gameover.is_white_win:
-                if current_turn == C_BLACK:
-                    self.print_you()
-                    self.print_lose()
-                
-                elif current_turn == C_WHITE:
-                    self.print_you()
-                    self.print_win()
-
-            elif searched_gameover.is_double_win:
-                self.print_lose()
-
-            elif searched_gameover.is_stalemate:
-                self.print_lose()
-            
-            else:
-                raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
+        print_clear_target_if_it_now(searched_clear_targets_for_computer)
 
 
         if self._board.is_gameover(searched_gameover):
-            print_if_end_of_game(searched_clear_targets)
-            return searched_clear_targets
+            print_if_end_of_game(searched_clear_targets_for_computer, searched_gameover_for_computer)
+            return searched_clear_targets_for_computer
 
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
         time.sleep(0.7)
@@ -1010,12 +1016,12 @@ CLEAR TARGETS
         time.sleep(0.7)
 
         # DO コンピュータが次の一手を算出する
-        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
+        (best_move, reason) = self.sub_go(legal_moves_for_computer, mate_move_in_1ply, searched_clear_targets_for_computer, searched_gameover_for_computer)
 
         if best_move is None:
             # ターミナルが見づらいので、空行を挟む
             self.print_win()
-            return searched_clear_targets
+            return searched_clear_targets_for_computer
         
         # ターミナルが見づらいので、イラストを挟む
         if self._board.get_next_turn() == C_BLACK:
@@ -1028,34 +1034,35 @@ CLEAR TARGETS
         # DO コンピュータが一手指す
         self._board.push_usi(best_move.to_code())
 
-        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+        # あなた側の合法手一覧
+        legal_moves_for_you = SearchLegalMoves.generate_legal_moves(self._board)
 
-        # クリアーターゲット更新
-        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+        # あなた側のためのクリアーターゲット更新
+        searched_clear_targets_for_you = SearchedClearTargets.update_clear_targets(
             board=self._board,
             # 引き継ぎ
-            clear_targets_list=searched_clear_targets.clear_targets_list)
+            clear_targets_list=searched_clear_targets_for_computer.clear_targets_list)
 
-        # 終局判定
-        searched_gameover = SearchedGameover.search(legal_moves, searched_clear_targets.clear_targets_list)
+        # あなた側のための終局判定
+        searched_gameover_for_you = SearchedGameover.search(legal_moves_for_you, searched_clear_targets_for_you.clear_targets_list)
 
         # 現在の盤表示
-        self.print_board(searched_clear_targets)
-        self.print_sfen(searched_clear_targets, from_present=True)
+        self.print_board(searched_clear_targets_for_you)
+        self.print_sfen(searched_clear_targets_for_you, from_present=True)
         print("") # 空行
 
         # 今クリアーしたものがあれば、クリアー目標表示
-        print_clear_target_if_it_now()
+        print_clear_target_if_it_now(searched_clear_targets_for_you)
 
-        if self._board.is_gameover(searched_gameover):
-            print_if_end_of_game()
-            return searched_clear_targets
+        if self._board.is_gameover(searched_gameover_for_you):
+            print_if_end_of_game(searched_clear_targets_for_you, searched_gameover_for_you)
+            return searched_clear_targets_for_you
 
         # ターミナルが見づらいので、イラストを挟む
         time.sleep(0.7)
         self.print_you()
 
-        return searched_clear_targets
+        return searched_clear_targets_for_you
 
 
     def dump(self):
