@@ -894,7 +894,7 @@ CLEAR TARGETS
 
         # 対局結果の集計の表示、またはファイルへの上書き
         self._print_result_summary(
-            max_match_count,
+            max_match_count - 1,
             black_bingo_win_count,
             black_point_win_count_when_simultaneous_clearing,
             black_point_win_count_when_stalemate,
