@@ -359,62 +359,11 @@ NOT演算や、他にどんな演算があるかについては、あとで説�
 
 
 👇 以下に細かな説明を置きますが、読み飛ばしてもらって構いません  
-
-コマンドの紹介：  
-
-```
-COMMAND:
-    play [move]
-    do [move]
-
-STRUCTURES:
-
-    # 指し手（Move）
-    move = [way][operator]
-
-        # 路（Way）
-        way = [1, 2, 3, 4, 5, 6, 7, a, b, c, d, e, f]
-
-        # 演算子(Operator)
-        operator = [
-            # 零項演算子（Nullary operator）
-            s1 = 1-bit rotational logic higher **S**HIFT
-            s2 = 2-bit rotational logic higher **S**HIFT
-            s3 = 3-bit rotational logic higher **S**HIFT
-            s4 = 4-bit rotational logic higher **S**HIFT
-            s5 = 5-bit rotational logic higher **S**HIFT
-            s6 = 6-bit rotational logic higher **S**HIFT
-
-            c  = **C**UT of the edge operation
-            e  = **E**DIT
-
-            # 単項演算子（Unary operator）
-            n  = **N**OT operation
-            nH = **N**OT operation from **H**IGHER side
-            nL = **N**OT operation from **L**OWER side
-
-            # 二項演算子（Binary operator）
-            a  = **A**ND operation
-            o  = **O**R operation
-            xo = **XO**R operation
-
-            na = **NA**ND operation
-            no = **NO**R operation
-            xn = **XN**OR operation
-
-            on = fill **ON**E operation
-            ze = fill **ZE**RO operation
-        ]
-```
-
-👆 `play 4n` は、 プレイ（Play）コマンドと呼びます。  
-`do 4n` は、 ドゥー（Do）コマンドと呼びます。  
-その内 `4n` は、 **ムーブ** （Move）のコード（Code）と呼びます。  
-`4n` は、 4 という **路** （Way） と、 n という **演算子** (Operator) の２つで構成されています  
+📖 [playコマンドリファレンス](./docs/play_command_reference.md)  
 
 演算子の詳細については、あとで付録として説明します  
 
-👇　いずれの演算でも、指定した路が **対称路** になります。例えば以下のような盤面があるとします  
+👇　いずれの play コマンドでも、指定した路が **対称路** になります。例えば以下のような盤面があるとします  
 
 ```
     1 2 3 4 5 6 7
