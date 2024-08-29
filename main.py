@@ -402,8 +402,8 @@ class UsiEngine():
                 best_move = random.choice(negative_move_list)
                 return best_move, 'best move'
 
-            # FIXME どのリストも空のケースがある？
-            raise ValueError(f"どのリストも空のケースがある？  {len(positive_move_list)=}  {len(come_out_even_move_list)=}  {len(negative_move_list)=}")
+            # NOTE is_gameover のチェックが漏れていたら、どのリストも空になるケースがありました
+            raise ValueError(f"どのリストも空だ  {len(positive_move_list)=}  {len(come_out_even_move_list)=}  {len(negative_move_list)=}")
 
 
     def go(self, searched_clear_targets):
@@ -1156,7 +1156,7 @@ CLEAR TARGETS
 
 
     def print_mate1(self, searched_clear_targets):
-        """TODO １手詰めがあれば、その手をどれか１つ表示"""
+        """１手詰めがあれば、その手をどれか１つ表示"""
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
@@ -1174,9 +1174,9 @@ CLEAR TARGETS
 
 
     def test(self):
-        """TODO 動作テスト"""
+        """動作テスト。デバッグ用"""
 
-        print("TODO 動作テスト")
+        print("動作テスト")
 
         self.usi()
         self.isready()
@@ -1189,7 +1189,6 @@ CLEAR TARGETS
         # 指し手のリストから冗長な指し手を省き、さらにコードをキーにして降順にソートする
         actual_move_list = sorted(legal_moves.distinct_items, key=lambda x:x.to_code())
 
-        # FIXME 間違ってる
         expected_move_u_list = [
             '2a',
             '2n',
