@@ -298,24 +298,29 @@ class Way():
         raise ValueError(f"not found way.  code:{code}")
 
 
+    @staticmethod
+    def _to_code(axis_id, number):
+        global _num_to_rank_str
+
+        if axis_id == EMPTY_AXIS:
+            return '-'
+        
+        if axis_id == FILE_AXIS:
+            return str(number + 1)
+
+        if axis_id == RANK_AXIS:
+            return _num_to_rank_str[number]
+
+        raise ValueError(f"{axis_id=}  {number=}")
+
+
     def to_code(self):
         """
         Returns
         -------
         '-' や '1' ～ '7'、 'a' ～ 'f' といった文字
         """
-        global _num_to_rank_str
-
-        if self.is_empty:
-            return '-'
-
-        if self._axis_id == FILE_AXIS:
-            return str(self._number + 1)
-
-        if self._axis_id == RANK_AXIS:
-            return _num_to_rank_str[self._number]
-        
-        raise ValueError(f"axis_id:{self._axis_id}  number:{self._number}")
+        return Way._to_code(self._axis_id, self._number)
 
 
     def low_way(self, diff = 1):
@@ -328,7 +333,7 @@ class Way():
             return Way.code_to_obj('-')
         
         # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
-        return Way.code_to_obj(Way(self._axis_id, self._number - diff).to_code())
+        return Way.code_to_obj(Way._to_code(self._axis_id, self._number - diff))
 
 
     def high_way(self, diff = 1):
@@ -340,14 +345,14 @@ class Way():
         if self._axis_id == FILE_AXIS:
             if self._number < FILE_LEN - diff:
                 # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
-                return Way.code_to_obj(Way(self._axis_id, self._number + diff).to_code())
+                return Way.code_to_obj(Way._to_code(self._axis_id, self._number + diff))
 
             return Way.code_to_obj('-')
 
-        elif self._axis_id == RANK_AXIS:
+        if self._axis_id == RANK_AXIS:
             if self._number < RANK_LEN - diff:
                 # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
-                return Way.code_to_obj(Way(self._axis_id, self._number + diff).to_code())
+                return Way.code_to_obj(Way._to_code(self._axis_id, self._number + diff))
 
             return Way.code_to_obj('-')
 

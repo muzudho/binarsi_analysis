@@ -593,7 +593,7 @@ class UsiEngine():
         print("""\
 LEGAL MOVES
 +--------+---+
-|Distinct|All|
+|Distinct|All| Command
 +--------+---+""")
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
@@ -619,7 +619,7 @@ LEGAL MOVES
                 num_str = f'{j+1:8}|{i+1:3}'
                 j += 1
 
-            print(f"|{num_str}| do {move.to_code():<3}{same_move_str}")
+            print(f"|{num_str}| play {move.to_code():<3}{same_move_str}")
 
         print("""\
 +--------+---+
