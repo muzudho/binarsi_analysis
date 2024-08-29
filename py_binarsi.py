@@ -2,6 +2,15 @@ import re
 import copy
 
 
+# コミ
+#
+#   コミは囲碁で使われている。
+#   先後の勝率を五分五分に調整するために、不利な後手（白番）に多めに点数を最初から持たせておくもの。
+#   0.5 という端数を付けておくことで、引き分けになるのを防ぐ。
+#   プレイヤーの強さを調整するためのハンディキャップとは異なる
+#
+KOMI = 0.5
+
 # 石の色
 #
 #   盤のマスの状態を　石の色　と呼ぶことにする。
@@ -954,6 +963,14 @@ class Sfen():
         self._code_cached = None
 
 
+    def get_color(self, sq):
+        return self._squares[sq]
+
+
+    def set_color(self, sq, value):
+        self._squares[sq] = value
+
+
     def to_code(self, without_way_lock=False, without_clear_targets_list=False, without_moves_number=False):
         """コード
 
@@ -978,15 +995,15 @@ class Sfen():
             # [盤面]
 
             # usinewgame コマンドの直後に selfmatch をするとこの例外になる。暫定で position startpos まで打鍵してほしい
-            if self._squares  is None:
-                raise ValueError("self._squares is None")
+            if self._squares is None:
+                raise ValueError(f"{self._squares=}")
 
             spaces = 0
 
             for rank in range(0, RANK_LEN):
                 for file in range(0, FILE_LEN):
                     sq = Square.file_rank_to_sq(file, rank)
-                    stone = self._squares[sq]
+                    stone = self.get_color(sq)
 
                     if stone == C_EMPTY:
                         spaces += 1
@@ -1095,7 +1112,7 @@ class Sfen():
         # キャッシュ・クリアー
         instance._code_cached = None
 
-        # 参照ではなく、コピーにする
+        # 参照ではなく、コピーに変更する
         instance._squares = copy.copy(self._squares)
 
         for file in range(0, FILE_LEN):
@@ -1103,9 +1120,9 @@ class Sfen():
                 src_sq = Square.file_rank_to_sq(file, rank)
                 dst_sq = Square.file_rank_to_sq(file, RANK_LEN-rank-1)
 
-                temp = instance._squares[dst_sq]
-                instance._squares[dst_sq] = instance._squares[src_sq]
-                instance._squares[src_sq] = temp
+                temp = instance.get_color(dst_sq)
+                instance.set_color(dst_sq, instance.get_color(src_sq))
+                instance.set_color(src_sq, temp)
 
         return instance
 
@@ -1118,7 +1135,7 @@ class Sfen():
         # キャッシュ・クリアー
         instance._code_cached = None
 
-        # 参照ではなく、コピーにする
+        # 参照ではなく、コピーに変更する
         instance._squares = copy.copy(self._squares)
 
         for rank in range(0, RANK_LEN):
@@ -1126,9 +1143,9 @@ class Sfen():
                 src_sq = Square.file_rank_to_sq(file, rank)
                 dst_sq = Square.file_rank_to_sq(FILE_LEN-file-1, rank)
 
-                temp = instance._squares[dst_sq]
-                instance._squares[dst_sq] = instance._squares[src_sq]
-                instance._squares[src_sq] = temp
+                temp = instance.get_color(dst_sq)
+                instance.set_color(dst_sq, instance.get_color(src_sq))
+                instance.set_color(src_sq, temp)
 
         return instance
 
@@ -1386,11 +1403,15 @@ class Board():
     def subinit(self):
         """（サブ部分として）盤をクリアーする"""
 
+        global KOMI
+
         # 初期局面の各マス
         #
-        #   SFENで初期局面を出力するためのもの
+        #   SFENで初期局面を出力するためのもの。未設定のときナン
         #
         self._squares_at_init = None
+        self._black_count_at_init = None
+        self._white_count_with_komi_at_init = None
 
         # 初期局面での手数
         #
@@ -1407,6 +1428,8 @@ class Board():
 
         # 現局面の各マス
         self._squares = [C_EMPTY] * BOARD_AREA
+        self._black_count = 0
+        self._white_count_with_komi = KOMI
 
         # 現局面での路ロック
         self._way_locks = {
@@ -1430,6 +1453,31 @@ class Board():
 
         # 盤面編集履歴（対局棋譜を含む）
         self._board_editing_history = BoardEditingHistory()
+
+
+    def get_color(self, sq):
+        """マス上の石の色を取得"""
+        return self._squares[sq]
+
+
+    def set_color(self, sq, value):
+        """マス上の石の色を設定"""
+
+        # 盤上から消える石
+        old_color = self._squares[sq]
+
+        if old_color == C_BLACK:
+            self._black_count -= 1
+        elif old_color == C_WHITE:
+            self._white_count_with_komi -= 1
+
+        # 盤上に増える石
+        self._squares[sq] = value
+
+        if value == C_BLACK:
+            self._black_count += 1
+        elif value == C_WHITE:
+            self._white_count_with_komi += 1
 
 
     @property
@@ -1460,6 +1508,8 @@ class Board():
         """初期局面を記憶（SFENで初期局面を出力したいときのためのもの）"""
         if self._squares_at_init is None:
             self._squares_at_init = list(self._squares)
+            self._black_count_at_init = self._black_count
+            self._white_count_with_komi_at_init = self._white_count_with_komi
 
 
     def clear(self):
@@ -1472,7 +1522,7 @@ class Board():
         self.subinit()
 
         sq = Square.code_to_sq_obj('3c').as_num
-        self._squares[sq] = C_WHITE
+        self.set_color(sq, C_WHITE)
 
 
     def set_way_lock_by_code(self, way_u, value, is_it_init=False):
@@ -1544,9 +1594,9 @@ class Board():
                     sq = cursor.get_sq()
 
                     if ch == 'x':
-                        self._squares[sq] = C_BLACK
+                        self.set_color(sq, C_BLACK)
                     else:
-                        self._squares[sq] = C_WHITE
+                        self.set_color(sq, C_WHITE)
 
                     # フォワード
                     cursor.file_forward()
@@ -1620,7 +1670,7 @@ class Board():
 
         for i in range(0, axes_absorber.opponent_axis_length):
             sq = Square.file_rank_to_sq(way.number, i, swap=axes_absorber.swap_axes)
-            stone = self._squares[sq]
+            stone = self.get_color(sq)
 
             if stone != C_EMPTY:
                 return True
@@ -1668,7 +1718,7 @@ class Board():
         length = 0
         for i in range(0, axes_absorber.opponent_axis_length):
             src_sq = Square.file_rank_to_sq(way.number, i, swap=axes_absorber.swap_axes)
-            stone = self._squares[src_sq]
+            stone = self.get_color(src_sq)
             source_stones[i] = stone
 
             if state == 0:
@@ -1712,12 +1762,12 @@ class Board():
         axes_absorber = target_way.absorb_axes()
 
         for i in range(way_segment.begin, way_segment.end):
-            colors.append(self._squares[Square.file_rank_to_sq(target_way.number, i, swap=axes_absorber.swap_axes)])
+            colors.append(self.get_color(Square.file_rank_to_sq(target_way.number, i, swap=axes_absorber.swap_axes)))
 
         return colors
 
 
-    def set_stones_on_way(self, target_way, stones_str):
+    def set_colors_on_way(self, target_way, stones_str):
         """指定の路に、指定の石の列を上書きします"""
 
         stones_before_change = ''
@@ -1741,12 +1791,14 @@ class Board():
         for i in range(way_segment.begin, way_segment.end):
 
             dst_sq = Square.file_rank_to_sq(target_way.number, i, swap=axes_absorber.swap_axes)
-            old_stone = self._squares[dst_sq]
+            old_stone = self.get_color(dst_sq)
 
             if old_stone != C_EMPTY:
                 stones_before_change += _color_to_str[old_stone]
 
-            self._squares[dst_sq] = _str_to_color[stones_str[i - way_segment.begin]]
+            self.set_color(
+                sq=dst_sq,
+                value=_str_to_color[stones_str[i - way_segment.begin]])
 
         return stones_before_change
 
@@ -1798,22 +1850,24 @@ class Board():
         for i in range(0, axes_absorber.opponent_axis_length):
 
             dst_sq = Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)
-            old_stone = self._squares[dst_sq]
+            old_stone = self.get_color(dst_sq)
 
             if overwrite and old_stone != C_EMPTY:
                 stones_before_change += _color_to_str[old_stone]
 
-            input_stone_at_first = self._squares[Square.file_rank_to_sq(input_way_1.number, i, swap=axes_absorber.swap_axes)]
-            input_stone_at_second = self._squares[Square.file_rank_to_sq(input_way_2.number, i, swap=axes_absorber.swap_axes)]
+            input_stone_at_first = self.get_color(Square.file_rank_to_sq(input_way_1.number, i, swap=axes_absorber.swap_axes))
+            input_stone_at_second = self.get_color(Square.file_rank_to_sq(input_way_2.number, i, swap=axes_absorber.swap_axes))
 
             #print(f"{move.way.axis_id=}  {i=}  {input_way_1.number=}  {input_way_2.number=}  {input_stone_at_first=}  {input_stone_at_second=}  {dst_sq=}")
 
             if input_stone_at_first == C_EMPTY or input_stone_at_second == C_EMPTY:
                 continue
 
-            self._squares[dst_sq] = move.operator.binary_operate(
-                left_operand=_color_to_binary[input_stone_at_first],
-                right_operand=_color_to_binary[input_stone_at_second])
+            self.set_color(
+                sq=dst_sq,
+                value=move.operator.binary_operate(
+                    left_operand=_color_to_binary[input_stone_at_first],
+                    right_operand=_color_to_binary[input_stone_at_second]))
 
         return stones_before_change
 
@@ -1903,10 +1957,10 @@ class Board():
                 # 盤面更新 --> 空欄で上書き
                 for src_dst_i in range(way_segment.begin, way_segment.end):
                     src_dst_sq = Square.file_rank_to_sq(move.way.number, src_dst_i, swap=axes_absorber.swap_axes)
-                    stone = self._squares[src_dst_sq]
+                    stone = self.get_color(src_dst_sq)
                     if stone != C_EMPTY:
                         stones_before_change += _color_to_str[stone]
-                        self._squares[src_dst_sq] = C_EMPTY
+                        self.set_color(src_dst_sq, C_EMPTY)
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
@@ -1939,7 +1993,7 @@ class Board():
             exists_stone_on_way_before_change = self.exists_stone_on_way(move.way)
 
             # 盤面更新
-            stones_before_change = self.set_stones_on_way(
+            stones_before_change = self.set_colors_on_way(
                 target_way=move.way,
                 stones_str=move.option_stones)
 
@@ -1989,7 +2043,7 @@ class Board():
                 source_stones = [C_EMPTY] * axes_absorber.opponent_axis_length
                 for i in range(0, axes_absorber.opponent_axis_length):
                     src_sq = Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)
-                    stone = self._squares[src_sq]
+                    stone = self.get_color(src_sq)
                     source_stones[i] = stone
 
                 # (1)
@@ -2002,8 +2056,7 @@ class Board():
                         rank=(i - way_segment.begin + bit_shift) % way_segment.length + way_segment.begin,
                         swap=axes_absorber.swap_axes)
 
-                    # コピー
-                    self._squares[dst_sq] = source_stones[i]
+                    self.set_color(dst_sq, source_stones[i])
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
@@ -2034,9 +2087,11 @@ class Board():
 
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    src_stone = self._squares[Square.file_rank_to_sq(
-                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes)]
-                    self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(src_stone)
+                    src_stone = self.get_color(Square.file_rank_to_sq(
+                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes))
+                    self.set_color(
+                        sq=Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes),
+                        value=move.operator.unary_operate(src_stone))
 
                 # 新規作成操作では
                 #   路ロックは掛からない（外れる）
@@ -2056,15 +2111,17 @@ class Board():
 
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    src_stone = self._squares[Square.file_rank_to_sq(
-                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes)]
+                    src_stone = self.get_color(Square.file_rank_to_sq(
+                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes))
 
                     if src_stone != C_EMPTY:
-                        dst_stone = self._squares[Square.file_rank_to_sq(
-                            move.way.number, i, swap=axes_absorber.swap_axes)]
+                        dst_stone = self.get_color(Square.file_rank_to_sq(
+                            move.way.number, i, swap=axes_absorber.swap_axes))
 
                         stones_before_change += _color_to_str[dst_stone]
-                        self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(src_stone)
+                        self.set_color(
+                            sq=Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes),
+                            value=move.operator.unary_operate(src_stone))
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
@@ -2087,15 +2144,17 @@ class Board():
 
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
-                    src_stone = self._squares[Square.file_rank_to_sq(
-                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes)]
+                    src_stone = self.get_color(Square.file_rank_to_sq(
+                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes))
 
                     if src_stone != C_EMPTY:
-                        dst_stone = self._squares[Square.file_rank_to_sq(
-                            move.way.number, i, swap=axes_absorber.swap_axes)]
+                        dst_stone = self.get_color(Square.file_rank_to_sq(
+                            move.way.number, i, swap=axes_absorber.swap_axes))
 
                         stones_before_change += _color_to_str[dst_stone]
-                        self._squares[Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes)] = move.operator.unary_operate(src_stone)
+                        self.set_color(
+                            sq=Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes),
+                            value=move.operator.unary_operate(src_stone))
 
                 # 改変操作では
                 #   開錠指定があれば開錠、なければ 路ロックを掛ける
@@ -2428,7 +2487,7 @@ class Board():
         # 数値を表示用文字列(Str)に変更
         s = [' '] * BOARD_AREA
         for sq in range(0, BOARD_AREA):
-            s[sq] = _color_to_str[self._squares[sq]]
+            s[sq] = _color_to_str[self.get_color(sq)]
 
         # 筋（段）の符号、またはロック
         def get_way_code_2(way_code):
@@ -2693,7 +2752,7 @@ class SearchedClearTargets():
                 #             0,       =5 
 
                 for i in range(0, line_length):
-                    if board._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
+                    if board.get_color(Square.file_rank_to_sq(file + i, rank)) != my_stone_color:
                         is_not_hit = True
                         break
 
@@ -2740,7 +2799,7 @@ class SearchedClearTargets():
                 #             0,       =4
 
                 for i in range(0, line_length):
-                    if board._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
+                    if board.get_color(Square.file_rank_to_sq(file + i, rank + i)) != my_stone_color:
                         is_not_hit = True
                         break
 
@@ -2760,7 +2819,7 @@ class SearchedClearTargets():
                 #                      =3  ,        7
 
                 for i in range(0, line_length):
-                    if board._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
+                    if board.get_color(Square.file_rank_to_sq(file - i, rank + i)) != my_stone_color:
                         is_not_hit = True
                         break
 
@@ -2804,7 +2863,7 @@ class SearchedClearTargets():
                 #             0,        7
 
                 for i in range(0, line_length):
-                    if board._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
+                    if board.get_color(Square.file_rank_to_sq(file, rank + i)) != my_stone_color:
                         is_not_hit = True
                         break
 
@@ -2847,7 +2906,7 @@ class SearchedClearTargets():
                 #             0,        7
 
                 for i in range(0, line_length):
-                    if board._squares[Square.file_rank_to_sq(file, rank + i)] != my_stone_color:
+                    if board.get_color(Square.file_rank_to_sq(file, rank + i)) != my_stone_color:
                         is_not_hit = True
                         break
 
@@ -2893,7 +2952,7 @@ class SearchedClearTargets():
                 #             0,       =4
 
                 for i in range(0, line_length):
-                    if board._squares[Square.file_rank_to_sq(file + i, rank + i)] != my_stone_color:
+                    if board.get_color(Square.file_rank_to_sq(file + i, rank + i)) != my_stone_color:
                         is_not_hit = True
                         break
 
@@ -2914,7 +2973,7 @@ class SearchedClearTargets():
                 #                      =3  ,        7
 
                 for i in range(0, line_length):
-                    if board._squares[Square.file_rank_to_sq(file - i, rank + i)] != my_stone_color:
+                    if board.get_color(Square.file_rank_to_sq(file - i, rank + i)) != my_stone_color:
                         is_not_hit = True
                         break
 
@@ -2957,7 +3016,7 @@ class SearchedClearTargets():
                 #             0,       =3
 
                 for i in range(0, line_length):
-                    if board._squares[Square.file_rank_to_sq(file + i, rank)] != my_stone_color:
+                    if board.get_color(Square.file_rank_to_sq(file + i, rank)) != my_stone_color:
                         is_not_hit = True
                         break
 
@@ -3291,7 +3350,7 @@ class SearchedGameover():
     """ゲームオーバー探索"""
 
 
-    def __init__(self, is_black_win, is_white_win, is_simultaneous_clearing, black_count, white_count, reason):
+    def __init__(self, is_black_win, is_white_win, is_simultaneous_clearing, black_count, white_count_with_comi, reason):
         """初期化
         
         Parameters
@@ -3305,8 +3364,10 @@ class SearchedGameover():
             これが偽なら満局
         black_count : bool
             点数勝負の場合の黒石の数
-        white_count : bool
+        white_count_with_comi : bool
             点数勝負の場合の白石の数
+            囲碁を踏襲してコミを含む。
+            コミは先後の勝率を五分五分に調整するためのもの。プレイヤーの強さを調整するためのハンディキャップとは異なる
         reason : str
             ゲームオーバーと判定された理由の説明
         """
@@ -3315,7 +3376,7 @@ class SearchedGameover():
         self._is_white_win = is_white_win
         self._is_simultaneous_clearing = is_simultaneous_clearing
         self._black_count = black_count
-        self._white_count = white_count
+        self._white_count_with_comi = white_count_with_comi
         self._reason = reason
 
 
@@ -3345,9 +3406,12 @@ class SearchedGameover():
 
 
     @property
-    def white_count(self):
-        """点数勝負の場合の白石の数"""
-        return self._white_count
+    def white_count_with_comi(self):
+        """点数勝負の場合の白石の数
+
+        囲碁を踏襲してコミを含む。        
+        コミは先後の勝率を五分五分に調整するためのもの。プレイヤーの強さを調整するためのハンディキャップとは異なる"""
+        return self._white_count_with_comi
 
 
     @property
@@ -3366,25 +3430,31 @@ class SearchedGameover():
     def _point_playoff(board, is_simultaneous_clearing):
         """盤上の石を数えて点数勝負"""
 
+        global KOMI
+
         black_count = 0
-        white_count = 0.5
+        white_count_with_comi = KOMI # コミを予め含めておく
 
         # TODO 点数勝負のときの計算を差分計算を用いて高速にしたい
         for i in range(0, BOARD_AREA):
-            stone = board._squares[i]
+            stone = board.get_color(i)
             if stone == C_BLACK:
                 black_count += 1
 
             elif stone == C_WHITE:
-                white_count += 1
+                white_count_with_comi += 1
 
             elif stone == C_EMPTY:
                 pass
 
             else:
                 raise ValueError(f"{stone=}")
+        
+        if board._black_count != black_count or board._white_count_with_komi != white_count_with_comi:
+            raise ValueError(f"点数の差分計算ミス  {board._black_count=}  {black_count=}  {board._white_count_with_komi=}  {white_count_with_comi=}")
 
-        if white_count < black_count:
+
+        if white_count_with_comi < black_count:
             if is_simultaneous_clearing:
                 reason_of_when = f'simultaneous clearing'
             else:
@@ -3395,10 +3465,10 @@ class SearchedGameover():
                 is_white_win=False,
                 is_simultaneous_clearing=is_simultaneous_clearing,
                 black_count = black_count,
-                white_count = white_count,
-                reason=f'black {black_count-white_count} win when {reason_of_when}')
+                white_count_with_comi = white_count_with_comi,
+                reason=f'black {black_count-white_count_with_comi} win when {reason_of_when}')
 
-        elif black_count < white_count:
+        elif black_count < white_count_with_comi:
             if is_simultaneous_clearing:
                 reason_of_when = f'simultaneous clearing'
             else:
@@ -3409,12 +3479,12 @@ class SearchedGameover():
                 is_white_win=True,
                 is_simultaneous_clearing=is_simultaneous_clearing,
                 black_count = black_count,
-                white_count = white_count,
-                reason=f'white {white_count-black_count} win when {reason_of_when}')
+                white_count_with_comi = white_count_with_comi,
+                reason=f'white {white_count_with_comi-black_count} win when {reason_of_when}')
 
-        # 後手の白番に 0.5 のコミがあるので引き分けにはならない
+        # 後手の白番にコミがあるので引き分けにはならない
         else:
-            raise ValueError(f"{black_count=}  {white_count=}")
+            raise ValueError(f"{black_count=}  {white_count_with_comi=}")
 
 
     @staticmethod
@@ -3441,7 +3511,7 @@ class SearchedGameover():
                 is_white_win=is_white_win,
                 is_simultaneous_clearing=False,
                 black_count = -1,
-                white_count = -1,
+                white_count_with_comi = -1,
                 reason='black win')
 
         if is_white_win:
@@ -3451,7 +3521,7 @@ class SearchedGameover():
                 is_white_win=is_white_win,
                 is_simultaneous_clearing=False,
                 black_count = -1,
-                white_count = -1,
+                white_count_with_comi = -1,
                 reason='white win')
 
         # ステールメートしている
@@ -3468,5 +3538,5 @@ class SearchedGameover():
             is_white_win=is_white_win,
             is_simultaneous_clearing=False,
             black_count = -1,
-            white_count = -1,
+            white_count_with_comi = -1,
             reason='playing')

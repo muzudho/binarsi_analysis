@@ -812,7 +812,7 @@ CLEAR TARGETS
                     black_point_win_count_when_stalemate += 1
 
             elif searched_gameover.is_white_win:
-                if searched_gameover.white_count == -1:
+                if searched_gameover.white_count_with_comi == -1:
                     white_bingo_win_count += 1
                 elif searched_gameover.is_simultaneous_clearing:
                     white_point_win_count_when_simultaneous_clearing += 1
@@ -827,6 +827,8 @@ CLEAR TARGETS
         point_total_when_simultaneous_clearing = black_point_win_count_when_simultaneous_clearing + white_point_win_count_when_simultaneous_clearing
         point_total_when_stalemate = black_point_win_count_when_stalemate + white_point_win_count_when_stalemate
         total = bingo_total + point_total_when_simultaneous_clearing + point_total_when_stalemate
+        black_total = black_bingo_win_count + black_point_win_count_when_simultaneous_clearing + black_point_win_count_when_stalemate
+        white_total = white_bingo_win_count + white_point_win_count_when_simultaneous_clearing + white_point_win_count_when_stalemate
 
         print(f"""\
 自己対局　ここまで：
@@ -843,6 +845,11 @@ CLEAR TARGETS
     満局黒勝ち： {black_point_win_count_when_stalemate:6} 満局黒勝率： {black_point_win_count_when_stalemate/total:3.3f}
     満局白勝ち： {white_point_win_count_when_stalemate:6} 満局白勝率： {white_point_win_count_when_stalemate/total:3.3f}
     満局勝ち　： {point_total_when_stalemate:6} 満局勝率　： {point_total_when_stalemate/total:3.3f}
+    ーーーーー
+    先後比較
+    ーーーーー
+    黒勝ち　　： {black_total:6} 黒勝率　　： {black_total/total:3.3f}
+    白勝ち　　： {white_total:6} 白勝率　　： {white_total/total:3.3f}
 """)
 
 
