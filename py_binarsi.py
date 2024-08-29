@@ -1095,7 +1095,7 @@ class Sfen():
             sfen_str = ''.join(buffer)
 
             # 平手初期局面なら startpos に置換
-            result = re.match(r"^7/7/2o4/7/7/7 b - 1(.*)$", sfen_str)
+            result = re.match(r"^7/7/2o4/7/7/7 b - - 1(.*)$", sfen_str)
             if result:
                 sfen_str = f"startpos{result.group(1)}"
 
@@ -1531,8 +1531,8 @@ class Board():
         """平手初期局面に戻す"""
         self.subinit()
 
-        sq = Square.code_to_sq_obj('3c').as_num
-        self.set_color(sq, C_WHITE)
+        # 石の初期配置
+        self.set_color(Square.code_to_sq_obj('3c').as_num, C_WHITE)
 
 
     def set_way_lock_by_code(self, way_u, value, is_it_init=False):
