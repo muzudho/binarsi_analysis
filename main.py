@@ -762,6 +762,64 @@ CLEAR TARGETS
         return searched_clear_targets
 
 
+    def _print_result_summary(
+            self,
+            i,
+            black_bingo_win_count,
+            black_point_win_count_when_simultaneous_clearing,
+            black_point_win_count_when_stalemate,
+            white_bingo_win_count,
+            white_point_win_count_when_simultaneous_clearing,
+            white_point_win_count_when_stalemate):
+        """対局結果の集計の表示、またはファイルへの上書き"""
+
+        bingo_total = black_bingo_win_count + white_bingo_win_count
+        point_total_when_simultaneous_clearing = black_point_win_count_when_simultaneous_clearing + white_point_win_count_when_simultaneous_clearing
+        point_total_when_stalemate = black_point_win_count_when_stalemate + white_point_win_count_when_stalemate
+        total = bingo_total + point_total_when_simultaneous_clearing + point_total_when_stalemate
+        black_total = black_bingo_win_count + black_point_win_count_when_simultaneous_clearing + black_point_win_count_when_stalemate
+        white_total = white_bingo_win_count + white_point_win_count_when_simultaneous_clearing + white_point_win_count_when_stalemate
+
+        with open('result_summary.log', 'w', encoding='utf8') as f:
+            text = f"""\
+{i+1} 対局集計
+
+    三本勝負
+    ーーーーーーーー
+    黒　　　　勝ち数： {black_bingo_win_count:6}　　　率： {black_bingo_win_count/total:3.3f}
+    白　　　　勝ち数： {white_bingo_win_count:6}　　　率： {white_bingo_win_count/total:3.3f}
+    ーーーーーーーー
+
+    点数計算（同着）
+    ーーーーーーーー
+    黒　　　　勝ち数： {black_point_win_count_when_simultaneous_clearing:6}　　　率： {black_point_win_count_when_simultaneous_clearing/total:3.3f}
+    白　　　　勝ち数： {white_point_win_count_when_simultaneous_clearing:6}　　　率： {white_point_win_count_when_simultaneous_clearing/total:3.3f}
+    ーーーーーーーー
+
+    点数計算（満局）
+    ーーーーーーーー
+    黒　　　　勝ち数： {black_point_win_count_when_stalemate:6}　　　率： {black_point_win_count_when_stalemate/total:3.3f}
+    白　　　　勝ち数： {white_point_win_count_when_stalemate:6}　　　率： {white_point_win_count_when_stalemate/total:3.3f}
+    ーーーーーーーー
+
+    決着方法比較
+    ーーーーーーーー
+    三本勝負　　　　： {bingo_total:6}　　　率： {bingo_total/total:3.3f}
+    点数計算（同着）： {point_total_when_simultaneous_clearing:6}　　　率： {point_total_when_simultaneous_clearing/total:3.3f}
+    点数計算（満局）： {point_total_when_stalemate:6}　　　率： {point_total_when_stalemate/total:3.3f}
+    ーーーーーーーー
+
+    先後比較
+    ーーーーーーーー
+    黒　　　　勝ち数： {black_total:6}　　　率： {black_total/total:3.3f}
+    白　　　　勝ち数： {white_total:6}　　　率： {white_total/total:3.3f}
+    ーーーーーーーー
+"""
+
+            f.write(text)
+            print(text, flush=True)
+
+
     def self_match(self, input_str):
         """自己対局
             code: selfmatch
@@ -822,35 +880,29 @@ CLEAR TARGETS
             else:
                 raise ValueError(f"{searched_gameover.is_black_win=}  {searched_gameover.is_white_win=}")
 
+            if i % 10 == 9:
+                # 対局結果の集計の表示、またはファイルへの上書き
+                self._print_result_summary(
+                    i,
+                    black_bingo_win_count,
+                    black_point_win_count_when_simultaneous_clearing,
+                    black_point_win_count_when_stalemate,
+                    white_bingo_win_count,
+                    white_point_win_count_when_simultaneous_clearing,
+                    white_point_win_count_when_stalemate)
 
-        bingo_total = black_bingo_win_count + white_bingo_win_count
-        point_total_when_simultaneous_clearing = black_point_win_count_when_simultaneous_clearing + white_point_win_count_when_simultaneous_clearing
-        point_total_when_stalemate = black_point_win_count_when_stalemate + white_point_win_count_when_stalemate
-        total = bingo_total + point_total_when_simultaneous_clearing + point_total_when_stalemate
-        black_total = black_bingo_win_count + black_point_win_count_when_simultaneous_clearing + black_point_win_count_when_stalemate
-        white_total = white_bingo_win_count + white_point_win_count_when_simultaneous_clearing + white_point_win_count_when_stalemate
 
-        print(f"""\
-自己対局　ここまで：
-    黒勝ち　　： {black_bingo_win_count:6} 黒勝率　　： {black_bingo_win_count/total:3.3f}
-    白勝ち　　： {white_bingo_win_count:6} 白勝率　　： {white_bingo_win_count/total:3.3f}
-    並べ勝ち　： {bingo_total:6} 並べ勝率　： {bingo_total/total:3.3f}
-    ーーーーー
-    以下点数勝負
-    ーーーーー
-    同着黒勝ち： {black_point_win_count_when_simultaneous_clearing:6} 同着黒勝率： {black_point_win_count_when_simultaneous_clearing/total:3.3f}
-    同着白勝ち： {white_point_win_count_when_simultaneous_clearing:6} 同着白勝率： {white_point_win_count_when_simultaneous_clearing/total:3.3f}
-    同着勝ち　： {point_total_when_simultaneous_clearing:6} 並べ勝率　： {point_total_when_simultaneous_clearing/total:3.3f}
-    ーーーーー
-    満局黒勝ち： {black_point_win_count_when_stalemate:6} 満局黒勝率： {black_point_win_count_when_stalemate/total:3.3f}
-    満局白勝ち： {white_point_win_count_when_stalemate:6} 満局白勝率： {white_point_win_count_when_stalemate/total:3.3f}
-    満局勝ち　： {point_total_when_stalemate:6} 満局勝率　： {point_total_when_stalemate/total:3.3f}
-    ーーーーー
-    先後比較
-    ーーーーー
-    黒勝ち　　： {black_total:6} 黒勝率　　： {black_total/total:3.3f}
-    白勝ち　　： {white_total:6} 白勝率　　： {white_total/total:3.3f}
-""")
+        # 対局結果の集計の表示、またはファイルへの上書き
+        self._print_result_summary(
+            max_match_count,
+            black_bingo_win_count,
+            black_point_win_count_when_simultaneous_clearing,
+            black_point_win_count_when_stalemate,
+            white_bingo_win_count,
+            white_point_win_count_when_simultaneous_clearing,
+            white_point_win_count_when_stalemate)
+
+        print("自己対局　ここまで")
 
 
     def print_sfen(self, searched_clear_targets, from_present=False):
