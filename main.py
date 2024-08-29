@@ -942,7 +942,7 @@ CLEAR TARGETS
     |________|  |_______/   |______/   |_______/""", flush=True)
 
 
-    def print_clear_target_if_it_now(searched_clear_targets):
+    def print_clear_target_if_it_now(self, searched_clear_targets):
         """今クリアーしたものがあれば、クリアー目標表示"""
         one_cleared = False
         for clear_target in searched_clear_targets.clear_targets_list:
@@ -955,7 +955,7 @@ CLEAR TARGETS
             time.sleep(0.7)
 
 
-    def print_if_end_of_game(searched_clear_targets, searched_gameover):
+    def print_if_end_of_game(self, searched_clear_targets, searched_gameover):
         current_turn = Colors.Opponent(self._board.get_next_turn())
         
         if searched_gameover.is_black_win:
@@ -1031,11 +1031,11 @@ CLEAR TARGETS
 
 
         # 今クリアーしたものがあれば、クリアー目標表示
-        print_clear_target_if_it_now(searched_clear_targets_for_computer)
+        self.print_clear_target_if_it_now(searched_clear_targets_for_computer)
 
 
-        if self._board.is_gameover(searched_gameover):
-            print_if_end_of_game(searched_clear_targets_for_computer, searched_gameover_for_computer)
+        if self._board.is_gameover(searched_gameover_for_computer):
+            self.print_if_end_of_game(searched_clear_targets_for_computer, searched_gameover_for_computer)
             return searched_clear_targets_for_computer
 
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
@@ -1080,10 +1080,10 @@ CLEAR TARGETS
         print("") # 空行
 
         # 今クリアーしたものがあれば、クリアー目標表示
-        print_clear_target_if_it_now(searched_clear_targets_for_you)
+        self.print_clear_target_if_it_now(searched_clear_targets_for_you)
 
         if self._board.is_gameover(searched_gameover_for_you):
-            print_if_end_of_game(searched_clear_targets_for_you, searched_gameover_for_you)
+            self.print_if_end_of_game(searched_clear_targets_for_you, searched_gameover_for_you)
             return searched_clear_targets_for_you
 
         # ターミナルが見づらいので、イラストを挟む

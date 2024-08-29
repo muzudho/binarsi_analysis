@@ -1095,7 +1095,7 @@ class Sfen():
             sfen_str = ''.join(buffer)
 
             # 平手初期局面なら startpos に置換
-            result = re.match(r"^7/7/2o4/7/7/7 b - - 1(.*)$", sfen_str)
+            result = re.match(r"^7/7/2o4/7/7/7 b - - 0(.*)$", sfen_str)
             if result:
                 sfen_str = f"startpos{result.group(1)}"
 
@@ -2647,7 +2647,7 @@ class Board():
 
         # 初期盤面からのSFEN表示
         else:
-            moves_number = 1
+            moves_number = 0
 
 
         # 添付局面図からの指し手
