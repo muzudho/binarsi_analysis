@@ -1455,6 +1455,16 @@ class Board():
         self._board_editing_history = BoardEditingHistory()
 
 
+    @property
+    def black_count(self):
+        return self._black_count
+
+
+    @property
+    def white_count_with_komi(self):
+        return self._white_count_with_komi
+
+
     def get_color(self, sq):
         """マス上の石の色を取得"""
         return self._squares[sq]
@@ -3430,31 +3440,30 @@ class SearchedGameover():
     def _point_playoff(board, is_simultaneous_clearing):
         """盤上の石を数えて点数勝負"""
 
-        global KOMI
+        # 点数の差分計算があってるかチェック
+        # global KOMI
+        #
+        # black_count = 0
+        # white_count_with_comi = KOMI # コミを予め含めておく
+        #
+        # for i in range(0, BOARD_AREA):
+        #     stone = board.get_color(i)
+        #     if stone == C_BLACK:
+        #         black_count += 1
+        #
+        #     elif stone == C_WHITE:
+        #         white_count_with_comi += 1
+        #
+        #     elif stone == C_EMPTY:
+        #         pass
+        #
+        #     else:
+        #         raise ValueError(f"{stone=}")
+        #
+        # if board.black_count != black_count or board.white_count_with_komi != white_count_with_comi:
+        #     raise ValueError(f"点数の差分計算ミス  {board.black_count=}  {black_count=}  {board.white_count_with_komi=}  {white_count_with_comi=}")
 
-        black_count = 0
-        white_count_with_comi = KOMI # コミを予め含めておく
-
-        # TODO 点数勝負のときの計算を差分計算を用いて高速にしたい
-        for i in range(0, BOARD_AREA):
-            stone = board.get_color(i)
-            if stone == C_BLACK:
-                black_count += 1
-
-            elif stone == C_WHITE:
-                white_count_with_comi += 1
-
-            elif stone == C_EMPTY:
-                pass
-
-            else:
-                raise ValueError(f"{stone=}")
-        
-        if board._black_count != black_count or board._white_count_with_komi != white_count_with_comi:
-            raise ValueError(f"点数の差分計算ミス  {board._black_count=}  {black_count=}  {board._white_count_with_komi=}  {white_count_with_comi=}")
-
-
-        if white_count_with_comi < black_count:
+        if board.white_count_with_komi < board.black_count:
             if is_simultaneous_clearing:
                 reason_of_when = f'simultaneous clearing'
             else:
@@ -3464,11 +3473,11 @@ class SearchedGameover():
                 is_black_win=True,
                 is_white_win=False,
                 is_simultaneous_clearing=is_simultaneous_clearing,
-                black_count = black_count,
-                white_count_with_comi = white_count_with_comi,
-                reason=f'black {black_count-white_count_with_comi} win when {reason_of_when}')
+                black_count = board.black_count,
+                white_count_with_comi = board.white_count_with_komi,
+                reason=f'black {board.black_count-board.white_count_with_komi} win when {reason_of_when}')
 
-        elif black_count < white_count_with_comi:
+        elif board.black_count < board.white_count_with_komi:
             if is_simultaneous_clearing:
                 reason_of_when = f'simultaneous clearing'
             else:
@@ -3478,13 +3487,13 @@ class SearchedGameover():
                 is_black_win=False,
                 is_white_win=True,
                 is_simultaneous_clearing=is_simultaneous_clearing,
-                black_count = black_count,
-                white_count_with_comi = white_count_with_comi,
-                reason=f'white {white_count_with_comi-black_count} win when {reason_of_when}')
+                black_count = board.black_count,
+                white_count_with_comi = board.white_count_with_komi,
+                reason=f'white {board.white_count_with_komi-board.black_count} win when {reason_of_when}')
 
         # 後手の白番にコミがあるので引き分けにはならない
         else:
-            raise ValueError(f"{black_count=}  {white_count_with_comi=}")
+            raise ValueError(f"{board.black_count=}  {board.white_count_with_komi=}")
 
 
     @staticmethod
