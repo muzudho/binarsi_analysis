@@ -781,9 +781,11 @@ CLEAR TARGETS
             max_match_count = int(tokens[1])
         
         black_bingo_win_count = 0
-        black_point_win_count = 0
+        black_point_win_count_when_simultaneous_clearing = 0
+        black_point_win_count_when_stalemate = 0
         white_bingo_win_count = 0
-        white_point_win_count = 0
+        white_point_win_count_when_simultaneous_clearing = 0
+        white_point_win_count_when_stalemate = 0
 
         # 連続対局
         for i in range(0, max_match_count):
@@ -804,22 +806,27 @@ CLEAR TARGETS
             if searched_gameover.is_black_win:
                 if searched_gameover.black_count == -1:
                     black_bingo_win_count += 1
+                elif searched_gameover.is_simultaneous_clearing:
+                    black_point_win_count_when_simultaneous_clearing += 1
                 else:
-                    black_point_win_count += 1
+                    black_point_win_count_when_stalemate += 1
 
             elif searched_gameover.is_white_win:
                 if searched_gameover.white_count == -1:
                     white_bingo_win_count += 1
+                elif searched_gameover.is_simultaneous_clearing:
+                    white_point_win_count_when_simultaneous_clearing += 1
                 else:
-                    white_point_win_count += 1
+                    white_point_win_count_when_stalemate += 1
             
             else:
                 raise ValueError(f"{searched_gameover.is_black_win=}  {searched_gameover.is_white_win=}")
 
 
-        total = black_bingo_win_count + black_point_win_count + white_bingo_win_count + white_point_win_count
         bingo_total = black_bingo_win_count + white_bingo_win_count
-        point_total = black_point_win_count + white_point_win_count
+        point_total_when_simultaneous_clearing = black_point_win_count_when_simultaneous_clearing + white_point_win_count_when_simultaneous_clearing
+        point_total_when_stalemate = black_point_win_count_when_stalemate + white_point_win_count_when_stalemate
+        total = bingo_total + point_total_when_simultaneous_clearing + point_total_when_stalemate
 
         print(f"""\
 自己対局　ここまで：
@@ -827,9 +834,15 @@ CLEAR TARGETS
     白勝ち　　： {white_bingo_win_count:6} 白勝率　　： {white_bingo_win_count/total:3.3f}
     並べ勝ち　： {bingo_total:6} 並べ勝率　： {bingo_total/total:3.3f}
     ーーーーー
-    黒点数勝ち： {black_point_win_count:6} 黒点数勝率： {black_point_win_count/total:3.3f}
-    白点数勝ち： {white_point_win_count:6} 白点数勝率： {white_point_win_count/total:3.3f}
-    点数勝ち　： {point_total:6} 点数勝率　： {point_total/total:3.3f}
+    以下点数勝負
+    ーーーーー
+    同着黒勝ち： {black_point_win_count_when_simultaneous_clearing:6} 同着黒勝率： {black_point_win_count_when_simultaneous_clearing/total:3.3f}
+    同着白勝ち： {white_point_win_count_when_simultaneous_clearing:6} 同着白勝率： {white_point_win_count_when_simultaneous_clearing/total:3.3f}
+    同着勝ち　： {point_total_when_simultaneous_clearing:6} 並べ勝率　： {point_total_when_simultaneous_clearing/total:3.3f}
+    ーーーーー
+    満局黒勝ち： {black_point_win_count_when_stalemate:6} 満局黒勝率： {black_point_win_count_when_stalemate/total:3.3f}
+    満局白勝ち： {white_point_win_count_when_stalemate:6} 満局白勝率： {white_point_win_count_when_stalemate/total:3.3f}
+    満局勝ち　： {point_total_when_stalemate:6} 満局勝率　： {point_total_when_stalemate/total:3.3f}
 """)
 
 
@@ -955,9 +968,6 @@ CLEAR TARGETS
             elif current_turn == C_WHITE:
                 self.print_you()
                 self.print_win()
-
-        elif searched_gameover.is_double_win:
-            self.print_lose()
         
         else:
             raise ValueError(f"undefined gameover. {searched_gameover.reason=}")

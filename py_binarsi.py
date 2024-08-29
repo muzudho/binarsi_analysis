@@ -1217,6 +1217,12 @@ class LegalMoves():
         # 現局面の盤面編集用の手（合法手除く）
         self._items_for_edit = []
 
+        # 指してみると結果が同じになる指し手は、印をつけたい
+        #
+        # 左右反転、上下反転で同形のものも弾きたい。
+        # 縦横比が異なるので、９０°回転は対象外とする。
+        # 上下左右反転の形を作る操作は、対局中にはないはずなので対象外とする
+        #
         # 結果が同じになる指し手を除外した指し手のリスト
         self._distinct_items = []
 
@@ -1285,12 +1291,6 @@ class LegalMoves():
             self._items_for_edit.append(move)
 
         else:
-            # 指してみると結果が同じになる指し手は、印をつけたい
-            #
-            # 左右反転、上下反転で同形のものも弾きたい。
-            # 縦横比が異なるので、９０°回転は対象外とする。
-            # 上下左右反転の形を作る操作は、対局中にはないはずなので対象外とする
-
             # TODO とりあえず、逆操作が実装されている演算だけ調べる
             # １～６ビットシフト、ノット、ノットＬ、ノットＨ、アンド、オア、エクソア、ナンド、ノア、エクスノア、ゼロ、ワン
             if move.operator.code in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
@@ -3016,7 +3016,7 @@ class SearchLegalMoves():
 
 
     @staticmethod
-    def _make_binary_operation(legal_moves, board, operator_u, for_edit_mode=False):
+    def _append_binary_operation(board, legal_moves, operator_u, for_edit_mode=False):
         """
         Parameters
         ----------
@@ -3050,7 +3050,7 @@ class SearchLegalMoves():
 
                 ## DEBUG 表示抑制
                 #if operator_u=='xo':
-                #    print(f"[_make_binary_operation] modify  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.high_way().to_code()=}")
+                #    print(f"[_append_binary_operation] modify  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.high_way().to_code()=}")
 
                 # ロウ、ハイの両方に石が置いてある必要がある
                 if 0 < way.number and way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.low_way()) and board.exists_stone_on_way(way.high_way()):
@@ -3060,7 +3060,7 @@ class SearchLegalMoves():
 
                     ## DEBUG 表示抑制
                     #if operator_u=='xo':
-                    #    print(f"[_make_binary_operation] append modify  {move.to_code()=}  {for_edit_mode=}")
+                    #    print(f"[_append_binary_operation] append modify  {move.to_code()=}  {for_edit_mode=}")
 
                     legal_moves.append(board, move, for_edit=for_edit_mode)
 
@@ -3069,7 +3069,7 @@ class SearchLegalMoves():
 
                 ## DEBUG 表示抑制
                 #if operator_u=='xo':
-                #    print(f"[_make_binary_operation] new  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.low_way(diff=2).to_code()=}  {way.high_way().to_code()=}  {way.high_way(diff=2).to_code()=}")
+                #    print(f"[_append_binary_operation] new  {way.number=}  {axes_absorber.axis_length=}  {way.low_way().to_code()=}  {way.low_way(diff=2).to_code()=}  {way.high_way().to_code()=}  {way.high_way(diff=2).to_code()=}")
 
                 # 隣のどちらかに２つ続けて石が置いているか？
                 if ((1 < way.number and board.exists_stone_on_way(way.low_way()) and board.exists_stone_on_way(way.low_way(diff=2))) or
@@ -3080,9 +3080,100 @@ class SearchLegalMoves():
 
                     ## DEBUG 表示抑制
                     #if operator_u=='xo':
-                    #    print(f"[_make_binary_operation] append new  {move.to_code()=}  {for_edit_mode=}")
+                    #    print(f"[_append_binary_operation] append new  {move.to_code()=}  {for_edit_mode=}")
 
                     legal_moves.append(board, move, for_edit=for_edit_mode)
+
+
+    def _append_cut_the_edge_operation(board, legal_moves):
+        """カットザエッジ（Cut the edge）の合法手生成（盤面編集用）"""
+        (rect_exists, left_file, right_file, top_rank, bottom_rank) = board.get_edges()
+
+        if rect_exists:
+            if 0 < right_file - left_file:
+                legal_moves.append(board=board, move=Move(Way(FILE_AXIS, left_file), Operator.code_to_obj('c')), for_edit=True)
+                legal_moves.append(board=board, move=Move(Way(FILE_AXIS, right_file), Operator.code_to_obj('c')), for_edit=True)
+            
+            if 0 < bottom_rank - top_rank:
+                legal_moves.append(board=board, move=Move(Way(RANK_AXIS, top_rank), Operator.code_to_obj('c')), for_edit=True)
+                legal_moves.append(board=board, move=Move(Way(RANK_AXIS, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
+
+
+    def _append_shift_operation(board, legal_moves):
+        """シフト（Shift）の合法手生成
+        
+        例えば：
+        
+            1 2 3 4 5 6 7
+            +---------------+
+        a | . . . . . . . |
+        b | . . . . . . . |
+        c | . . 0 1 0 1 . |
+        d | . . . . . . . |
+        e | . . . . . . . |
+        f | . . . . . . . |
+            +---------------+
+        
+        上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
+        ゼロビットシフトは禁止する
+        枝が増えてしまうのを防ぐ
+        """
+        global _way_characters
+
+        # 筋（段）方向両用
+        for way_u in _way_characters:
+            way = Way.code_to_obj(way_u)
+
+            # 路にロックが掛かっていたら Shift は禁止
+            if board._way_locks[way.to_code()]:
+                continue
+
+            way_segment = board.get_stone_segment_on_way(way)
+
+            # 石が置いてる路
+            if 0 < way_segment.length:
+                # Shift できる
+                for i in range(1, way_segment.length):
+                    move = Move(way, Operator.code_to_obj(f's{i}'))
+
+                    # 合法手として記憶
+                    legal_moves.append(board=board, move=move)
+
+
+    def _append_not_operation(board, legal_moves):
+        """ノット（Not）の合法手生成"""
+
+        # 全ての種類の路
+        global _all_ways
+
+        for way in _all_ways:
+            axes_absorber = way.absorb_axes()
+
+            # 石が置いてある路
+            if board.exists_stone_on_way(way):
+
+                # 路にロックが掛かっていたら Not の Reverse は禁止
+                if board._way_locks[way.to_code()]:
+                    continue
+
+                if 0 < way.number and board.exists_stone_on_way(way.low_way()):
+                    # 路上で小さい方にある石を Not して Reverse できる
+                    legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nL')))
+
+                if way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.high_way()):
+                    # 路上で大きい方にある石を Not して Reverse できる
+                    legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nH')))
+
+            # 石が置いてない路
+            else:
+                # 隣のどちらかに石が置いているか？
+                if 0 < way.number and board.exists_stone_on_way(way.low_way()):
+                    # Not で New できる
+                    legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
+
+                if way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.high_way()):
+                    # Not で New できる
+                    legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
 
 
     @staticmethod
@@ -3100,132 +3191,38 @@ class SearchLegalMoves():
         # 現局面から合法手を生成する
         legal_moves = LegalMoves(board)
 
-        def update_cut_the_edge(legal_moves):
-            """カットザエッジ（Cut the edge）の合法手生成（盤面編集用）"""
-            (rect_exists, left_file, right_file, top_rank, bottom_rank) = board.get_edges()
-
-            if rect_exists:
-                if 0 < right_file - left_file:
-                    legal_moves.append(board=board, move=Move(Way(FILE_AXIS, left_file), Operator.code_to_obj('c')), for_edit=True)
-                    legal_moves.append(board=board, move=Move(Way(FILE_AXIS, right_file), Operator.code_to_obj('c')), for_edit=True)
-                
-                if 0 < bottom_rank - top_rank:
-                    legal_moves.append(board=board, move=Move(Way(RANK_AXIS, top_rank), Operator.code_to_obj('c')), for_edit=True)
-                    legal_moves.append(board=board, move=Move(Way(RANK_AXIS, bottom_rank), Operator.code_to_obj('c')), for_edit=True)
-
-
         # カットザエッジ（Cut the edge）の合法手生成（盤面編集用）
-        update_cut_the_edge(legal_moves)
-
-
-        def update_shift(legal_moves):
-            """シフト（Shift）の合法手生成
-            
-            例えば：
-            
-                1 2 3 4 5 6 7
-              +---------------+
-            a | . . . . . . . |
-            b | . . . . . . . |
-            c | . . 0 1 0 1 . |
-            d | . . . . . . . |
-            e | . . . . . . . |
-            f | . . . . . . . |
-              +---------------+
-            
-            上記 c段の石の長さは４目なので、シフトは s1, s2, s3 だけを合法手とするよう制限する。
-            ゼロビットシフトは禁止する
-            枝が増えてしまうのを防ぐ
-            """
-            global _way_characters
-
-            # 筋（段）方向両用
-            for way_u in _way_characters:
-                way = Way.code_to_obj(way_u)
-
-                # 路にロックが掛かっていたら Shift は禁止
-                if board._way_locks[way.to_code()]:
-                    continue
-
-                way_segment = board.get_stone_segment_on_way(way)
-
-                # 石が置いてる路
-                if 0 < way_segment.length:
-                    # Shift できる
-                    for i in range(1, way_segment.length):
-                        move = Move(way, Operator.code_to_obj(f's{i}'))
-
-                        # 合法手として記憶
-                        legal_moves.append(board=board, move=move)
-
+        SearchLegalMoves._append_cut_the_edge_operation(board, legal_moves)
 
         # シフト（Shift）の合法手生成
-        update_shift(legal_moves)
-
-
-        def update_not(legal_moves):
-            """ノット（Not）の合法手生成"""
-
-            # 全ての種類の路
-            global _all_ways
-
-            for way in _all_ways:
-                axes_absorber = way.absorb_axes()
-
-                # 石が置いてある路
-                if board.exists_stone_on_way(way):
-
-                    # 路にロックが掛かっていたら Not の Reverse は禁止
-                    if board._way_locks[way.to_code()]:
-                        continue
-
-                    if 0 < way.number and board.exists_stone_on_way(way.low_way()):
-                        # 路上で小さい方にある石を Not して Reverse できる
-                        legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nL')))
-
-                    if way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.high_way()):
-                        # 路上で大きい方にある石を Not して Reverse できる
-                        legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('nH')))
-
-                # 石が置いてない路
-                else:
-                    # 隣のどちらかに石が置いているか？
-                    if 0 < way.number and board.exists_stone_on_way(way.low_way()):
-                        # Not で New できる
-                        legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
-
-                    if way.number < axes_absorber.axis_length - 1 and board.exists_stone_on_way(way.high_way()):
-                        # Not で New できる
-                        legal_moves.append(board=board, move=Move(way, Operator.code_to_obj('n')))
-
+        SearchLegalMoves._append_shift_operation(board, legal_moves)
 
         # ノット（Not）の合法手生成
-        update_not(legal_moves)
-
+        SearchLegalMoves._append_not_operation(board, legal_moves)
 
         # アンド（AND）の合法手生成
-        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='a')
+        SearchLegalMoves._append_binary_operation(board, legal_moves, operator_u='a')
 
         # オア（OR）の合法手生成
-        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='o')
+        SearchLegalMoves._append_binary_operation(board, legal_moves, operator_u='o')
 
         # ゼロ（ZERO）の合法手生成
-        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='ze', for_edit_mode=True)
+        SearchLegalMoves._append_binary_operation(board, legal_moves, operator_u='ze', for_edit_mode=True)
 
         # ノア（NOR）の合法手生成
-        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='no')
+        SearchLegalMoves._append_binary_operation(board, legal_moves, operator_u='no')
 
         # エクソア（XOR）の合法手生成
-        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='xo')
+        SearchLegalMoves._append_binary_operation(board, legal_moves, operator_u='xo')
 
         # ナンド（NAND）の合法手生成
-        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='na')
+        SearchLegalMoves._append_binary_operation(board, legal_moves, operator_u='na')
 
         # エクスノア（XNOR）の合法手生成
-        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='xn')
+        SearchLegalMoves._append_binary_operation(board, legal_moves, operator_u='xn')
 
         # ワン（ONE）の合法手生成
-        SearchLegalMoves._make_binary_operation(legal_moves=legal_moves, board=board, operator_u='on', for_edit_mode=True)
+        SearchLegalMoves._append_binary_operation(board, legal_moves, operator_u='on', for_edit_mode=True)
 
         return legal_moves
 
@@ -3267,38 +3264,21 @@ class SearchMateMoveIn1Play():
             # 未来の終局判定新規作成
             next_searched_gameover = SearchedGameover.search(board, next_legal_moves, next_searched_clear_targets.clear_targets_list)
 
-            # DO 勝ちかどうか判定する。価値が有ったら真を返す
+            # DO 勝ちかどうか判定する。自分に勝ちが有ったら真を返す
             if board.is_gameover(next_searched_gameover):
 
-                if next_searched_gameover.is_black_win:
-                    if current_turn == C_BLACK:
-                        # You win!  ※一手戻すまでスコープから抜けないこと
-                        found_move = move
-                    
-                    elif current_turn == C_WHITE:
-                        # You lose!
-                        pass
+                if next_searched_gameover.is_black_win and current_turn == C_BLACK:
+                    # You win!  ※一手戻すまでループから抜けないこと
+                    found_move = move
 
-                elif next_searched_gameover.is_white_win:
-                    if current_turn == C_BLACK:
-                        # You lose!
-                        pass
-                    
-                    elif current_turn == C_WHITE:
-                        # You win!  ※一手戻すまでスコープから抜けないこと
-                        found_move = move
-
-                elif next_searched_gameover.is_double_win:
-                    # Illegal move
-                    pass
-
-                else:
-                    raise ValueError(f"undefined gameover. {next_searched_gameover.reason=}")
-
+                elif next_searched_gameover.is_white_win and current_turn == C_WHITE:
+                    # You win!  ※一手戻すまでループから抜けないこと
+                    found_move = move
 
             # DO 一手戻す
             board.pop()
 
+            # （一手戻してから）ループから抜ける
             if found_move is not None:
                 break
 
@@ -3311,7 +3291,7 @@ class SearchedGameover():
     """ゲームオーバー探索"""
 
 
-    def __init__(self, is_black_win, is_white_win, black_count, white_count, reason):
+    def __init__(self, is_black_win, is_white_win, is_simultaneous_clearing, black_count, white_count, reason):
         """初期化
         
         Parameters
@@ -3320,6 +3300,9 @@ class SearchedGameover():
             黒勝ち
         is_white_win : bool
             白勝ち
+        is_simultaneous_clearing : bool
+            同時条件クリアー
+            これが偽なら満局
         black_count : bool
             点数勝負の場合の黒石の数
         white_count : bool
@@ -3330,6 +3313,7 @@ class SearchedGameover():
 
         self._is_black_win = is_black_win
         self._is_white_win = is_white_win
+        self._is_simultaneous_clearing = is_simultaneous_clearing
         self._black_count = black_count
         self._white_count = white_count
         self._reason = reason
@@ -3348,9 +3332,10 @@ class SearchedGameover():
 
 
     @property
-    def is_double_win(self):
-        """両者勝ち（反則）"""
-        return self._is_black_win and self._is_white_win
+    def is_simultaneous_clearing(self):
+        """同時条件クリアー
+        これが偽なら満局"""
+        return self._is_simultaneous_clearing
 
 
     @property
@@ -3378,6 +3363,61 @@ class SearchedGameover():
 
 
     @staticmethod
+    def _point_playoff(board, is_simultaneous_clearing):
+        """盤上の石を数えて点数勝負"""
+
+        black_count = 0
+        white_count = 0.5
+
+        # TODO 点数勝負のときの計算を差分計算を用いて高速にしたい
+        for i in range(0, BOARD_AREA):
+            stone = board._squares[i]
+            if stone == C_BLACK:
+                black_count += 1
+
+            elif stone == C_WHITE:
+                white_count += 1
+
+            elif stone == C_EMPTY:
+                pass
+
+            else:
+                raise ValueError(f"{stone=}")
+
+        if white_count < black_count:
+            if is_simultaneous_clearing:
+                reason_of_when = f'simultaneous clearing'
+            else:
+                reason_of_when = f'stalemate'
+
+            return SearchedGameover(
+                is_black_win=True,
+                is_white_win=False,
+                is_simultaneous_clearing=is_simultaneous_clearing,
+                black_count = black_count,
+                white_count = white_count,
+                reason=f'black {black_count-white_count} win when {reason_of_when}')
+
+        elif black_count < white_count:
+            if is_simultaneous_clearing:
+                reason_of_when = f'simultaneous clearing'
+            else:
+                reason_of_when = f'stalemate'
+
+            return SearchedGameover(
+                is_black_win=False,
+                is_white_win=True,
+                is_simultaneous_clearing=is_simultaneous_clearing,
+                black_count = black_count,
+                white_count = white_count,
+                reason=f'white {white_count-black_count} win when {reason_of_when}')
+
+        # 後手の白番に 0.5 のコミがあるので引き分けにはならない
+        else:
+            raise ValueError(f"{black_count=}  {white_count=}")
+
+
+    @staticmethod
     def search(board, legal_moves, clear_targets_list):
 
         # どちらかのプレイヤーが３つのターゲットを完了した
@@ -3391,19 +3431,15 @@ class SearchedGameover():
             is_white_win = True
 
         if is_black_win and is_white_win:
-            # TODO 同着になる手は禁じ手にしたい
-            return SearchedGameover(
-                is_black_win=is_black_win,
-                is_white_win=is_white_win,
-                black_count = -1,
-                white_count = -1,
-                reason='draw (illegal move)')
+            # 両者が同時にクリアーターゲットを全て揃えた場合、点数勝負
+            return SearchedGameover._point_playoff(board, is_simultaneous_clearing=True)
 
         if is_black_win:
             # 黒勝ち
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
+                is_simultaneous_clearing=False,
                 black_count = -1,
                 white_count = -1,
                 reason='black win')
@@ -3413,47 +3449,15 @@ class SearchedGameover():
             return SearchedGameover(
                 is_black_win=is_black_win,
                 is_white_win=is_white_win,
+                is_simultaneous_clearing=False,
                 black_count = -1,
                 white_count = -1,
                 reason='white win')
 
         # ステールメートしている
         if len(legal_moves.distinct_items) < 1:
-
-            # TODO 盤上の石を数えて点数勝負したい
-            black_count = 0
-            white_count = 0.5
-
-            for i in range(0, BOARD_AREA):
-                stone = board._squares[i]
-                if stone == C_BLACK:
-                    black_count += 1
-
-                elif stone == C_WHITE:
-                    white_count += 1
-
-                else:
-                    raise ValueError(f"{stone=}")
-
-            if white_count < black_count:
-                return SearchedGameover(
-                    is_black_win=True,
-                    is_white_win=False,
-                    black_count = black_count,
-                    white_count = white_count,
-                    reason=f'black {black_count-white_count} win')
-
-            elif black_count < white_count:
-                return SearchedGameover(
-                    is_black_win=False,
-                    is_white_win=True,
-                    black_count = black_count,
-                    white_count = white_count,
-                    reason=f'white {white_count-black_count} win')
-
-            # 後手の白番に 0.5 のコミがあるので引き分けにはならない
-            else:
-                raise ValueError(f"{black_count=}  {white_count=}")
+            # 点数勝負
+            return SearchedGameover._point_playoff(board, is_simultaneous_clearing=False)
 
 
         # TODO 投了しているケースに対応したい
@@ -3462,6 +3466,7 @@ class SearchedGameover():
         return SearchedGameover(
             is_black_win=is_black_win,
             is_white_win=is_white_win,
+            is_simultaneous_clearing=False,
             black_count = -1,
             white_count = -1,
             reason='playing')
