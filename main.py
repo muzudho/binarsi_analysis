@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover
+from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover
 
 
 class UsiEngine():
@@ -773,6 +773,8 @@ CLEAR TARGETS
             white_point_win_count_when_stalemate):
         """対局結果の集計の表示、またはファイルへの上書き"""
 
+        global BLACK_KOMI, WHITE_KOMI
+
         bingo_total = black_bingo_win_count + white_bingo_win_count
         point_total_when_simultaneous_clearing = black_point_win_count_when_simultaneous_clearing + white_point_win_count_when_simultaneous_clearing
         point_total_when_stalemate = black_point_win_count_when_stalemate + white_point_win_count_when_stalemate
@@ -783,6 +785,9 @@ CLEAR TARGETS
         with open('result_summary.log', 'w', encoding='utf8') as f:
             text = f"""\
 {i+1} 対局集計
+
+    黒コミ：{BLACK_KOMI:2.1f}
+    白コミ：{WHITE_KOMI:2.1f}
 
     三本勝負
     ーーーーーーーー
@@ -862,7 +867,7 @@ CLEAR TARGETS
             searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
             if searched_gameover.is_black_win:
-                if searched_gameover.black_count == -1:
+                if searched_gameover.black_count_with_komi == -1:
                     black_bingo_win_count += 1
                 elif searched_gameover.is_simultaneous_clearing:
                     black_point_win_count_when_simultaneous_clearing += 1
@@ -870,7 +875,7 @@ CLEAR TARGETS
                     black_point_win_count_when_stalemate += 1
 
             elif searched_gameover.is_white_win:
-                if searched_gameover.white_count_with_comi == -1:
+                if searched_gameover.white_count_with_komi == -1:
                     white_bingo_win_count += 1
                 elif searched_gameover.is_simultaneous_clearing:
                     white_point_win_count_when_simultaneous_clearing += 1
