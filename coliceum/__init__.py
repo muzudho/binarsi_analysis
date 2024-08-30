@@ -25,15 +25,28 @@ class Coliceum():
         self._proc.sendline(message)
 
 
-    def readlines(self):
-        # FIXME よく分かってない
+    @property
+    def messages_until_match(self):
+        """expect() でマッチするまでの間に無視した文字列を返す"""
         return self._proc.before.decode("utf8", errors="ignore")
+
+
+    @property
+    def matched_message(self):
+        """expect() にマッチした文字列を返す"""
+        return self._proc.after.decode("utf8", errors="ignore")
 
 
     def expect_line(self, message, timeout):
         """子プロセスが出力すると想定した文字列
         
-        Windows を想定して、改行コードの '\r\n' を末尾に付ける"""
+        Windows を想定して、改行コードの '\r\n' を末尾に付ける
+        
+        Parameters
+        ----------
+        message : str
+            文字列。正規表現で書く
+        """
 
         print(f"[Coliceum > expect_line]  {message=}")
         self._proc.expect(f"{message}\r\n", timeout=timeout)
@@ -57,24 +70,39 @@ class Coliceum():
         coliceum = Coliceum(
             child_process=psp.PopenSpawn('python main.py'))
 
+        # 以下、基本的に expect_line、 print、 sendline、 を対話１回分として繰り返します
+
+        # Coliceum said
         coliceum.sendline("usi")
 
-        coliceum.expect_line("id name KifuwarabeBinarsi", timeout=None)
+        # Engine said
+        coliceum.expect_line(r"id name (\w)+", timeout=None)
+        print(f"{coliceum.messages_until_match=}")  # ""
+        print(f"{coliceum.matched_message=}")       # "id name KifuwarabeBinarsi\r\n"
 
+        # Engine said
         coliceum.expect_line("id author Muzudho", timeout=None)
 
+        # Engine said
         coliceum.expect_line("usiok", timeout=None)
-
         coliceum.sendline("isready")
 
+        # Engine said
         coliceum.expect_line("readyok", timeout=None)
-
         coliceum.sendline("usinewgame")
+        coliceum.sendline("position startpos")
+        coliceum.sendline("go")
 
+        # Engine said
+        coliceum.expect_line(r"bestmove ([\w\s]+)", timeout=None)
         print(f"""\
-Read lines
-----------
-{coliceum.readlines()}""")
+Ignored lines
+-------------
+{coliceum.messages_until_match}""")
+        # [2024-08-31 01:45:38.237119] usinewgame end
+        # info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move
+
+        print(f"{coliceum.matched_message=}")   # "bestmove 4n\r\n"
 
         # 思考エンジンを終了させる
         coliceum.sendline("quit")
