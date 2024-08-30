@@ -4,6 +4,9 @@
 
 `binary` （バイナリー） ＋ `riverse` （リバーシ） ＝ `binarsi` （ビナーシ）  
 
+👇　遊び方は note で説明しています  
+📖　[ビナーシ（Binarsi）の遊び方説明](https://note.com/muzudho/n/n58c1db0dce14)  
+
 
 # 道具の説明
 
