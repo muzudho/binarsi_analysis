@@ -157,6 +157,7 @@ class UsiEngine():
             raise
 
         print(f'id name {engine_name}')
+        print(f'id author Muzudho')
         print('usiok', flush=True)
 
 
