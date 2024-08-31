@@ -861,10 +861,10 @@ HISTORY
         self.print_sfen(searched_clear_targets_for_computer, from_present=True)
         print("") # 空行
 
-
-        # 今クリアーしたものがあれば、クリアー目標表示
-        Views.print_clear_target_if_it_now(self._board, searched_clear_targets_for_computer)
-
+        # 今１つでもクリアーしたものがあれば、クリアー目標表示
+        if Views.is_one_settled(self._board, searched_clear_targets_for_computer):
+            Views.print_clear_targets(searched_clear_targets_for_computer)
+            time.sleep(0.7)
 
         if self._board.is_gameover(searched_gameover_for_computer):
             Views.print_if_end_of_game(self._board, searched_clear_targets_for_computer, searched_gameover_for_computer)
@@ -911,8 +911,10 @@ HISTORY
         self.print_sfen(searched_clear_targets_for_you, from_present=True)
         print("") # 空行
 
-        # 今クリアーしたものがあれば、クリアー目標表示
-        Views.print_clear_target_if_it_now(self._board, searched_clear_targets_for_you)
+        # 今１つでもクリアーしたものがあれば、クリアー目標表示
+        if Views.is_one_settled(self._board, searched_clear_targets_for_you):
+            Views.print_clear_targets(searched_clear_targets_for_you)
+            time.sleep(0.7)
 
         if self._board.is_gameover(searched_gameover_for_you):
             Views.print_if_end_of_game(self._board, searched_clear_targets_for_you, searched_gameover_for_you)

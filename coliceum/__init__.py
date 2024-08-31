@@ -1,6 +1,7 @@
 import pexpect.popen_spawn as psp
 import re
-from py_binarsi import Board, SearchedClearTargets, PositionCommand
+import time
+from py_binarsi import Board, SearchedClearTargets, SearchLegalMoves, SearchedGameover, PositionCommand
 from views import Views
 
 
@@ -90,6 +91,15 @@ class Coliceum():
         # print(f"{self.matched_message=}")   # "bestmove 4n\r\n"
         # print(f"{self.group(1)=}")    # 4n
         bestmove_str = self.group(1)
+
+        #if self._board.is_gameover(searched_gameover_for_computer):
+        if bestmove_str == 'resign':
+            print("# computer resign")
+            Views.print_you()
+            Views.print_win()
+            return
+
+
         self.sendline(f"do {bestmove_str}")
 
         # Engine said
@@ -127,8 +137,25 @@ class Coliceum():
         print(self._board.as_str(position_command.searched_clear_targets))
         print() # 改行
 
-        # 今クリアーしたものがあれば、クリアー目標表示
-        Views.print_clear_target_if_it_now(self._board, position_command.searched_clear_targets)
+        # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
+        if Views.is_one_settled(self._board, position_command.searched_clear_targets):
+            Views.print_clear_targets(position_command.searched_clear_targets)
+            time.sleep(0.7)
+
+        # 勝敗判定
+
+        # 人間の手番のための合法手一覧
+        #
+        #   ステールメートしているかどうかの判定に使う
+        #
+        legal_moves_for_you = SearchLegalMoves.generate_legal_moves(self._board)
+
+        # コンピューター側のための終局判定
+        searched_gameover = SearchedGameover.search(self._board, legal_moves_for_you, position_command.searched_clear_targets.clear_targets_list)
+
+        # 決着が付いていれば、結果表示
+        if self._board.is_gameover(searched_gameover):
+            Views.print_if_end_of_game(self._board, position_command.searched_clear_targets, searched_gameover)
 
 
     def go_you(self):
@@ -186,8 +213,25 @@ Matched message (Debug 1)
         print(self._board.as_str(position_command.searched_clear_targets))
         print() # 改行
 
-        # 今クリアーしたものがあれば、クリアー目標表示
-        Views.print_clear_target_if_it_now(self._board, position_command.searched_clear_targets)
+        # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
+        if Views.is_one_settled(self._board, position_command.searched_clear_targets):
+            Views.print_clear_targets(position_command.searched_clear_targets)
+            time.sleep(0.7)
+
+        # 勝敗判定
+
+        # コンピューターの手番のための合法手一覧
+        #
+        #   ステールメートしているかどうかの判定に使う
+        #
+        legal_moves_for_computer = SearchLegalMoves.generate_legal_moves(self._board)
+
+        # コンピューター側のための終局判定
+        searched_gameover = SearchedGameover.search(self._board, legal_moves_for_computer, position_command.searched_clear_targets.clear_targets_list)
+
+        # 決着が付いていれば、結果表示
+        if self._board.is_gameover(searched_gameover):
+            Views.print_if_end_of_game(self._board, position_command.searched_clear_targets, searched_gameover)
 
 
     @staticmethod

@@ -1627,6 +1627,7 @@ class Board():
 
     def reset(self):
         """平手初期局面に戻す"""
+
         self.subinit()
 
         # 石の初期配置
@@ -3593,6 +3594,18 @@ class SearchedGameover():
 
     @staticmethod
     def search(board, legal_moves, clear_targets_list):
+        """探索
+        
+        Parameters
+        ----------
+        board : Board
+            盤
+        legal_moves : LegalMoves
+            合法手一覧
+            ステールメートしているかどうかの判定に使う
+        clear_targets_list : ClearTargetsList
+            クリアーターゲット一覧
+        """
 
         # どちらかのプレイヤーが３つのターゲットを完了した
         is_black_win = False
@@ -3650,15 +3663,8 @@ class PositionCommand():
     """position コマンド"""
 
 
-    def __init__(self, board):
-        """初期化
-        
-        Parameters
-        ----------
-        board : Board
-            盤
-        """
-        self._board = board
+    def __init__(self):
+        """初期化"""
         self._searched_clear_targets = None
 
 
@@ -3667,59 +3673,54 @@ class PositionCommand():
         return self._searched_clear_targets
 
 
-    def position_detail(self, sfen_u, move_u_list):
-        """局面データ解析
+    @staticmethod
+    def parse_and_update_board(board, input_str):
+        """盤を変更します
 
         Parameters
         ----------
-        sfen_u : str
-            SFEN文字列
-        move_u_list : list
-            盤面編集履歴。実体は指し手コードの空白区切りリスト。対局棋譜のスーパーセット
+        input_str : str
+            position コマンド文字列
         """
 
-        print(f"[PositionCommand > position_detail (debug 3679)] {sfen_u=}")
+        position_command = PositionCommand()
+
+        cmd = input_str.split(' ', 1)
+
+        # 余計な半角空白は入っていない前提
+        pos_list = cmd[1].split(' moves ')
+
+        # SFEN 文字列
+        sfen_u = pos_list[0]
+        print(f"[PositionCommand > parse_and_update_board (debug 3711)] {sfen_u=}")
+
+        #print(f"[position] {pos_list=}")
+
+        # 区切りは半角空白１文字とします
+        #
+        #   盤面編集履歴。実体は指し手コードの空白区切りリスト。対局棋譜のスーパーセット
+        #
+        move_u_list = (pos_list[1].split(' ') if len(pos_list) > 1 else [])
 
         # NOTE 'sfen startpos' という書き方は間違いです。 'startpos' は SFEN ではありません
         # 平手初期局面に変更
         if sfen_u == 'startpos':
-            self._board.reset()
-            self._searched_clear_targets = SearchedClearTargets.make_new_obj()
+            board.reset()
+            position_command._searched_clear_targets = SearchedClearTargets.make_new_obj()
 
         # 指定局面に変更
         elif sfen_u[:5] == 'sfen ':
-            self._searched_clear_targets = self._board.set_sfen(sfen_u[5:])
+            position_command._searched_clear_targets = board.set_sfen(sfen_u[5:])
         
         else:
             raise ValueError(f"unsupported position  {sfen_u=}")
 
 
         # 初期局面を記憶（SFENで初期局面を出力したいときのためのもの）
-        self._board.update_squares_at_init()
+        board.update_squares_at_init()
 
         # 盤面編集履歴（対局棋譜のスーパーセット）再生
         for move_u in move_u_list:
-            self._board.push_usi(move_u)
-
-
-    @staticmethod
-    def parse_and_update_board(board, input_str):
-        """盤を変更します"""
-
-        position_command = PositionCommand(board)
-
-        cmd = input_str.split(' ', 1)
-
-        # 余計な半角空白は入っていない前提
-        pos_list = cmd[1].split(' moves ')
-        sfen_text = pos_list[0]
-        print(f"[PositionCommand > parse_and_update_board (debug 3711)] {sfen_text=}")
-
-        #print(f"[position] {pos_list=}")
-
-        # 区切りは半角空白１文字とします
-        move_u_list = (pos_list[1].split(' ') if len(pos_list) > 1 else [])
-
-        position_command.position_detail(sfen_text, move_u_list)
+            board.push_usi(move_u)
 
         return position_command

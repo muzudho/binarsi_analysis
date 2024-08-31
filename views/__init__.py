@@ -174,17 +174,13 @@ CLEAR TARGETS
 
 
     @staticmethod
-    def print_clear_target_if_it_now(board, searched_clear_targets):
-        """今クリアーしたものがあれば、クリアー目標表示"""
-        one_cleared = False
+    def is_one_settled(board, searched_clear_targets):
+        """今１つでもクリアーしたものがあるか？"""
         for clear_target in searched_clear_targets.clear_targets_list:
             if clear_target == board.moves_number:
-                one_cleared = True
-                break
-        
-        if one_cleared:
-            Views.print_clear_targets(searched_clear_targets)
-            time.sleep(0.7)
+                return True
+
+        return False
 
 
     @staticmethod
