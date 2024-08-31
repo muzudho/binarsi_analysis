@@ -17,7 +17,7 @@ class Coliceum():
         """
 
         self._proc = child_process
-        self._board = Board
+        self._board = Board()
 
 
     def sendline(self, message):
@@ -114,6 +114,10 @@ Matched message
 ---------------
 [from present]{position_args}""")
         # もう１行 stones_before_change が続く可能性もある
+
+        # 盤表示
+        print("coliceum> print board")
+        print(self._board.as_str(position_command.searched_clear_targets))
 
 
     def go_you(self):

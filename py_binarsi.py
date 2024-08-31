@@ -3618,6 +3618,7 @@ class PositionCommand():
     @staticmethod
     def parse_and_update_board(board, input_str):
         """盤を変更します"""
+
         position_command = PositionCommand(board)
 
         cmd = input_str.split(' ', 1)
