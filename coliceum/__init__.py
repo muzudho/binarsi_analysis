@@ -81,7 +81,7 @@ class Coliceum():
 
         # binarsi_analisis リポジトリー直下の main.py を起動しています
         # engine は対局エンジンプロセス
-        print("[Coliceum > start]  spawn: python main.py")
+        print("Coliceum> python main.py")
         coliceum = Coliceum(
             child_process=psp.PopenSpawn('python main.py'))
 
@@ -120,9 +120,24 @@ Ignored lines
         # info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move
 
         print(f"{coliceum.matched_message=}")   # "bestmove 4n\r\n"
-        print(f"{coliceum.group(1)=}")    # "b'4n'"
+        print(f"{coliceum.group(1)=}")    # 4n
         bestmove_str = coliceum.group(1)
         coliceum.sendline(f"do {bestmove_str}")
+
+        # Engine said
+        coliceum.expect_line(r"\[from present\].*", timeout=None)
+        print(f"""\
+Ignored lines
+-------------
+{coliceum.messages_until_match}""")
+
+        # Colosseum asks
+        print("Coliceum> you turn")
+        input_str = input()
+
+        # Coliceum said
+        msg = f"do {input_str}" # message
+        coliceum.sendline(msg)
 
         # Engine said
         coliceum.expect_line(r"\[from present\].*", timeout=None)
