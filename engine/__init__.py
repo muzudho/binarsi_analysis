@@ -867,7 +867,7 @@ HISTORY
             time.sleep(0.7)
 
         if self._board.is_gameover(searched_gameover_for_computer):
-            Views.print_if_end_of_game(self._board, searched_clear_targets_for_computer, searched_gameover_for_computer)
+            Views.print_settled_for_play_command(self._board, searched_clear_targets_for_computer, searched_gameover_for_computer)
             return searched_clear_targets_for_computer
 
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
@@ -917,7 +917,7 @@ HISTORY
             time.sleep(0.7)
 
         if self._board.is_gameover(searched_gameover_for_you):
-            Views.print_if_end_of_game(self._board, searched_clear_targets_for_you, searched_gameover_for_you)
+            Views.print_settled_for_play_command(self._board, searched_clear_targets_for_you, searched_gameover_for_you)
             return searched_clear_targets_for_you
 
         # ターミナルが見づらいので、イラストを挟む

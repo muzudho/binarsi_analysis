@@ -94,9 +94,8 @@ class Coliceum():
 
         #if self._board.is_gameover(searched_gameover_for_computer):
         if bestmove_str == 'resign':
+            # TODO 通常、コンピューターが投了する前に、決着は判定し終わっています。ここの書き方をあとで考える
             print("# computer resign")
-            Views.print_you()
-            Views.print_win()
             return
 
 
@@ -150,12 +149,13 @@ class Coliceum():
         #
         legal_moves_for_you = SearchLegalMoves.generate_legal_moves(self._board)
 
-        # コンピューター側のための終局判定
+        # 終局判定
         searched_gameover = SearchedGameover.search(self._board, legal_moves_for_you, position_command.searched_clear_targets.clear_targets_list)
+        print(f"[Coliceum > go_you (debug 155)] {searched_gameover.dump()}")
 
         # 決着が付いていれば、結果表示
         if self._board.is_gameover(searched_gameover):
-            Views.print_if_end_of_game(self._board, position_command.searched_clear_targets, searched_gameover)
+            Views.print_settled_for_coliceum(self._board, position_command.searched_clear_targets, searched_gameover)
 
 
     def go_you(self):
@@ -226,12 +226,13 @@ Matched message (Debug 1)
         #
         legal_moves_for_computer = SearchLegalMoves.generate_legal_moves(self._board)
 
-        # コンピューター側のための終局判定
+        # 終局判定
         searched_gameover = SearchedGameover.search(self._board, legal_moves_for_computer, position_command.searched_clear_targets.clear_targets_list)
+        print(f"[Coliceum > go_you (debug 231)] {searched_gameover.dump()}")
 
         # 決着が付いていれば、結果表示
         if self._board.is_gameover(searched_gameover):
-            Views.print_if_end_of_game(self._board, position_command.searched_clear_targets, searched_gameover)
+            Views.print_settled_for_coliceum(self._board, position_command.searched_clear_targets, searched_gameover)
 
 
     @staticmethod

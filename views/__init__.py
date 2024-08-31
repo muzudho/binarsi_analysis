@@ -110,7 +110,38 @@ class Views():
 
 
     @staticmethod
-    def print_if_end_of_game(board, searched_clear_targets, searched_gameover):
+    def print_settled_for_play_command(board, searched_clear_targets, searched_gameover):
+        """決着の表示、play コマンド用"""
+        current_turn = Colors.Opponent(board.get_next_turn())
+        
+        if searched_gameover.is_black_win:
+            if current_turn == C_BLACK:
+                Views.print_you()
+                Views.print_win()
+            
+            elif current_turn == C_WHITE:
+                Views.print_you()
+                Views.print_lose()
+
+        elif searched_gameover.is_white_win:
+            if current_turn == C_BLACK:
+                Views.print_you()
+                Views.print_lose()
+            
+            elif current_turn == C_WHITE:
+                Views.print_you()
+                Views.print_win()
+        
+        else:
+            raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
+
+
+    @staticmethod
+    def print_settled_for_coliceum(board, searched_clear_targets, searched_gameover):
+        """決着の表示、コロシアム用
+        
+        TODO コミで決着したのなら、それも表示したい
+        """
         current_turn = Colors.Opponent(board.get_next_turn())
         
         if searched_gameover.is_black_win:

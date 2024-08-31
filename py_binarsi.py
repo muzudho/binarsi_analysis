@@ -3493,6 +3493,17 @@ class SearchedGameover():
         self._reason = reason
 
 
+    def dump(self):
+        return f"""\
+[SearchedGameover > dump]
+    {self._is_black_win=}
+    {self._is_white_win=}
+    {self._is_simultaneous_clearing=}
+    {self._black_count_with_komi=}
+    {self._white_count_with_komi=}
+    {self._reason=}"""
+
+
     @property
     def is_black_win(self):
         """黒勝ち"""
