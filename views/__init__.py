@@ -58,7 +58,8 @@ class Views():
             option_stones_str = f'${move.option_stones}'
 
         # 路
-        way_str = move.way.to_human_presentable_text()
+        #way_str = move.way.to_human_presentable_text()
+        way_str = move.way.to_code()
 
         # 演算子
         op = move.operator.code
@@ -68,25 +69,31 @@ class Views():
 
         # NAND
         if op == 'na':
-            move_str = f"NAND and put it in {way_str}"
+            #move_str = f"NAND and put it in {way_str}"
+            move_str = f"{way_str} <- p NAND q"
 
         # NOT High
         elif op == 'nH':
-            high_way_str = move.way.high_way().to_human_presentable_text()
-            move_str = f"NOT on {high_way_str} and put it in {way_str}"
+            #high_way_str = move.way.high_way().to_human_presentable_text()
+            high_way_str = move.way.high_way().to_code()
+            #move_str = f"NOT on {high_way_str} and put it in {way_str}"
+            move_str = f"{way_str} <-   NOT  {high_way_str}"
 
         # NOT Low
         elif op == 'nL':
             low_way_str = move.way.low_way().to_human_presentable_text()
-            move_str = f"NOT on {low_way_str} and put it in {way_str}"
+            #move_str = f"NOT on {low_way_str} and put it in {way_str}"
+            move_str = f"{way_str} <-   NOT  {low_way_str}"
 
         # NOR
         elif op == 'no':
-            move_str = f"NOR and put it in {way_str}"
+            #move_str = f"NOR and put it in {way_str}"
+            move_str = f"{way_str} <- p NOR  q"
 
         # One
         elif op == 'on':
-            move_str = f"Fill 1 in {way_str}"
+            #move_str = f"Fill 1 in {way_str}"
+            move_str = f"{way_str} <- '1'"
 
         # Shift
         elif op.startswith('s'):
@@ -95,33 +102,40 @@ class Views():
             if move.way.is_file:
                 # 例： Shift 1-file 1-bit to forward
                 # 半角 29 文字
-                move_str = f'Shift {way_str} {bits}-bit to forward'
+                #move_str = f'Shift {way_str} {bits}-bit to forward'
+                move_str = f'{way_str} <- SHIFT  {bits}-bit to forward'
             
             elif move.way.is_rank:
                 # 例： Shift c-rank 1-bit to right
-                move_str = f'Shift {way_str} {bits}-bit to right'
+                #move_str = f'Shift {way_str} {bits}-bit to right'
+                move_str = f'{way_str} <- SHIFT  {bits}-bit to right'
             
             elif move.way.is_empty:
-                move_str = f'Shift {way_str} is illegal move'
+                #move_str = f'Shift {way_str} is illegal move'
+                move_str = f'{way_str} <- SHIFT  is illegal move'
             
             else:
                 raise ValueError(f"undefined axis {move.way.axis_id=}")
 
         # XNOR
         elif op == 'xn':
-            move_str = f"XNOR and put it in {way_str}"
+            #move_str = f"XNOR and put it in {way_str}"
+            move_str = f"{way_str} <- p XNOR q"
 
         # XOR
         elif op == 'xo':
-            move_str = f"XOR and put it in {way_str}"
+            #move_str = f"XOR and put it in {way_str}"
+            move_str = f"{way_str} <- p XOR  q"
 
         # Zero
         elif op == 'ze':
-            move_str = f"fill 0 in {way_str}"
+            #move_str = f"fill 0 in {way_str}"
+            move_str = f"{way_str} <- '0'"
         
         # AND
         elif op == 'a':
-            move_str = f"AND and put it in {way_str}"
+            #move_str = f"AND and put it in {way_str}"
+            move_str = f"{way_str} <- p AND  q"
 
         # Cut
         elif op == 'c':
@@ -141,11 +155,13 @@ class Views():
             else:
                 # ニューする
                 src_way_str = board.get_src_way_by_unary_operation(move.way).to_human_presentable_text()
-                move_str = f"NOT on {src_way_str} and put it in {way_str}"
+                #move_str = f"NOT on {src_way_str} and put it in {way_str}"
+                move_str = f"{way_str} <-   NOT  {src_way_str}"
 
         # OR
         elif op == 'o':
-            move_str = f"OR and put it in {way_str}"
+            #move_str = f"OR and put it in {way_str}"
+            move_str = f"{way_str} <- p OR   q"
 
         else:
             raise ValueError(f"undefined operator {op=}")
@@ -208,6 +224,7 @@ LEGAL MOVES
         menu_items = []
 
         # 指した結果が同じになるような指し手も表示する
+
         legal_move_list = SearchLegalMoves.generate_legal_moves(board).items
 
         # 合法手は１００個も無いだろう。連番は２桁で十分
@@ -221,6 +238,8 @@ LEGAL MOVES
                 code=move.to_code(),
                 description=Views.create_human_presentable_move_text(board, move)))
 
+        # description が降順になるようにソートする
+        menu_items = sorted(menu_items, key=lambda x:x.description)
 
         return menu_items
 
