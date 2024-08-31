@@ -140,8 +140,13 @@ class Views():
     def print_settled_for_coliceum(board, searched_clear_targets, searched_gameover):
         """決着の表示、コロシアム用
         
-        TODO コミで決着したのなら、それも表示したい
+        - 三本勝負で決着したのなら、特に説明は要らない
+        - 点数計算で決着したのなら、点数も表示
         """
+
+        # TODO デバッグ消す
+        print(f"DEBUG コロシアム用の決着表示")
+
         current_turn = Colors.Opponent(board.get_next_turn())
         
         if searched_gameover.is_black_win:
@@ -164,6 +169,12 @@ class Views():
         
         else:
             raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
+
+        # 点数計算で決着したなら、点数も表示
+        if searched_gameover.is_point_calculation:
+            print(f"""\
+Black {searched_gameover._black_count_with_komi:2.1f}
+White {searched_gameover._white_count_with_komi:2.1f}""")
 
 
     @staticmethod

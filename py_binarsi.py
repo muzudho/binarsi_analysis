@@ -3463,7 +3463,15 @@ class SearchedGameover():
     """ゲームオーバー探索"""
 
 
-    def __init__(self, is_black_win, is_white_win, is_simultaneous_clearing, black_count_with_komi, white_count_with_komi, reason):
+    def __init__(
+            self,
+            is_black_win,
+            is_white_win,
+            is_simultaneous_clearing,
+            black_count_with_komi,
+            white_count_with_komi,
+            reason,
+            is_point_calculation = False):
         """初期化
         
         Parameters
@@ -3483,6 +3491,8 @@ class SearchedGameover():
             コミは先後の勝率を五分五分に調整するためのもの。プレイヤーの強さを調整するためのハンディキャップとは異なる
         reason : str
             ゲームオーバーと判定された理由の説明
+        is_point_calculation : bool
+            点数計算による決着
         """
 
         self._is_black_win = is_black_win
@@ -3491,6 +3501,7 @@ class SearchedGameover():
         self._black_count_with_komi = black_count_with_komi
         self._white_count_with_komi = white_count_with_komi
         self._reason = reason
+        self._is_point_calculation = is_point_calculation
 
 
     def dump(self):
@@ -3501,7 +3512,8 @@ class SearchedGameover():
     {self._is_simultaneous_clearing=}
     {self._black_count_with_komi=}
     {self._white_count_with_komi=}
-    {self._reason=}"""
+    {self._reason=}
+    {self._is_point_calculation=}"""
 
 
     @property
@@ -3550,8 +3562,14 @@ class SearchedGameover():
         return self._reason
 
 
+    @property
+    def is_point_calculation(self):
+        """点数計算による決着か？"""
+        return self._is_point_calculation
+
+
     @staticmethod
-    def _point_playoff(board, is_simultaneous_clearing):
+    def _point_calculation(board, is_simultaneous_clearing):
         """盤上の石を数えて点数勝負"""
 
         # 点数の差分計算があってるかチェック
@@ -3589,7 +3607,8 @@ class SearchedGameover():
                 is_simultaneous_clearing=is_simultaneous_clearing,
                 black_count_with_komi = board.black_count_with_komi,
                 white_count_with_komi = board.white_count_with_komi,
-                reason=f'black {board.black_count_with_komi-board.white_count_with_komi} win when {reason_of_when}')
+                reason=f'black {board.black_count_with_komi-board.white_count_with_komi} win when {reason_of_when}',
+                is_point_calculation = True)
 
         elif board.black_count_with_komi < board.white_count_with_komi:
             if is_simultaneous_clearing:
@@ -3603,7 +3622,8 @@ class SearchedGameover():
                 is_simultaneous_clearing=is_simultaneous_clearing,
                 black_count_with_komi = board.black_count_with_komi,
                 white_count_with_komi = board.white_count_with_komi,
-                reason=f'white {board.white_count_with_komi-board.black_count_with_komi} win when {reason_of_when}')
+                reason=f'white {board.white_count_with_komi-board.black_count_with_komi} win when {reason_of_when}',
+                is_point_calculation = True)
 
         # 後手の白番にコミがあるので引き分けにはならない
         else:
@@ -3637,7 +3657,7 @@ class SearchedGameover():
 
         if is_black_win and is_white_win:
             # 両者が同時にクリアーターゲットを全て揃えた場合、点数勝負
-            return SearchedGameover._point_playoff(board, is_simultaneous_clearing=True)
+            return SearchedGameover._point_calculation(board, is_simultaneous_clearing=True)
 
         if is_black_win:
             # 黒勝ち
@@ -3662,7 +3682,7 @@ class SearchedGameover():
         # ステールメートしている
         if len(legal_moves.distinct_items) < 1:
             # 点数勝負
-            return SearchedGameover._point_playoff(board, is_simultaneous_clearing=False)
+            return SearchedGameover._point_calculation(board, is_simultaneous_clearing=False)
 
 
         # TODO 投了しているケースに対応したい
