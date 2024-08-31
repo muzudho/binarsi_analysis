@@ -1017,7 +1017,12 @@ class MoveHelper():
 
 
 class Sfen():
-    """SFEN形式文字列"""
+    """SFEN形式文字列
+    
+    空欄： 数に置き換え
+    黒石： x
+    白石： o
+    """
 
 
     def __init__(self, from_present, squares, next_turn, way_locks, clear_targets_list, moves_number, move_u_list):
@@ -1189,9 +1194,10 @@ class Sfen():
             # 平手初期局面なら startpos に置換
             result = re.match(r"^7/7/2o4/7/7/7 b - - 0(.*)$", sfen_str)
             if result:
-                sfen_str = f"startpos{result.group(1)}"
+                self._code_cached = f"startpos{result.group(1)}"            
 
-            self._code_cached = sfen_str
+            else:
+                self._code_cached = f"sfen {sfen_str}"
 
         return self._code_cached
 
@@ -2686,10 +2692,6 @@ class Board():
     def as_sfen(self, searched_clear_targets=None, from_present=False):
         """（拡張仕様）盤のSFEN形式
 
-        空欄： 数に置き換え
-        黒石： x
-        白石： o
-
         Parameters
         ----------
         searched_clear_targets : SearchedClearTargets
@@ -3676,6 +3678,9 @@ class PositionCommand():
             盤面編集履歴。実体は指し手コードの空白区切りリスト。対局棋譜のスーパーセット
         """
 
+        print(f"[PositionCommand > position_detail (debug 3679)] {sfen_u=}")
+
+        # NOTE 'sfen startpos' という書き方は間違いです。 'startpos' は SFEN ではありません
         # 平手初期局面に変更
         if sfen_u == 'startpos':
             self._board.reset()
@@ -3708,13 +3713,12 @@ class PositionCommand():
         # 余計な半角空白は入っていない前提
         pos_list = cmd[1].split(' moves ')
         sfen_text = pos_list[0]
+        print(f"[PositionCommand > parse_and_update_board (debug 3711)] {sfen_text=}")
 
         #print(f"[position] {pos_list=}")
 
         # 区切りは半角空白１文字とします
         move_u_list = (pos_list[1].split(' ') if len(pos_list) > 1 else [])
-
-        #print(f"[position] {move_u_list=}")
 
         position_command.position_detail(sfen_text, move_u_list)
 

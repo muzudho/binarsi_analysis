@@ -119,7 +119,7 @@ class UsiEngine():
             # クリアーターゲットを出力
             #   code: clear_targets
             elif cmd[0] == 'clear_targets':
-                self.print_clear_targets(searched_clear_targets)
+                Views.print_clear_targets(searched_clear_targets)
 
             # プレイ
             #   code: play 4n
@@ -592,43 +592,6 @@ HISTORY
 """)
 
 
-    def print_clear_targets(self, searched_clear_targets):
-        """クリアーターゲットの一覧表示
-        
-        Parameters
-        ----------
-        searched_clear_targets : SearchedClearTargets
-            クリアーターゲット
-        """
-
-        # Top と Bottom
-        disp1 = ['             '] * CLEAR_TARGETS_LEN
-        disp2 = ['    WANTED   '] * CLEAR_TARGETS_LEN
-
-        for i in range(0, CLEAR_TARGETS_LEN):
-            if searched_clear_targets.clear_targets_list[i] != -1:
-                disp1[i] = f' CLEAR in {searched_clear_targets.clear_targets_list[i]:2} '
-                disp2[i] = '             '
-
-        print(f"""\
-CLEAR TARGETS
-----------------------------------------------------------------------------------------
-
-     [b3]           [b4]           [b5]           [w3]           [w4]           [w5]
-+-----------+  +-----------+  +-----------+  +-----------+  +-----------+  +-----------+
-| . . . . . |  | 1 . . . . |  | . . 1 . . |  | . . . . . |  | 0 . . . . |  | . . . . . |
-| . . . . . |  | . 1 . . . |  | . . 1 . . |  | . . 0 . . |  | . 0 . . . |  | . . . . . |
-| . 1 1 1 . |  | . . 1 . . |  | . . 1 . . |  | . . 0 . . |  | . . 0 . . |  | 0 0 0 0 0 |
-| . . . . . |  | . . . 1 . |  | . . 1 . . |  | . . 0 . . |  | . . . 0 . |  | . . . . . |
-| . . . . . |  | . . . . . |  | . . 1 . . |  | . . . . . |  | . . . . . |  | . . . . . |
-+-----------+  +-----------+  +-----------+  +-----------+  +-----------+  +-----------+
-{disp1[0]:13}  {disp1[1]:13}  {disp1[2]:13}  {disp1[3]:13}  {disp1[4]:13}  {disp1[5]:13}
-{disp2[0]:13}  {disp2[1]:13}  {disp2[2]:13}  {disp2[3]:13}  {disp2[4]:13}  {disp2[5]:13}
-
-----------------------------------------------------------------------------------------
-""")
-
-
     def self_match_once(self, match_count):
         """自己対局"""
 
@@ -836,55 +799,17 @@ CLEAR TARGETS
         from_present : bool
             現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
         """
-        print(f"[from beginning] sfen {self._board.as_sfen(searched_clear_targets).to_code()}")
+        print(f"[from beginning] {self._board.as_sfen(searched_clear_targets).to_code()}")
 
         stone_before_change_str = self._board.as_stones_before_change()
         if stone_before_change_str != '':
             print(f"                 stones_before_change {stone_before_change_str}")
 
-        print(f"[from present]   sfen {self._board.as_sfen(searched_clear_targets, from_present=True).to_code()}")
+        print(f"[from present]   {self._board.as_sfen(searched_clear_targets, from_present=True).to_code()}")
 
         stone_before_change_str = self._board.as_stones_before_change(from_present=True)
         if stone_before_change_str != '':
             print(f"                 stones_before_change {stone_before_change_str}")
-
-
-    def print_clear_target_if_it_now(self, searched_clear_targets):
-        """今クリアーしたものがあれば、クリアー目標表示"""
-        one_cleared = False
-        for clear_target in searched_clear_targets.clear_targets_list:
-            if clear_target == self._board.moves_number:
-                one_cleared = True
-                break
-        
-        if one_cleared:
-            self.print_clear_targets(searched_clear_targets)
-            time.sleep(0.7)
-
-
-    def print_if_end_of_game(self, searched_clear_targets, searched_gameover):
-        current_turn = Colors.Opponent(self._board.get_next_turn())
-        
-        if searched_gameover.is_black_win:
-            if current_turn == C_BLACK:
-                Views.print_you()
-                Views.print_win()
-            
-            elif current_turn == C_WHITE:
-                Views.print_you()
-                Views.print_lose()
-
-        elif searched_gameover.is_white_win:
-            if current_turn == C_BLACK:
-                Views.print_you()
-                Views.print_lose()
-            
-            elif current_turn == C_WHITE:
-                Views.print_you()
-                Views.print_win()
-        
-        else:
-            raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
 
 
     def play(self, input_str, searched_clear_targets):
@@ -938,11 +863,11 @@ CLEAR TARGETS
 
 
         # 今クリアーしたものがあれば、クリアー目標表示
-        self.print_clear_target_if_it_now(searched_clear_targets_for_computer)
+        Views.print_clear_target_if_it_now(self._board, searched_clear_targets_for_computer)
 
 
         if self._board.is_gameover(searched_gameover_for_computer):
-            self.print_if_end_of_game(searched_clear_targets_for_computer, searched_gameover_for_computer)
+            Views.print_if_end_of_game(self._board, searched_clear_targets_for_computer, searched_gameover_for_computer)
             return searched_clear_targets_for_computer
 
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
@@ -987,10 +912,10 @@ CLEAR TARGETS
         print("") # 空行
 
         # 今クリアーしたものがあれば、クリアー目標表示
-        self.print_clear_target_if_it_now(searched_clear_targets_for_you)
+        Views.print_clear_target_if_it_now(self._board, searched_clear_targets_for_you)
 
         if self._board.is_gameover(searched_gameover_for_you):
-            self.print_if_end_of_game(searched_clear_targets_for_you, searched_gameover_for_you)
+            Views.print_if_end_of_game(self._board, searched_clear_targets_for_you, searched_gameover_for_you)
             return searched_clear_targets_for_you
 
         # ターミナルが見づらいので、イラストを挟む

@@ -1,5 +1,5 @@
 import math
-from py_binarsi import SearchLegalMoves
+from py_binarsi import CLEAR_TARGETS_LEN, SearchLegalMoves
 
 
 class MoveCodeHelp():
@@ -109,6 +109,84 @@ class Views():
 
 
     @staticmethod
+    def print_if_end_of_game(board, searched_clear_targets, searched_gameover):
+        current_turn = Colors.Opponent(board.get_next_turn())
+        
+        if searched_gameover.is_black_win:
+            if current_turn == C_BLACK:
+                Views.print_you()
+                Views.print_win()
+            
+            elif current_turn == C_WHITE:
+                Views.print_you()
+                Views.print_lose()
+
+        elif searched_gameover.is_white_win:
+            if current_turn == C_BLACK:
+                Views.print_you()
+                Views.print_lose()
+            
+            elif current_turn == C_WHITE:
+                Views.print_you()
+                Views.print_win()
+        
+        else:
+            raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
+
+
+    @staticmethod
+    def print_clear_targets(searched_clear_targets):
+        """クリアーターゲットの一覧表示
+        
+        Parameters
+        ----------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
+        """
+
+        # Top と Bottom
+        disp1 = ['             '] * CLEAR_TARGETS_LEN
+        disp2 = ['    WANTED   '] * CLEAR_TARGETS_LEN
+
+        for i in range(0, CLEAR_TARGETS_LEN):
+            if searched_clear_targets.clear_targets_list[i] != -1:
+                disp1[i] = f' CLEAR in {searched_clear_targets.clear_targets_list[i]:2} '
+                disp2[i] = '             '
+
+        print(f"""\
+CLEAR TARGETS
+----------------------------------------------------------------------------------------
+
+     [b3]           [b4]           [b5]           [w3]           [w4]           [w5]
++-----------+  +-----------+  +-----------+  +-----------+  +-----------+  +-----------+
+| . . . . . |  | 1 . . . . |  | . . 1 . . |  | . . . . . |  | 0 . . . . |  | . . . . . |
+| . . . . . |  | . 1 . . . |  | . . 1 . . |  | . . 0 . . |  | . 0 . . . |  | . . . . . |
+| . 1 1 1 . |  | . . 1 . . |  | . . 1 . . |  | . . 0 . . |  | . . 0 . . |  | 0 0 0 0 0 |
+| . . . . . |  | . . . 1 . |  | . . 1 . . |  | . . 0 . . |  | . . . 0 . |  | . . . . . |
+| . . . . . |  | . . . . . |  | . . 1 . . |  | . . . . . |  | . . . . . |  | . . . . . |
++-----------+  +-----------+  +-----------+  +-----------+  +-----------+  +-----------+
+{disp1[0]:13}  {disp1[1]:13}  {disp1[2]:13}  {disp1[3]:13}  {disp1[4]:13}  {disp1[5]:13}
+{disp2[0]:13}  {disp2[1]:13}  {disp2[2]:13}  {disp2[3]:13}  {disp2[4]:13}  {disp2[5]:13}
+
+----------------------------------------------------------------------------------------
+""")
+
+
+    @staticmethod
+    def print_clear_target_if_it_now(board, searched_clear_targets):
+        """今クリアーしたものがあれば、クリアー目標表示"""
+        one_cleared = False
+        for clear_target in searched_clear_targets.clear_targets_list:
+            if clear_target == board.moves_number:
+                one_cleared = True
+                break
+        
+        if one_cleared:
+            Views.print_clear_targets(searched_clear_targets)
+            time.sleep(0.7)
+
+
+    @staticmethod
     def create_human_presentable_move_text(board, move):
         """人間が読めるような指し手の名前"""
 
@@ -159,13 +237,13 @@ class Views():
         elif op == 'nH':
             # モディーする
             p = way.high_way().to_human_presentable_text()
-            move_str = f"{way_str} <-   NOT  {p}"
+            move_str = f"{way_str} <-        NOT  {p}"
 
         # NOT Low
         elif op == 'nL':
             # モディーする
             p = way.low_way().to_human_presentable_text()
-            move_str = f"{way_str} <-   NOT  {p}"
+            move_str = f"{way_str} <-        NOT  {p}"
 
         # NOR
         elif op == 'no':
@@ -269,7 +347,7 @@ class Views():
             else:
                 # ニューする
                 p = board.get_src_way_by_unary_operation(move.way).to_human_presentable_text()
-                move_str = f"{way_str} <-   NOT  {p}"
+                move_str = f"{way_str} <-        NOT  {p}"
 
         # OR
         elif op == 'o':
@@ -387,13 +465,16 @@ LEGAL MOVES
 
         def print_separator():
             for i in range(0, column_num):
-                print("+---------------------------------------", end='')
+                print("+--+------------------------------------", end='')
 
             print("+")
 
 
         print("""\
-LEGAL MOVES""")
+LEGAL MOVES
+-----------
+
+ No Description""")
 
         print_separator()
 
@@ -404,10 +485,10 @@ LEGAL MOVES""")
                 if seq < item_len:
                     # 指し手を、コードではなく、人間が読める名前で表示したい
                     description = legal_move_code_help_list[seq].description
-                    print(f"| ({seq+1:2}) {description:<32} ", end='')
+                    print(f"|{seq+1:2}| {description:<35}", end='')
 
                 else:
-                    print(f"|                                       ", end='') # 空欄
+                    print(f"|  |                                    ", end='') # 空欄
 
             print("|") # 改行
 

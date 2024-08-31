@@ -1,5 +1,5 @@
 import pexpect.popen_spawn as psp
-from py_binarsi import Board, PositionCommand
+from py_binarsi import Board, SearchedClearTargets, PositionCommand
 from views import Views
 
 
@@ -20,11 +20,14 @@ class Coliceum():
         self._proc = child_process
         self._board = Board()
 
+        # 終局判定を新規作成
+        self._searched_clear_targets = SearchedClearTargets.make_new_obj()
+
 
     def sendline(self, message):
         """子プロセスの標準入力へ文字列を送ります"""
 
-        #print(f"Coliceum> send: {message=}")
+        print(f"Coliceum said> {message}")
         self._proc.sendline(message)
 
 
@@ -91,8 +94,9 @@ class Coliceum():
         # Engine said
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
         self.expect_line("\\[from beginning\\](.*?)", timeout=None)
-        position_args = self.group(1)
-        position_command = PositionCommand.parse_and_update_board(self._board, position_args)
+        position_command_str = f"position{self.group(1)}"
+        print(f"(debug 98) {position_command_str=}")
+        position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
 #         print(f"""\
 # Ignored lines
 # -------------
@@ -122,6 +126,9 @@ class Coliceum():
         print(self._board.as_str(position_command.searched_clear_targets))
         print() # 改行
 
+        # 今クリアーしたものがあれば、クリアー目標表示
+        Views.print_clear_target_if_it_now(self._board, position_command.searched_clear_targets)
+
 
     def go_you(self):
         """あなたに１手指させる～盤表示まで"""
@@ -140,11 +147,37 @@ class Coliceum():
         self.sendline(msg)
 
         # Engine said
-        self.expect_line(r"\[from present\].*", timeout=None)
+        # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
+        self.expect_line("\\[from beginning\\](.*?)", timeout=None)
+
+        print(f"""\
+Ignored lines
+-------------
+{self.messages_until_match}
+
+Matched message (Debug 1)
+---------------
+{self.matched_message}""")
+
+        position_command_str = f"position{self.group(1)}"
+        print(f"(Debug 163) {position_command_str=}")
+        position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
+
+        # Engine said
+        self.expect_line("\\[from present\\](.*?)", timeout=None)
+        position_args = self.group(1)
 #         print(f"""\
 # Ignored lines
 # -------------
 # {self.messages_until_match}""")
+
+        # 盤表示
+        print() # 改行
+        print(self._board.as_str(position_command.searched_clear_targets))
+        print() # 改行
+
+        # 今クリアーしたものがあれば、クリアー目標表示
+        Views.print_clear_target_if_it_now(self._board, position_command.searched_clear_targets)
 
 
     @staticmethod
