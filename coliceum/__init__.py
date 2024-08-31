@@ -1,4 +1,5 @@
 import pexpect.popen_spawn as psp
+import re
 from py_binarsi import Board, SearchedClearTargets, PositionCommand
 from views import Views
 
@@ -137,14 +138,23 @@ class Coliceum():
         legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
         Views.print_legal_moves_menu(legal_move_code_help_list)
 
-        print(f"Please input number(1-{len(legal_move_code_help_list)}):")
-        input_num = int(input())
+        print(f"Please input No(1-{len(legal_move_code_help_list)}) or Code:")
 
-        move_code_help = legal_move_code_help_list[input_num - 1]
+        input_str = input()
+        result = re.match(r"^[0-9]+$", input_str)
+        if result:
+            input_num = int(input_str)
+
+            move_code_help = legal_move_code_help_list[input_num - 1]
+            do_command = f"do {move_code_help.code}" # message
+
+        else:
+            # FIXME 入力チェック要るか？
+            do_command = f"do {input_str}"
+
 
         # Coliceum said
-        msg = f"do {move_code_help.code}" # message
-        self.sendline(msg)
+        self.sendline(do_command)
 
         # Engine said
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする

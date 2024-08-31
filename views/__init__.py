@@ -1,4 +1,5 @@
 import math
+import time
 from py_binarsi import CLEAR_TARGETS_LEN, SearchLegalMoves
 
 
@@ -465,7 +466,7 @@ LEGAL MOVES
 
         def print_separator():
             for i in range(0, column_num):
-                print("+--+------------------------------------", end='')
+                print("+--+----+------------------------------------", end='')
 
             print("+")
 
@@ -474,7 +475,7 @@ LEGAL MOVES
 LEGAL MOVES
 -----------
 
- No Description""")
+ No Code Description""")
 
         print_separator()
 
@@ -484,11 +485,11 @@ LEGAL MOVES
 
                 if seq < item_len:
                     # 指し手を、コードではなく、人間が読める名前で表示したい
-                    description = legal_move_code_help_list[seq].description
-                    print(f"|{seq+1:2}| {description:<35}", end='')
+                    help = legal_move_code_help_list[seq]
+                    print(f"|{seq+1:2}|{help.code:4}| {help.description:<35}", end='')
 
                 else:
-                    print(f"|  |                                    ", end='') # 空欄
+                    print(f"|  |    |                                    ", end='') # 空欄
 
             print("|") # 改行
 
