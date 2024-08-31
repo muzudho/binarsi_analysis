@@ -118,7 +118,6 @@ class Coliceum():
         # もう１行 stones_before_change が続く可能性もある
 
         # 盤表示
-        # print("coliceum> print board")
         print() # 改行
         print(self._board.as_str(position_command.searched_clear_targets))
         print() # 改行

@@ -849,72 +849,6 @@ CLEAR TARGETS
             print(f"                 stones_before_change {stone_before_change_str}")
 
 
-    def print_0(self):
-        print("""\
-     ________
-    /   __   |
-    |  /  |  |
-    |  |  |  |
-    |  |  |  |
-    |  |_/   |
-    |_______/""", flush=True)
-
-
-    def print_1(self):
-        print("""\
-       ___
-      /   |
-     /    |
-    |__   |
-      |   |
-      |   |
-      |___|""", flush=True)
-
-
-    def print_comp(self):
-        print("""\
-     ________   ________    ______  ______   ________
-    /   ____|  /   __   |  |   __ |/ __   |  |   __  |
-    |  /       |  |  |  |  |  |  |  |  |  |  |  |  |  |
-    |  |       |  |  |  |  |  |  |  |  |  |  |  |__/  |
-    |  |       |  |  |  |  |  |  |  |  |  |  |  _____/
-    |  |____   |  |_/   |  |  |  |  |  |  |  |  |
-    |_______|  |_______/   |__|  |__|  |__|  |__|""", flush=True)
-
-
-    def print_you(self):
-        print("""\
-     __     ___   ________    __    __ 
-    |  |   /  /  /   __   |  |  |  |  |
-    |  |__/  /   |  |  |  |  |  |  |  |
-    |__    _/    |  |  |  |  |  |  |  |
-       |  |      |  |  |  |  |  |  |  |
-       |  |      |  |_/   |  |  |_/   |
-       |__|      |_______/   |_______/""", flush=True)
-
-
-    def print_win(self):
-        print("""\
-     __     ___     ___   ___   ____      __ 
-    |  |   /   |   /  /  /  |  |    |    |  |
-    |  |  /    |  /  /   |_/   |     |   |  |
-    |  | /     | /  /     __   |  |   |  |  |
-    |  |/  /|  |/  /     |  |  |  ||   | |  |
-    |     / |     /      |  |  |  | |   ||  |
-    |____/  |____/       |__|  |__|  |______|""", flush=True)
-
-
-    def print_lose(self):
-        print("""\
-     __          ________    _______    ________
-    |  |        /   __   |  /   ____|  |   __   |
-    |  |        |  |  |  |  |  /____   |  |__|  |
-    |  |        |  |  |  |  |____   |  |   _____/
-    |  |_____   |  |  |  |       |  |  |  |   ___
-    |        |  |  |_/   |   ___/   /  |  |__/  /
-    |________|  |_______/   |______/   |_______/""", flush=True)
-
-
     def print_clear_target_if_it_now(self, searched_clear_targets):
         """今クリアーしたものがあれば、クリアー目標表示"""
         one_cleared = False
@@ -933,21 +867,21 @@ CLEAR TARGETS
         
         if searched_gameover.is_black_win:
             if current_turn == C_BLACK:
-                self.print_you()
-                self.print_win()
+                Views.print_you()
+                Views.print_win()
             
             elif current_turn == C_WHITE:
-                self.print_you()
-                self.print_lose()
+                Views.print_you()
+                Views.print_lose()
 
         elif searched_gameover.is_white_win:
             if current_turn == C_BLACK:
-                self.print_you()
-                self.print_lose()
+                Views.print_you()
+                Views.print_lose()
             
             elif current_turn == C_WHITE:
-                self.print_you()
-                self.print_win()
+                Views.print_you()
+                Views.print_win()
         
         else:
             raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
@@ -964,9 +898,9 @@ CLEAR TARGETS
 
         # 待ち時間（秒）を置く。ターミナルの行が詰まって見づらいので、イラストでも挟む
         if self._board.get_next_turn() == C_BLACK:
-            self.print_1()
+            Views.print_1()
         else:
-            self.print_0()
+            Views.print_0()
 
         time.sleep(0.7)
 
@@ -1013,7 +947,7 @@ CLEAR TARGETS
 
         # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
         time.sleep(0.7)
-        self.print_comp()
+        Views.print_comp()
         time.sleep(0.7)
 
         # DO コンピュータが次の一手を算出する
@@ -1021,14 +955,14 @@ CLEAR TARGETS
 
         if best_move is None:
             # ターミナルが見づらいので、空行を挟む
-            self.print_win()
+            Views.print_win()
             return searched_clear_targets_for_computer
         
         # ターミナルが見づらいので、イラストを挟む
         if self._board.get_next_turn() == C_BLACK:
-            self.print_1()
+            Views.print_1()
         else:
-            self.print_0()
+            Views.print_0()
 
         time.sleep(0.7)
 
@@ -1061,7 +995,7 @@ CLEAR TARGETS
 
         # ターミナルが見づらいので、イラストを挟む
         time.sleep(0.7)
-        self.print_you()
+        Views.print_you()
 
         return searched_clear_targets_for_you
 
