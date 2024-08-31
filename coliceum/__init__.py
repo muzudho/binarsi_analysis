@@ -67,6 +67,33 @@ class Coliceum():
         self._proc.expect(f"{message}{end}", timeout=timeout)
 
 
+
+    def go_computer(self):
+        """コンピューターに１手指させる～盤表示まで"""
+        self.sendline("go")
+
+        # Engine said
+        self.expect_line(r"bestmove ([\w\s]+)", timeout=None)
+        print(f"""\
+Ignored lines
+-------------
+{self.messages_until_match}""")
+        # [2024-08-31 01:45:38.237119] usinewgame end
+        # info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move
+
+        print(f"{self.matched_message=}")   # "bestmove 4n\r\n"
+        print(f"{self.group(1)=}")    # 4n
+        bestmove_str = self.group(1)
+        self.sendline(f"do {bestmove_str}")
+
+        # Engine said
+        self.expect_line(r"\[from present\].*", timeout=None)
+        print(f"""\
+Ignored lines
+-------------
+{self.messages_until_match}""")
+
+
     @staticmethod
     def start():
         """TODO 開始
@@ -108,28 +135,9 @@ class Coliceum():
         coliceum.expect_line("readyok", timeout=None)
         coliceum.sendline("usinewgame")
         coliceum.sendline("position startpos")
-        coliceum.sendline("go")
 
-        # Engine said
-        coliceum.expect_line(r"bestmove ([\w\s]+)", timeout=None)
-        print(f"""\
-Ignored lines
--------------
-{coliceum.messages_until_match}""")
-        # [2024-08-31 01:45:38.237119] usinewgame end
-        # info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move
-
-        print(f"{coliceum.matched_message=}")   # "bestmove 4n\r\n"
-        print(f"{coliceum.group(1)=}")    # 4n
-        bestmove_str = coliceum.group(1)
-        coliceum.sendline(f"do {bestmove_str}")
-
-        # Engine said
-        coliceum.expect_line(r"\[from present\].*", timeout=None)
-        print(f"""\
-Ignored lines
--------------
-{coliceum.messages_until_match}""")
+        # Coliceum said
+        coliceum.go_computer()
 
         # Colosseum asks
         print("Coliceum> you turn")
