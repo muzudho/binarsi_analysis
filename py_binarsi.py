@@ -1579,6 +1579,11 @@ class Board():
                 # | 1 0 1 1 1 1 1 |
                 # | 0 0 1 0 0 0 0 |
                   +---------------+
+        
+        Returns
+        -------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
         """
         global _way_characters
 
@@ -3561,7 +3566,15 @@ class PositionCommand():
     """position コマンド"""
 
 
-    def __init__(self):
+    def __init__(self, board):
+        """初期化
+        
+        Parameters
+        ----------
+        board : Board
+            盤
+        """
+        self._board = board
         self._searched_clear_targets = None
 
 
@@ -3570,7 +3583,7 @@ class PositionCommand():
         return self._searched_clear_targets
 
 
-    def position_detail(self, board, sfen_u, move_u_list):
+    def position_detail(self, sfen_u, move_u_list):
         """局面データ解析
 
         Parameters
@@ -3583,7 +3596,7 @@ class PositionCommand():
 
         # 平手初期局面に変更
         if sfen_u == 'startpos':
-            board.reset()
+            self._board.reset()
             self._searched_clear_targets = SearchedClearTargets.make_new_obj()
 
         # 指定局面に変更
@@ -3595,16 +3608,17 @@ class PositionCommand():
 
 
         # 初期局面を記憶（SFENで初期局面を出力したいときのためのもの）
-        board.update_squares_at_init()
+        self._board.update_squares_at_init()
 
         # 盤面編集履歴（対局棋譜のスーパーセット）再生
         for move_u in move_u_list:
-            board.push_usi(move_u)
+            self._board.push_usi(move_u)
 
 
     @staticmethod
-    def parse(board, input_str):
-        position_command = PositionCommand()
+    def parse_and_update_board(board, input_str):
+        """盤を変更します"""
+        position_command = PositionCommand(board)
 
         cmd = input_str.split(' ', 1)
 
@@ -3619,6 +3633,6 @@ class PositionCommand():
 
         #print(f"[position] {move_u_list=}")
 
-        position_command.position_detail(board, sfen_text, move_u_list)
+        position_command.position_detail(sfen_text, move_u_list)
 
         return position_command

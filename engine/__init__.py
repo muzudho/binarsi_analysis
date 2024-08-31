@@ -182,7 +182,7 @@ class UsiEngine():
         """局面データ解析"""
 
         # position 行を解析します
-        position_command = PositionCommand.parse(self._board, input_str)
+        position_command = PositionCommand.parse_and_update_board(self._board, input_str)
 
         return position_command.searched_clear_targets
 

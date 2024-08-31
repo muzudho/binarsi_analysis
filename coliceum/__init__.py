@@ -1,4 +1,5 @@
 import pexpect.popen_spawn as psp
+from py_binarsi import Board, PositionCommand
 
 
 class Coliceum():
@@ -16,6 +17,7 @@ class Coliceum():
         """
 
         self._proc = child_process
+        self._board = Board
 
 
     def sendline(self, message):
@@ -89,6 +91,7 @@ Ignored lines
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
         self.expect_line("\\[from beginning\\](.*?)", timeout=None)
         position_args = self.group(1)
+        position_command = PositionCommand.parse_and_update_board(self._board, position_args)
         print(f"""\
 Ignored lines
 -------------
