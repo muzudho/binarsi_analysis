@@ -517,6 +517,34 @@ class Operator():
         return self._stem_u
 
 
+    _human_presentable_text = {
+        'na' : 'NAND',
+        'nH' : 'NOT High',
+        'nL' : 'NOT Low',
+        'no' : 'NOR',
+        'on' : 'One',
+        's1' : '1-bit Shift',
+        's2' : '2-bit Shift',
+        's3' : '3-bit shift',
+        's4' : '4-bit shift',
+        's5' : '5-bit shift',
+        's6' : '6-bit shift',
+        'xn' : 'XNOR',
+        'xo' : 'XOR',
+        'ze' : 'Zero',
+        'a' : 'AND',
+        'c' : 'Cut',
+        'e' : 'Edit',
+        'n' : 'NOT',
+        'o' : 'OR',
+    }
+
+
+    def to_human_presentable_text(self):
+        """人間が読めるような指し手の名前"""
+        return Operator._human_presentable_text[self.code]
+
+
     def unary_operate(self, stone):
         """単項演算する
 
@@ -760,6 +788,8 @@ class Move():
 
 
     def to_code(self):
+        """SFEN形式での指し手コード"""
+
         # 盤面編集フラグ
         if self._when_edit:
             edit_mark = '&'
@@ -779,6 +809,35 @@ class Move():
             option_stones_str = f'${self._option_stones}'
 
         return f"{edit_mark}{self.way.to_code()}{self.operator.code}{way_unlock_str}{option_stones_str}"
+
+
+    def to_human_presentable_text(self):
+        """人間が読めるような指し手の名前"""
+
+        # 盤面編集フラグ
+        if self._when_edit:
+            edit_mark = '&'
+        else:
+            edit_mark = ''
+
+        # 路ロック解除フラグ
+        if self._is_way_unlock:
+            way_unlock_str = '#'
+        else:
+            way_unlock_str = ''
+
+        # 石の並び
+        if self._option_stones == '':
+            option_stones_str = ''
+        else:
+            option_stones_str = f'${self._option_stones}'
+
+        if way_unlock_str != '' and option_stones_str != '':
+            space = ' '
+        else:
+            space = ''
+
+        return f"{edit_mark}{self.way.to_code()} {self.operator.to_human_presentable_text()}{space}{way_unlock_str}{option_stones_str}"
 
 
     def to_edit_mode(self):
