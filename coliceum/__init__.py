@@ -34,10 +34,18 @@ class Coliceum():
     @property
     def matched_message(self):
         """expect() にマッチした文字列を返す"""
+
+        # after は bytes オブジェクト
         return self._proc.after.decode("utf8", errors="ignore")
 
 
-    def expect_line(self, message, timeout):
+    @property
+    def match_obj(self):
+        """expect() にマッチしたときの match オブジェクトを返す"""
+        return self._proc.match
+
+
+    def expect_line(self, message, timeout, end='\r\n'):
         """子プロセスが出力すると想定した文字列
         
         Windows を想定して、改行コードの '\r\n' を末尾に付ける
@@ -49,7 +57,7 @@ class Coliceum():
         """
 
         print(f"[Coliceum > expect_line]  {message=}")
-        self._proc.expect(f"{message}\r\n", timeout=timeout)
+        self._proc.expect(f"{message}{end}", timeout=timeout)
 
 
     @staticmethod
@@ -76,9 +84,11 @@ class Coliceum():
         coliceum.sendline("usi")
 
         # Engine said
-        coliceum.expect_line(r"id name (\w)+", timeout=None)
+        coliceum.expect_line(r"id name (\w+)", timeout=None)
         print(f"{coliceum.messages_until_match=}")  # ""
         print(f"{coliceum.matched_message=}")       # "id name KifuwarabeBinarsi\r\n"
+        print(f"{coliceum.match_obj.group(0)=}")    # "id name KifuwarabeBinarsi\r\n"
+        print(f"{coliceum.match_obj.group(1)=}")    # "KifuwarabeBinarsi"
 
         # Engine said
         coliceum.expect_line("id author Muzudho", timeout=None)
