@@ -1,6 +1,6 @@
 import math
 import time
-from py_binarsi import CLEAR_TARGETS_LEN, SearchLegalMoves
+from py_binarsi import C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, SearchLegalMoves
 
 
 class MoveCodeHelp():

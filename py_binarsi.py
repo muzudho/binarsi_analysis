@@ -2716,7 +2716,14 @@ class Board():
 
         # 添付局面図の手番
         # ---------------
-        next_turn = self.get_next_turn()
+
+        # 現在の盤面からのSFEN表示
+        if from_present:
+            next_turn = self.get_next_turn()
+
+        # 初期盤面からのSFEN表示
+        else:
+            next_turn = self._next_turn_at_init
 
 
         # 路ロックされている添付局面図の路の符号
