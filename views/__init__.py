@@ -1,6 +1,36 @@
 from py_binarsi import SearchLegalMoves
 
 
+class MoveCodeHelp():
+    """指し手コードの解説"""
+
+
+    def __init__(self, code, description):
+        """初期化
+        
+        Parameters
+        ----------
+        code : str
+            指し手コード
+        description : str
+            人が読める形式の指し手表示
+        """
+        self._code = code
+        self._description = description
+
+
+    @property
+    def code(self):
+        """指し手コード"""
+        return self._code
+
+
+    @property
+    def description(self):
+        """人が読める形式の指し手表示"""
+        return self._description
+
+
 class Views():
     """ビュー"""
 
@@ -47,8 +77,10 @@ LEGAL MOVES
 
 
     @staticmethod
-    def print_legal_moves_menu(board):
-        """合法手メニューの表示"""
+    def create_legal_move_code_help_list(board):
+        """合法手メニュー一覧の作成"""
+
+        menu_items = []
 
         # 指した結果が同じになるような指し手も表示する
         legal_move_list = SearchLegalMoves.generate_legal_moves(board).items
@@ -56,6 +88,21 @@ LEGAL MOVES
         # 合法手は１００個も無いだろう。連番は２桁で十分
         # 指し手コードの表示名は今のところ ３４文字が最長。 &, #, $ は付かないとき
         # "NOT on 2-file and put it in 3-file"
+        for i in range(0, len(legal_move_list)):
+            move = legal_move_list[i]
+
+            # 指し手を、コードではなく、人間が読める名前で表示したい
+            menu_items.append(MoveCodeHelp(
+                code=move.to_code(),
+                description=move.to_human_presentable_text()))
+
+
+        return menu_items
+
+
+    @staticmethod
+    def print_legal_moves_menu(legal_move_code_help_list):
+        """合法手メニューの表示"""
 
         column_num = 3
 
@@ -69,20 +116,20 @@ LEGAL MOVES
         print("""\
 LEGAL MOVES""")
 
-        for i in range(0, len(legal_move_list)):
-            move = legal_move_list[i]
+        for i in range(0, len(legal_move_code_help_list)):
+            description = legal_move_code_help_list[i].description
 
             if i % column_num == 0:
                 print_separator()
 
             # 指し手を、コードではなく、人間が読める名前で表示したい
-            print(f"| ({i+1:2}) {move.to_human_presentable_text():<34} ", end='')
+            print(f"| ({i+1:2}) {description:<34} ", end='')
 
             if (i + 1) % column_num == 0:
                 print("|") # 改行
 
-        if len(legal_move_list) % column_num != 0:
-            for i in range(0, column_num - len(legal_move_list) % column_num):
+        if len(legal_move_code_help_list) % column_num != 0:
+            for i in range(0, column_num - len(legal_move_code_help_list) % column_num):
                 print(f"|                                         ", end='') # 空欄
 
             print("|") # 改行

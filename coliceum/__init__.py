@@ -70,13 +70,6 @@ class Coliceum():
         self._proc.expect(f"{format}{end}", timeout=timeout)
 
 
-    def print_current(self):
-        """現局面の表示"""
-
-        # 合法手メニューの表示
-        Views.print_legal_moves_menu(self._board)
-
-
     def go_computer(self):
         """コンピューターに１手指させる～盤表示まで"""
         self.sendline("go")
@@ -134,14 +127,17 @@ class Coliceum():
     def go_you(self):
         """あなたに１手指させる～盤表示まで"""
 
-        # 現局面の表示
-        self.print_current()
+        # 合法手メニューの表示
+        legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
+        Views.print_legal_moves_menu(legal_move_code_help_list)
 
-        print("Coliceum> you turn")
-        input_str = input()
+        print(f"Please input number(1-{len(legal_move_code_help_list)}):")
+        input_num = int(input())
+
+        move_code_help = legal_move_code_help_list[input_num - 1]
 
         # Coliceum said
-        msg = f"do {input_str}" # message
+        msg = f"do {move_code_help.code}" # message
         self.sendline(msg)
 
         # Engine said
