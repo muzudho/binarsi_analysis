@@ -6,7 +6,7 @@ class Views():
 
 
     @staticmethod
-    def print_legal_moves(board):
+    def print_sorted_legal_move_list(board):
         """合法手一覧表示
             code: legal_moves
         """
@@ -44,3 +44,39 @@ LEGAL MOVES
         print("""\
 +--------+---+
 """)
+
+
+    @staticmethod
+    def print_legal_moves_menu(board):
+        """合法手メニューの表示"""
+
+        # 指した結果が同じになるような指し手も表示する
+        legal_move_list = SearchLegalMoves.generate_legal_moves(board).items
+
+        # 合法手は１００個も無いだろう。連番は２桁で十分
+        # （盤面編集を覗いた）対局棋譜に出てくる指し手コードは 1xo のような３桁のものが最長だろう。 &, #, $ は付かない
+
+        print("""\
+LEGAL MOVES
+""")
+
+        for i in range(0, len(legal_move_list)):
+            move = legal_move_list[i]
+
+            if i % 8 == 0:
+                print("""\
++----------+----------+----------+----------+----------+----------+----------+----------+""")
+
+            print(f"| ({i+1:2}) {move.to_code():<3} ", end='')
+
+            if i % 8 == 7:
+                print("|") # 改行
+
+        if len(legal_move_list) % 8 != 0:
+            for i in range(0, 8 - len(legal_move_list) % 8):
+                print(f"|          ", end='') # 空欄
+
+            print("|") # 改行
+
+        print(f"""\
++----------+----------+----------+----------+----------+----------+----------+----------+""")

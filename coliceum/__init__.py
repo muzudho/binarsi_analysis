@@ -73,8 +73,8 @@ class Coliceum():
     def print_current(self):
         """現局面の表示"""
 
-        # 合法手
-        Views.print_legal_moves(self._board)
+        # 合法手メニューの表示
+        Views.print_legal_moves_menu(self._board)
 
 
     def go_computer(self):

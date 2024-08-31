@@ -91,7 +91,7 @@ class UsiEngine():
             # 合法手一覧表示
             #   code: legal_moves
             elif cmd[0] == 'legal_moves':
-                Views.print_legal_moves(self._board)
+                Views.print_sorted_legal_move_list(self._board)
 
             # 編集用の手一覧表示（合法手除く）
             #   code: moves_for_edit
