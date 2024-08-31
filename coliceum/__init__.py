@@ -52,7 +52,7 @@ class Coliceum():
         return self._proc.match.group(index).decode('utf-8')
 
 
-    def expect_line(self, message, timeout, end='\r\n'):
+    def expect_line(self, format, timeout, end='\r\n'):
         """子プロセスが出力すると想定した文字列
         
         Windows を想定して、改行コードの '\r\n' を末尾に付ける
@@ -63,9 +63,8 @@ class Coliceum():
             文字列。正規表現で書く
         """
 
-        print(f"[Coliceum > expect_line]  {message=}")
-        self._proc.expect(f"{message}{end}", timeout=timeout)
-
+        print(f"[Coliceum > expect_line]  {format=}")
+        self._proc.expect(f"{format}{end}", timeout=timeout)
 
 
     def go_computer(self):
@@ -87,11 +86,31 @@ Ignored lines
         self.sendline(f"do {bestmove_str}")
 
         # Engine said
-        self.expect_line(r"\[from present\].*", timeout=None)
+        # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
+        self.expect_line("\\[from beginning\\](.*?)", timeout=None)
+        position_args = self.group(1)
         print(f"""\
 Ignored lines
 -------------
-{self.messages_until_match}""")
+{self.messages_until_match}
+
+Matched message
+---------------
+[from beginning]{position_args}""")
+        # もう１行 stones_before_change が続く可能性もある
+
+        # Engine said
+        self.expect_line("\\[from present\\](.*?)", timeout=None)
+        position_args = self.group(1)
+        print(f"""\
+Ignored lines
+-------------
+{self.messages_until_match}
+
+Matched message
+---------------
+[from present]{position_args}""")
+        # もう１行 stones_before_change が続く可能性もある
 
 
     def go_you(self):
