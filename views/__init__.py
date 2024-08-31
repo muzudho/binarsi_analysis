@@ -56,27 +56,34 @@ LEGAL MOVES
         # 合法手は１００個も無いだろう。連番は２桁で十分
         # （盤面編集を覗いた）対局棋譜に出てくる指し手コードは 1xo のような３桁のものが最長だろう。 &, #, $ は付かない
 
+        column_num = 8
+
+        def print_separator():
+            for i in range(0, column_num):
+                print("+----------", end='')
+
+            print("+")
+
+
         print("""\
-LEGAL MOVES
-""")
+LEGAL MOVES""")
 
         for i in range(0, len(legal_move_list)):
             move = legal_move_list[i]
 
-            if i % 8 == 0:
-                print("""\
-+----------+----------+----------+----------+----------+----------+----------+----------+""")
+            if i % column_num == 0:
+                print_separator()
 
+            # 指し手を、コードではなく、人間が読める名前で表示したい
             print(f"| ({i+1:2}) {move.to_code():<3} ", end='')
 
-            if i % 8 == 7:
+            if (i + 1) % column_num == 0:
                 print("|") # 改行
 
-        if len(legal_move_list) % 8 != 0:
-            for i in range(0, 8 - len(legal_move_list) % 8):
+        if len(legal_move_list) % column_num != 0:
+            for i in range(0, column_num - len(legal_move_list) % column_num):
                 print(f"|          ", end='') # 空欄
 
             print("|") # 改行
 
-        print(f"""\
-+----------+----------+----------+----------+----------+----------+----------+----------+""")
+        print_separator()
