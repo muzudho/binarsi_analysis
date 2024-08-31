@@ -1,5 +1,6 @@
 import pexpect.popen_spawn as psp
 from py_binarsi import Board, PositionCommand
+from views import Views
 
 
 class Coliceum():
@@ -23,7 +24,7 @@ class Coliceum():
     def sendline(self, message):
         """子プロセスの標準入力へ文字列を送ります"""
 
-        print(f"[Coliceum > sendline]  {message=}")
+        #print(f"Coliceum> send: {message=}")
         self._proc.sendline(message)
 
 
@@ -65,8 +66,15 @@ class Coliceum():
             文字列。正規表現で書く
         """
 
-        print(f"[Coliceum > expect_line]  {format=}")
+        print(f"The engine would say: {format}")
         self._proc.expect(f"{format}{end}", timeout=timeout)
+
+
+    def print_current(self):
+        """現局面の表示"""
+
+        # 合法手
+        Views.print_legal_moves(self._board)
 
 
     def go_computer(self):
@@ -75,15 +83,15 @@ class Coliceum():
 
         # Engine said
         self.expect_line(r"bestmove ([\w\s]+)", timeout=None)
-        print(f"""\
-Ignored lines
--------------
-{self.messages_until_match}""")
+#         print(f"""\
+# Ignored lines
+# -------------
+# {self.messages_until_match}""")
         # [2024-08-31 01:45:38.237119] usinewgame end
         # info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move
 
-        print(f"{self.matched_message=}")   # "bestmove 4n\r\n"
-        print(f"{self.group(1)=}")    # 4n
+        # print(f"{self.matched_message=}")   # "bestmove 4n\r\n"
+        # print(f"{self.group(1)=}")    # 4n
         bestmove_str = self.group(1)
         self.sendline(f"do {bestmove_str}")
 
@@ -92,36 +100,41 @@ Ignored lines
         self.expect_line("\\[from beginning\\](.*?)", timeout=None)
         position_args = self.group(1)
         position_command = PositionCommand.parse_and_update_board(self._board, position_args)
-        print(f"""\
-Ignored lines
--------------
-{self.messages_until_match}
-
-Matched message
----------------
-[from beginning]{position_args}""")
+#         print(f"""\
+# Ignored lines
+# -------------
+# {self.messages_until_match}
+#
+# Matched message
+# ---------------
+# [from beginning]{position_args}""")
         # もう１行 stones_before_change が続く可能性もある
 
         # Engine said
         self.expect_line("\\[from present\\](.*?)", timeout=None)
         position_args = self.group(1)
-        print(f"""\
-Ignored lines
--------------
-{self.messages_until_match}
 
-Matched message
----------------
-[from present]{position_args}""")
+#         print(f"""\
+# Ignored lines
+# -------------
+# {self.messages_until_match}
+#
+# Matched message
+# ---------------
+# [from present]{position_args}""")
         # もう１行 stones_before_change が続く可能性もある
 
         # 盤表示
-        print("coliceum> print board")
+        # print("coliceum> print board")
         print(self._board.as_str(position_command.searched_clear_targets))
 
 
     def go_you(self):
         """あなたに１手指させる～盤表示まで"""
+
+        # 現局面の表示
+        self.print_current()
+
         print("Coliceum> you turn")
         input_str = input()
 
@@ -131,10 +144,10 @@ Matched message
 
         # Engine said
         self.expect_line(r"\[from present\].*", timeout=None)
-        print(f"""\
-Ignored lines
--------------
-{self.messages_until_match}""")
+#         print(f"""\
+# Ignored lines
+# -------------
+# {self.messages_until_match}""")
 
 
     @staticmethod

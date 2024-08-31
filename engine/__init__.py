@@ -2,6 +2,7 @@ import datetime
 import random
 import time
 from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand
+from views import Views
 
 
 class UsiEngine():
@@ -90,7 +91,7 @@ class UsiEngine():
             # 合法手一覧表示
             #   code: legal_moves
             elif cmd[0] == 'legal_moves':
-                self.print_legal_moves()
+                Views.print_legal_moves(self._board)
 
             # 編集用の手一覧表示（合法手除く）
             #   code: moves_for_edit
@@ -539,46 +540,6 @@ class UsiEngine():
             code: board
         """
         print(self._board.as_str(searched_clear_targets))
-
-
-    def print_legal_moves(self):
-        """合法手一覧表示
-            code: legal_moves
-        """
-        print("""\
-LEGAL MOVES
-+--------+---+
-|Distinct|All| Command
-+--------+---+""")
-
-        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
-
-        # 指した結果が同じになるような指し手も表示する
-        # コードをキーにして降順にソートする
-        legal_move_list = sorted(legal_moves.items, key=lambda x:x.to_code())
-
-        # 冗長な指し手を省いた通し番号
-        j = 0
-
-        for i in range(0, len(legal_move_list)):
-            move = legal_move_list[i]
-
-            #print(f"    <{i+1:2}>  {move.to_code()}  {move.same_move_u=}")
-
-            if move.same_move_u != '':
-                same_move_str = f' | same {move.same_move_u}'
-                num_str = f'        |{i+1:3}'
-
-            else:
-                same_move_str = ''
-                num_str = f'{j+1:8}|{i+1:3}'
-                j += 1
-
-            print(f"|{num_str}| play {move.to_code():<3}{same_move_str}")
-
-        print("""\
-+--------+---+
-""")
 
 
     def print_moves_for_edit(self):
