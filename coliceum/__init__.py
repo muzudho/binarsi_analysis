@@ -28,7 +28,7 @@ class Coliceum():
     @property
     def messages_until_match(self):
         """expect() でマッチするまでの間に無視した文字列を返す"""
-        return self._proc.before.decode("utf8", errors="ignore")
+        return self._proc.before.decode('utf-8', errors="ignore")
 
 
     @property
@@ -36,13 +36,20 @@ class Coliceum():
         """expect() にマッチした文字列を返す"""
 
         # after は bytes オブジェクト
-        return self._proc.after.decode("utf8", errors="ignore")
+        return self._proc.after.decode('utf-8', errors="ignore")
 
 
     @property
     def match_obj(self):
         """expect() にマッチしたときの match オブジェクトを返す"""
         return self._proc.match
+
+
+    def group(self, index):
+        """expect() にマッチしたときの match オブジェクトを返す"""
+
+        # group() の返却値はバイト文字列で、 b'word' のように b が付いてくるので、 decode() する必要がある
+        return self._proc.match.group(index).decode('utf-8')
 
 
     def expect_line(self, message, timeout, end='\r\n'):
@@ -87,8 +94,8 @@ class Coliceum():
         coliceum.expect_line(r"id name (\w+)", timeout=None)
         print(f"{coliceum.messages_until_match=}")  # ""
         print(f"{coliceum.matched_message=}")       # "id name KifuwarabeBinarsi\r\n"
-        print(f"{coliceum.match_obj.group(0)=}")    # "id name KifuwarabeBinarsi\r\n"
-        print(f"{coliceum.match_obj.group(1)=}")    # "KifuwarabeBinarsi"
+        print(f"{coliceum.group(0)=}")    # "id name KifuwarabeBinarsi\r\n"
+        print(f"{coliceum.group(1)=}")    # "KifuwarabeBinarsi"
 
         # Engine said
         coliceum.expect_line("id author Muzudho", timeout=None)
@@ -113,6 +120,16 @@ Ignored lines
         # info depth 0 seldepth 0 time 1 nodes 0 score cp 0 string I'm random move
 
         print(f"{coliceum.matched_message=}")   # "bestmove 4n\r\n"
+        print(f"{coliceum.group(1)=}")    # "b'4n'"
+        bestmove_str = coliceum.group(1)
+        coliceum.sendline(f"do {bestmove_str}")
+
+        # Engine said
+        coliceum.expect_line(r"\[from present\].*", timeout=None)
+        print(f"""\
+Ignored lines
+-------------
+{coliceum.messages_until_match}""")
 
         # 思考エンジンを終了させる
         coliceum.sendline("quit")
