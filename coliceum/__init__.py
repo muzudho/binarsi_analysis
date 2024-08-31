@@ -94,6 +94,23 @@ Ignored lines
 {self.messages_until_match}""")
 
 
+    def go_you(self):
+        """あなたに１手指させる～盤表示まで"""
+        print("Coliceum> you turn")
+        input_str = input()
+
+        # Coliceum said
+        msg = f"do {input_str}" # message
+        self.sendline(msg)
+
+        # Engine said
+        self.expect_line(r"\[from present\].*", timeout=None)
+        print(f"""\
+Ignored lines
+-------------
+{self.messages_until_match}""")
+
+
     @staticmethod
     def start():
         """TODO 開始
@@ -136,23 +153,15 @@ Ignored lines
         coliceum.sendline("usinewgame")
         coliceum.sendline("position startpos")
 
-        # Coliceum said
-        coliceum.go_computer()
+        # TODO どちらの先手かは決められるようにしたい
 
-        # Colosseum asks
-        print("Coliceum> you turn")
-        input_str = input()
+        # TODO 終わりを知りたい
+        while True:
+            # Coliceum said
+            coliceum.go_computer()
 
-        # Coliceum said
-        msg = f"do {input_str}" # message
-        coliceum.sendline(msg)
-
-        # Engine said
-        coliceum.expect_line(r"\[from present\].*", timeout=None)
-        print(f"""\
-Ignored lines
--------------
-{coliceum.messages_until_match}""")
+            # Colosseum asks
+            coliceum.go_you()
 
         # 思考エンジンを終了させる
         coliceum.sendline("quit")
