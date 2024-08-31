@@ -1,3 +1,4 @@
+import math
 from py_binarsi import SearchLegalMoves
 
 
@@ -367,9 +368,22 @@ LEGAL MOVES
 
     @staticmethod
     def print_legal_moves_menu(legal_move_code_help_list):
-        """合法手メニューの表示"""
+        """合法手メニューの表示
 
+        縦方向に並べたい
+
+        1 5  9
+        2 6 10
+        3 7 11
+        4 8
+
+        例えば 11 件で 3 列なら、行は roundup(11/3) で 4行と求まるから、
+        2 列目の先頭は 1 + 4、 3 列目の先頭は 1 + 2*4 という連番になる
+        """
+
+        item_len = len(legal_move_code_help_list)
         column_num = 3
+        row_num = math.ceil(item_len / 3)
 
         def print_separator():
             for i in range(0, column_num):
@@ -381,21 +395,19 @@ LEGAL MOVES
         print("""\
 LEGAL MOVES""")
 
-        for i in range(0, len(legal_move_code_help_list)):
-            description = legal_move_code_help_list[i].description
+        print_separator()
 
-            if i % column_num == 0:
-                print_separator()
+        for j in range(0, row_num):
+            for i in range(0, column_num):
+                seq = i * row_num + j
 
-            # 指し手を、コードではなく、人間が読める名前で表示したい
-            print(f"| ({i+1:2}) {description:<32} ", end='')
+                if seq < item_len:
+                    # 指し手を、コードではなく、人間が読める名前で表示したい
+                    description = legal_move_code_help_list[seq].description
+                    print(f"| ({seq+1:2}) {description:<32} ", end='')
 
-            if (i + 1) % column_num == 0:
-                print("|") # 改行
-
-        if len(legal_move_code_help_list) % column_num != 0:
-            for i in range(0, column_num - len(legal_move_code_help_list) % column_num):
-                print(f"|                                       ", end='') # 空欄
+                else:
+                    print(f"|                                       ", end='') # 空欄
 
             print("|") # 改行
 
