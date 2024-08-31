@@ -54,13 +54,14 @@ LEGAL MOVES
         legal_move_list = SearchLegalMoves.generate_legal_moves(board).items
 
         # 合法手は１００個も無いだろう。連番は２桁で十分
-        # （盤面編集を覗いた）対局棋譜に出てくる指し手コードの表示名は `a 1-bit Shift` の１３文字が最長だろう。 &, #, $ は付かない
+        # 指し手コードの表示名は今のところ ３４文字が最長。 &, #, $ は付かないとき
+        # "NOT on 2-file and put it in 3-file"
 
-        column_num = 6
+        column_num = 3
 
         def print_separator():
             for i in range(0, column_num):
-                print("+--------------------", end='')
+                print("+-----------------------------------------", end='')
 
             print("+")
 
@@ -75,14 +76,14 @@ LEGAL MOVES""")
                 print_separator()
 
             # 指し手を、コードではなく、人間が読める名前で表示したい
-            print(f"| ({i+1:2}) {move.to_human_presentable_text():<13} ", end='')
+            print(f"| ({i+1:2}) {move.to_human_presentable_text():<34} ", end='')
 
             if (i + 1) % column_num == 0:
                 print("|") # 改行
 
         if len(legal_move_list) % column_num != 0:
             for i in range(0, column_num - len(legal_move_list) % column_num):
-                print(f"|                    ", end='') # 空欄
+                print(f"|                                         ", end='') # 空欄
 
             print("|") # 改行
 

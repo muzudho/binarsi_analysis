@@ -219,6 +219,7 @@ class Way():
 
 
     _code_to_obj = None
+    _to_human_presentable_text = None
 
 
     def __init__(self, axis_id, number):
@@ -322,6 +323,29 @@ class Way():
         '-' や '1' ～ '7'、 'a' ～ 'f' といった文字
         """
         return Way._to_code(self._axis_id, self._number)
+
+
+    def to_human_presentable_text(self):
+
+        if Way._to_human_presentable_text is None:
+            Way._to_human_presentable_text = {
+                '-': 'no way',
+                '1': '1-file',
+                '2': '2-file',
+                '3': '3-file',
+                '4': '4-file',
+                '5': '5-file',
+                '6': '6-file',
+                '7': '7-file',
+                'a': 'a-rank',
+                'b': 'b-rank',
+                'c': 'c-rank',
+                'd': 'd-rank',
+                'e': 'e-rank',
+                'f': 'f-rank',
+            }
+        
+        return Way._to_human_presentable_text[self.to_code()]
 
 
     def low_way(self, diff = 1):
@@ -517,18 +541,18 @@ class Operator():
         return self._stem_u
 
 
-    _human_presentable_text = {
+    _human_presentable_text_1 = {
         'na' : 'NAND',
-        'nH' : 'NOT High',
+        'nH' : 'NOT High', # NOT on 2 file -> Put it in 1 file
         'nL' : 'NOT Low',
         'no' : 'NOR',
         'on' : 'One',
-        's1' : '1-bit Shift',
-        's2' : '2-bit Shift',
-        's3' : '3-bit shift',
-        's4' : '4-bit shift',
-        's5' : '5-bit shift',
-        's6' : '6-bit shift',
+        's1' : 'Shift', # Shift the 1 file 1 bit to the forward
+        's2' : 'Shift',
+        's3' : 'shift',
+        's4' : 'shift',
+        's5' : 'shift',
+        's6' : 'shift',
         'xn' : 'XNOR',
         'xo' : 'XOR',
         'ze' : 'Zero',
@@ -537,6 +561,28 @@ class Operator():
         'e' : 'Edit',
         'n' : 'NOT',
         'o' : 'OR',
+    }
+
+    _human_presentable_text_2 = {
+        'na' : '',
+        'nH' : 'High',
+        'nL' : 'Low',
+        'no' : '',
+        'on' : '',
+        's1' : '1-bit', # Shift the 1 file 1 bit to the forward
+        's2' : '2-bit',
+        's3' : '3-bit',
+        's4' : '4-bit',
+        's5' : '5-bit',
+        's6' : '6-bit',
+        'xn' : '',
+        'xo' : '',
+        'ze' : '',
+        'a' : '',
+        'c' : '',
+        'e' : '',
+        'n' : '',
+        'o' : '',
     }
 
 
@@ -832,12 +878,83 @@ class Move():
         else:
             option_stones_str = f'${self._option_stones}'
 
+        # 路
+        way_str = self.way.to_human_presentable_text()
+
+        # 演算子
+        op = self.operator.code
+
+        # 指し手
+        if op == 'na':
+            move_str = f"{way_str} {op}"
+
+        elif op == 'nH':
+            high_way_str = self.way.high_way().to_human_presentable_text()
+            move_str = f"NOT on {high_way_str} and put it in {way_str}"
+
+        elif op == 'nL':
+            low_way_str = self.way.low_way().to_human_presentable_text()
+            move_str = f"NOT on {low_way_str} and put it in {way_str}"
+
+        elif op == 'no':
+            move_str = f"{way_str} {op}"
+
+        elif op == 'on':
+            move_str = f"{way_str} {op}"
+
+        elif op.startswith('s'):
+            bits = op[1:2]
+
+            if self.way.axis_id == FILE_AXIS:
+                # 例： Shift 1-file 1-bit to forward
+                # 半角 29 文字
+                move_str = f'Shift {way_str} {bits}-bit to forward'
+            
+            elif self.way.axis_id == RANK_AXIS:
+                # 例： Shift c-rank 1-bit to right
+                move_str = f'Shift {way_str} {bits}-bit to right'
+            
+            elif self.way.axis_id == EMPTY_AXIS:
+                move_str = f'Shift {way_str} is illegal move'
+            
+            else:
+                raise ValueError(f"undefined axis {self.way.axis_id}")
+
+        elif op == 'xn':
+            move_str = f"{way_str} {op}"
+
+        elif op == 'xo':
+            move_str = f"{way_str} {op}"
+
+        elif op == 'ze':
+            move_str = f"{way_str} {op}"
+        
+        elif op == 'a':
+            move_str = f"{way_str} {op}"
+
+        elif op == 'c':
+            move_str = f"{way_str} {op}"
+
+        elif op == 'e':
+            move_str = f"{way_str} {op}"
+        
+        elif op == 'n':
+            move_str = f"{way_str} {op}"
+
+        elif op == 'o':
+            move_str = f"{way_str} {op}"
+
+        else:
+            raise ValueError(f"undefined operator {op=}")
+
+
+        # 空白
         if way_unlock_str != '' and option_stones_str != '':
             space = ' '
         else:
             space = ''
 
-        return f"{edit_mark}{self.way.to_code()} {self.operator.to_human_presentable_text()}{space}{way_unlock_str}{option_stones_str}"
+        return f"{edit_mark}{move_str}{space}{way_unlock_str}{option_stones_str}"
 
 
     def to_edit_mode(self):
