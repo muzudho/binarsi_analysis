@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover
+from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand
 
 
 class UsiEngine():
@@ -178,59 +178,13 @@ class UsiEngine():
         print(f"[{datetime.datetime.now()}] usinewgame end", flush=True)
 
 
-    def position_detail(self, sfen_u, move_u_list):
-        """局面データ解析
-
-        Parameters
-        ----------
-        sfen_u : str
-            SFEN文字列
-        move_u_list : list
-            盤面編集履歴。実体は指し手コードの空白区切りリスト。対局棋譜のスーパーセット
-        """
-
-        # 平手初期局面に変更
-        if sfen_u == 'startpos':
-            self._board.reset()
-            searched_clear_targets = SearchedClearTargets.make_new_obj()
-
-        # 指定局面に変更
-        elif sfen_u[:5] == 'sfen ':
-            searched_clear_targets = self._board.set_sfen(sfen_u[5:])
-        
-        else:
-            raise ValueError(f"unsupported position  {sfen_u=}")
-
-
-        # 初期局面を記憶（SFENで初期局面を出力したいときのためのもの）
-        self._board.update_squares_at_init()
-
-        # 盤面編集履歴（対局棋譜のスーパーセット）再生
-        for move_u in move_u_list:
-            self._board.push_usi(move_u)
-
-        return searched_clear_targets
-
-
     def position(self, input_str):
         """局面データ解析"""
 
-        cmd = input_str.split(' ', 1)
+        # position 行を解析します
+        position_command = PositionCommand.parse(self._board, input_str)
 
-        # 余計な半角空白は入っていない前提
-        pos_list = cmd[1].split(' moves ')
-        sfen_text = pos_list[0]
-
-        #print(f"[position] {pos_list=}")
-
-        # 区切りは半角空白１文字とします
-        move_u_list = (pos_list[1].split(' ') if len(pos_list) > 1 else [])
-
-        #print(f"[position] {move_u_list=}")
-
-        searched_clear_targets = self.position_detail(sfen_text, move_u_list)
-
-        return searched_clear_targets
+        return position_command.searched_clear_targets
 
 
     def sub_go(self, legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover):
