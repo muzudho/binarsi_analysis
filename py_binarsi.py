@@ -246,6 +246,16 @@ class Way():
 
 
     @property
+    def is_file(self):
+        return self._axis_id == FILE_AXIS
+
+
+    @property
+    def is_rank(self):
+        return self._axis_id == RANK_AXIS
+
+
+    @property
     def axis_id(self):
         return self._axis_id
 
@@ -367,14 +377,14 @@ class Way():
         if self.is_empty:
             return '-'
 
-        if self._axis_id == FILE_AXIS:
+        if self.is_file:
             if self._number < FILE_LEN - diff:
                 # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
                 return Way.code_to_obj(Way._to_code(self._axis_id, self._number + diff))
 
             return Way.code_to_obj('-')
 
-        if self._axis_id == RANK_AXIS:
+        if self.is_rank:
             if self._number < RANK_LEN - diff:
                 # code_to_obj() を仲介させることで、インスタンスの増加のし過ぎを防ぐ
                 return Way.code_to_obj(Way._to_code(self._axis_id, self._number + diff))
@@ -387,20 +397,20 @@ class Way():
     def absorb_axes(self):
         """筋と段のコードを共通化する仕掛け"""
         # 筋方向
-        if self.axis_id == FILE_AXIS:
+        if self.is_file:
             return AxesAbsorber(
                 swap_axes=False,
                 axis_length=FILE_LEN,
                 opponent_axis_length=RANK_LEN)
         
         # 段方向
-        if self.axis_id == RANK_AXIS:
+        if self.is_rank:
             return AxesAbsorber(
                 swap_axes=True,
                 axis_length=RANK_LEN,
                 opponent_axis_length=FILE_LEN)
         
-        raise ValueError(f"unsupported axis_id  {self.axis_id=}")
+        raise ValueError(f"unsupported axis_id  {self._axis_id=}  {self._number=}")
 
 
 # 全ての種類の路を生成
@@ -855,106 +865,6 @@ class Move():
             option_stones_str = f'${self._option_stones}'
 
         return f"{edit_mark}{self.way.to_code()}{self.operator.code}{way_unlock_str}{option_stones_str}"
-
-
-    def to_human_presentable_text(self):
-        """人間が読めるような指し手の名前"""
-
-        # 盤面編集フラグ
-        if self._when_edit:
-            edit_mark = '&'
-        else:
-            edit_mark = ''
-
-        # 路ロック解除フラグ
-        if self._is_way_unlock:
-            way_unlock_str = '#'
-        else:
-            way_unlock_str = ''
-
-        # 石の並び
-        if self._option_stones == '':
-            option_stones_str = ''
-        else:
-            option_stones_str = f'${self._option_stones}'
-
-        # 路
-        way_str = self.way.to_human_presentable_text()
-
-        # 演算子
-        op = self.operator.code
-
-        # 指し手
-        if op == 'na':
-            move_str = f"{way_str} {op}"
-
-        elif op == 'nH':
-            high_way_str = self.way.high_way().to_human_presentable_text()
-            move_str = f"NOT on {high_way_str} and put it in {way_str}"
-
-        elif op == 'nL':
-            low_way_str = self.way.low_way().to_human_presentable_text()
-            move_str = f"NOT on {low_way_str} and put it in {way_str}"
-
-        elif op == 'no':
-            move_str = f"{way_str} {op}"
-
-        elif op == 'on':
-            move_str = f"{way_str} {op}"
-
-        elif op.startswith('s'):
-            bits = op[1:2]
-
-            if self.way.axis_id == FILE_AXIS:
-                # 例： Shift 1-file 1-bit to forward
-                # 半角 29 文字
-                move_str = f'Shift {way_str} {bits}-bit to forward'
-            
-            elif self.way.axis_id == RANK_AXIS:
-                # 例： Shift c-rank 1-bit to right
-                move_str = f'Shift {way_str} {bits}-bit to right'
-            
-            elif self.way.axis_id == EMPTY_AXIS:
-                move_str = f'Shift {way_str} is illegal move'
-            
-            else:
-                raise ValueError(f"undefined axis {self.way.axis_id}")
-
-        elif op == 'xn':
-            move_str = f"{way_str} {op}"
-
-        elif op == 'xo':
-            move_str = f"{way_str} {op}"
-
-        elif op == 'ze':
-            move_str = f"{way_str} {op}"
-        
-        elif op == 'a':
-            move_str = f"{way_str} {op}"
-
-        elif op == 'c':
-            move_str = f"{way_str} {op}"
-
-        elif op == 'e':
-            move_str = f"{way_str} {op}"
-        
-        elif op == 'n':
-            move_str = f"{way_str} {op}"
-
-        elif op == 'o':
-            move_str = f"{way_str} {op}"
-
-        else:
-            raise ValueError(f"undefined operator {op=}")
-
-
-        # 空白
-        if way_unlock_str != '' and option_stones_str != '':
-            space = ' '
-        else:
-            space = ''
-
-        return f"{edit_mark}{move_str}{space}{way_unlock_str}{option_stones_str}"
 
 
     def to_edit_mode(self):
@@ -2088,21 +1998,25 @@ class Board():
             stones_before_change=stones_before_change))
 
 
-    def get_unary_src_way_1_number(self, way):
+    def get_src_way_by_unary_operation(self, way):
+        """単項演算の入力路を取得"""
+
         # 左（上）端なら、右（下）側確定
         if way.number == 0:
-            return way.number + 1
+            return way.high_way()
 
         # 右（下）端なら、左（上）側確定
         if way.number == FILE_LEN - 1:
-            return way.number - 1
+            return way.low_way()
         
         # 左か右（上か下）で、石が置いてある路が入力路
-        if self.exists_stone_on_way(Way(way.axis_id, way.number - 1)):
-            return way.number - 1
+        low_way = way.low_way()
+        if self.exists_stone_on_way(low_way):
+            return low_way
 
-        if self.exists_stone_on_way(Way(way.axis_id, way.number + 1)):
-            return way.number + 1
+        high_way = way.high_way()
+        if self.exists_stone_on_way(high_way):
+            return high_way
 
         raise ValueError("not operator invalid operation")
 
@@ -2266,35 +2180,27 @@ class Board():
 
 
         # ノット（単項演算子）
+        #
+        #   ノット演算では、対象路に石が置いてあるケースは非対応です
+        #   対象の路に石が置いてないものとします
+        #
         if op == 'n':
+            # 筋（段）方向両用
+            axes_absorber = move.way.absorb_axes()
 
-            # 対象の路に石が置いてある
-            if self.exists_stone_on_way(move.way):
+            # 入力路から、出力路へ、評価値を出力
+            for i in range(0, axes_absorber.opponent_axis_length):
+                src_stone = self.get_color(Square.file_rank_to_sq(
+                    self.get_src_way_by_unary_operation(move.way).number, i, swap=axes_absorber.swap_axes))
+                self.set_color(
+                    sq=Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes),
+                    value=move.operator.unary_operate(src_stone))
 
-                # DEBUG ブレークポイントを付けてもういっかい確認
-                #self.exists_stone_on_way(move.way)
-
-                raise ValueError(f"n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください  {move.to_code()=}")
-
-            # 対象の路に石が置いてない
-            else:
-
-                # 筋（段）方向両用
-                axes_absorber = move.way.absorb_axes()
-
-                # 入力路から、出力路へ、評価値を出力
-                for i in range(0, axes_absorber.opponent_axis_length):
-                    src_stone = self.get_color(Square.file_rank_to_sq(
-                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes))
-                    self.set_color(
-                        sq=Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes),
-                        value=move.operator.unary_operate(src_stone))
-
-                # 新規作成操作では
-                #   路ロックは掛からない（外れる）
-                #   変更前の石は無し
-                self.on_exit_push_usi(move, way_lock=False)
-                return
+            # 新規作成操作では
+            #   路ロックは掛からない（外れる）
+            #   変更前の石は無し
+            self.on_exit_push_usi(move, way_lock=False)
+            return
 
 
         # ノット（単項演算子 Reverse）路上の小さい方
@@ -2309,7 +2215,7 @@ class Board():
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
                     src_stone = self.get_color(Square.file_rank_to_sq(
-                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes))
+                        self.get_src_way_by_unary_operation(move.way).number, i, swap=axes_absorber.swap_axes))
 
                     if src_stone != C_EMPTY:
                         dst_stone = self.get_color(Square.file_rank_to_sq(
@@ -2342,7 +2248,7 @@ class Board():
                 # 入力路から、出力路へ、評価値を出力
                 for i in range(0, axes_absorber.opponent_axis_length):
                     src_stone = self.get_color(Square.file_rank_to_sq(
-                        self.get_unary_src_way_1_number(move.way), i, swap=axes_absorber.swap_axes))
+                        self.get_src_way_by_unary_operation(move.way).number, i, swap=axes_absorber.swap_axes))
 
                     if src_stone != C_EMPTY:
                         dst_stone = self.get_color(Square.file_rank_to_sq(

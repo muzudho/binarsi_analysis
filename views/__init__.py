@@ -36,6 +36,131 @@ class Views():
 
 
     @staticmethod
+    def create_human_presentable_move_text(board, move):
+        """人間が読めるような指し手の名前"""
+
+        # 盤面編集フラグ
+        if move.when_edit:
+            edit_mark = '&'
+        else:
+            edit_mark = ''
+
+        # 路ロック解除フラグ
+        if move.is_way_unlock:
+            way_unlock_str = '#'
+        else:
+            way_unlock_str = ''
+
+        # 石の並び
+        if move.option_stones == '':
+            option_stones_str = ''
+        else:
+            option_stones_str = f'${move.option_stones}'
+
+        # 路
+        way_str = move.way.to_human_presentable_text()
+
+        # 演算子
+        op = move.operator.code
+
+        # 指し手
+        # ------
+
+        # NAND
+        if op == 'na':
+            move_str = f"NAND and put it in {way_str}"
+
+        # NOT High
+        elif op == 'nH':
+            high_way_str = move.way.high_way().to_human_presentable_text()
+            move_str = f"NOT on {high_way_str} and put it in {way_str}"
+
+        # NOT Low
+        elif op == 'nL':
+            low_way_str = move.way.low_way().to_human_presentable_text()
+            move_str = f"NOT on {low_way_str} and put it in {way_str}"
+
+        # NOR
+        elif op == 'no':
+            move_str = f"NOR and put it in {way_str}"
+
+        # One
+        elif op == 'on':
+            move_str = f"Fill 1 in {way_str}"
+
+        # Shift
+        elif op.startswith('s'):
+            bits = op[1:2]
+
+            if move.way.is_file:
+                # 例： Shift 1-file 1-bit to forward
+                # 半角 29 文字
+                move_str = f'Shift {way_str} {bits}-bit to forward'
+            
+            elif move.way.is_rank:
+                # 例： Shift c-rank 1-bit to right
+                move_str = f'Shift {way_str} {bits}-bit to right'
+            
+            elif move.way.is_empty:
+                move_str = f'Shift {way_str} is illegal move'
+            
+            else:
+                raise ValueError(f"undefined axis {move.way.axis_id=}")
+
+        # XNOR
+        elif op == 'xn':
+            move_str = f"XNOR and put it in {way_str}"
+
+        # XOR
+        elif op == 'xo':
+            move_str = f"XOR and put it in {way_str}"
+
+        # Zero
+        elif op == 'ze':
+            move_str = f"fill 0 in {way_str}"
+        
+        # AND
+        elif op == 'a':
+            move_str = f"AND and put it in {way_str}"
+
+        # Cut
+        elif op == 'c':
+            move_str = f"Cut the edge {way_str}"
+
+        # Edit
+        elif op == 'e':
+            move_str = f"Edit {way_str}"
+        
+        # NOT
+        elif op == 'n':
+            ## 対象の路に石が置いてある
+            if board.exists_stone_on_way(move.way):
+                # n演算では、石の置いている対象路を指定してはいけません。nL, nH を参考にしてください
+                move_str = f"(undefined 1)  {move.to_code()=}"
+
+            else:
+                # ニューする
+                src_way_str = board.get_src_way_by_unary_operation(move.way).to_human_presentable_text()
+                move_str = f"NOT on {src_way_str} and put it in {way_str}"
+
+        # OR
+        elif op == 'o':
+            move_str = f"OR and put it in {way_str}"
+
+        else:
+            raise ValueError(f"undefined operator {op=}")
+
+
+        # 空白
+        if way_unlock_str != '' and option_stones_str != '':
+            space = ' '
+        else:
+            space = ''
+
+        return f"{edit_mark}{move_str}{space}{way_unlock_str}{option_stones_str}"
+
+
+    @staticmethod
     def print_sorted_legal_move_list(board):
         """合法手一覧表示
             code: legal_moves
@@ -94,7 +219,7 @@ LEGAL MOVES
             # 指し手を、コードではなく、人間が読める名前で表示したい
             menu_items.append(MoveCodeHelp(
                 code=move.to_code(),
-                description=move.to_human_presentable_text()))
+                description=Views.create_human_presentable_move_text(board, move)))
 
 
         return menu_items
