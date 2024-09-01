@@ -513,7 +513,8 @@ LEGAL MOVES
 LEGAL MOVES
 -----------
 
- No Code Description""")
++--+----+------------------------------------+
+|No|Code|Description                         |""")
 
         print_separator()
 
