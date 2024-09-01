@@ -165,20 +165,30 @@ class Coliceum():
         legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
         Views.print_legal_moves_menu(legal_move_code_help_list)
 
-        print(f"Please input No(1-{len(legal_move_code_help_list)}) or Code:")
+        print(f"""Please input No(1-{len(legal_move_code_help_list)}) or Code or "help":""")
 
-        input_str = input()
-        result = re.match(r"^[0-9]+$", input_str)
-        if result:
-            input_num = int(input_str)
+        # コマンド入力ループ
+        while True:
+            input_str = input()
 
-            move_code_help = legal_move_code_help_list[input_num - 1]
-            do_command = f"do {move_code_help.code}" # message
+            # TODO help
+            if input_str == "help":
+                print(f"開発中")
 
-        else:
-            # FIXME 入力チェック要るか？
-            do_command = f"do {input_str}"
+            else:
+                result = re.match(r"^[0-9]+$", input_str)
+                if result:
+                    input_num = int(input_str)
 
+                    move_code_help = legal_move_code_help_list[input_num - 1]
+                    do_command = f"do {move_code_help.code}" # message
+
+                else:
+                    # FIXME 入力チェック要るか？
+                    do_command = f"do {input_str}"
+
+                # コマンド入力ループから抜ける
+                break
 
         # Coliceum said
         self.sendline(do_command)
