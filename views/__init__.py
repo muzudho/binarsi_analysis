@@ -4,7 +4,11 @@ from py_binarsi import C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, SearchLegalM
 
 
 class MoveCodeHelp():
-    """指し手コードの解説"""
+    """指し手コードの解説
+
+    NOTE 画面レイアウトの都合から、４文字以内のコードしか利用できない。 "board" は５文字あるので入らない
+    NOTE coliceum.__init__.py の方に置きたいが、それだと循環参照してしまうので views.__init__.py の方に置いてある
+    """
 
 
     def __init__(self, code, description):
