@@ -21,13 +21,6 @@ C_EMPTY = 0
 C_BLACK = 1
 C_WHITE = 2
 
-# 盤面表示用文字列。SFENにも使用
-_color_to_str = {
-    0 : '.',
-    1 : '1',
-    2 : '0',
-}
-
 _str_to_color = {
     '.' : 0,
     '1' : 1,
@@ -88,10 +81,22 @@ class Colors():
         C_WHITE : C_BLACK,
     }
 
+    # 盤面表示用文字列。SFENにも使用
+    _color_to_str = {
+        0 : '.',
+        1 : '1',
+        2 : '0',
+    }
+
     @classmethod
-    def Opponent(clazz, color):
+    def opponent(clazz, color):
         """反対の色"""
         return clazz._opponent_turn[color]
+
+
+    @classmethod
+    def as_string_board(clazz, color):
+        return clazz._color_to_str[color]
 
 
 class Square():
@@ -1411,7 +1416,7 @@ class LegalMoves():
             if move.operator.code in ['s1', 's2', 's3', 's4', 's5', 's6', 'n', 'nH', 'nL', 'a', 'o', 'xo', 'na', 'no', 'xn', 'ze', 'on']:
 
                 # DO 一手指す
-                #print(f"[LegalMoves > append] 一手指す  {move.to_code()=}  \n{board.as_str()}")
+                #print(f"[LegalMoves > append] 一手指す  {move.to_code()=}")
                 board.push_usi(move.to_code())  # 指し手生成中では、クリアーターゲットは更新しません
 
                 # DO 一般的に長さが短い方の形式の SFEN を記憶
@@ -1448,7 +1453,7 @@ class LegalMoves():
                 # DO 一手戻す
                 #print(f"[LegalMoves > append] 一手戻す")
                 board.pop() # 指し手生成中では、クリアーターゲットは更新しません
-                #print(f"[LegalMoves > append] 一手戻した  {board.as_str()}")
+                #print(f"[LegalMoves > append] 一手戻した")
 
                 # DEBUG 一手戻した後に、現局面が載っている sfen を取得する
                 rollbacked_sfen_u = board.as_sfen(from_present=True).to_code(without_way_lock=True, without_clear_targets_list=True, without_moves_number=True)
@@ -1561,6 +1566,12 @@ class Board():
     @property
     def white_count_with_komi(self):
         return self._white_count_with_komi
+
+
+    @property
+    def way_locks(self):
+        """添付局面図での路ロックのリスト"""
+        return self._way_locks
 
 
     def get_color(self, sq):
@@ -1908,7 +1919,7 @@ class Board():
             old_stone = self.get_color(dst_sq)
 
             if old_stone != C_EMPTY:
-                stones_before_change += _color_to_str[old_stone]
+                stones_before_change += Colors.as_string_board(old_stone)
 
             self.set_color(
                 sq=dst_sq,
@@ -1950,7 +1961,10 @@ class Board():
 
             # DEBUG 盤面出力
             print(f"[binary_operate_on_way] error  {error_reason=}  {move.to_code()=}  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {self._way_locks=}")
-            print(self.as_str())
+            # １行目表示
+            print(BoardViews.stringify_board_header(self))
+            # 盤面
+            print(BoardViews.stringify_board_normal(self))
 
             raise ValueError(f"out of bounds  {move.to_code()=}  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {self._way_locks=}")
 
@@ -1967,7 +1981,7 @@ class Board():
             old_stone = self.get_color(dst_sq)
 
             if overwrite and old_stone != C_EMPTY:
-                stones_before_change += _color_to_str[old_stone]
+                stones_before_change += Colors.as_string_board(old_stone)
 
             input_stone_at_first = self.get_color(Square.file_rank_to_sq(input_way_1.number, i, swap=axes_absorber.swap_axes))
             input_stone_at_second = self.get_color(Square.file_rank_to_sq(input_way_2.number, i, swap=axes_absorber.swap_axes))
@@ -2077,7 +2091,7 @@ class Board():
                     src_dst_sq = Square.file_rank_to_sq(move.way.number, src_dst_i, swap=axes_absorber.swap_axes)
                     stone = self.get_color(src_dst_sq)
                     if stone != C_EMPTY:
-                        stones_before_change += _color_to_str[stone]
+                        stones_before_change += Colors.as_string_board(stone)
                         self.set_color(src_dst_sq, C_EMPTY)
 
                 # 改変操作では
@@ -2090,7 +2104,6 @@ class Board():
 
                 # # DEBUG ブレークポイントを置いてもう一回
                 # print(f"[push_usi]  {move.to_code()=}  {move.way.to_code()=}  {move.operator.code=}")
-                # print(self.as_str())
                 # self.exists_stone_on_way(move.way)
 
                 # 対局中に c演算を使ってはいけないことに注意
@@ -2228,7 +2241,7 @@ class Board():
                         dst_stone = self.get_color(Square.file_rank_to_sq(
                             move.way.number, i, swap=axes_absorber.swap_axes))
 
-                        stones_before_change += _color_to_str[dst_stone]
+                        stones_before_change += Colors.as_string_board(dst_stone)
                         self.set_color(
                             sq=Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes),
                             value=move.operator.unary_operate(src_stone))
@@ -2261,7 +2274,7 @@ class Board():
                         dst_stone = self.get_color(Square.file_rank_to_sq(
                             move.way.number, i, swap=axes_absorber.swap_axes))
 
-                        stones_before_change += _color_to_str[dst_stone]
+                        stones_before_change += Colors.as_string_board(dst_stone)
                         self.set_color(
                             sq=Square.file_rank_to_sq(move.way.number, i, swap=axes_absorber.swap_axes),
                             value=move.operator.unary_operate(src_stone))
@@ -2509,131 +2522,6 @@ class Board():
         """
 
         return searched_gameover.is_black_win or searched_gameover.is_white_win
-
-
-    def as_str(self, searched_clear_targets=None):
-        """（拡張仕様）盤のテキスト形式
-        例：
-            [ 2 moves | moved 3s1]
-                1 2 # 4 5 6 7
-              +---------------+
-            a | . . . . . . . |
-            b | . . . . . . . |
-            c | . . 1 . . . . |
-            d | . . 0 . . . . |
-            e | . . . . . . . |
-            f | . . . . . . . |
-              +---------------+
-        
-        Parameters
-        ----------
-        searched_clear_targets : SearchedClearTargets
-            クリアーターゲット
-            指し手生成中はナン
-        """
-        
-        global _color_to_str
-
-        # １行目表示
-        # ---------
-        edits_num = len(self._board_editing_history.items)
-        if self.moves_number != edits_num:
-            edits_num_str = f"| {edits_num} edits "
-        else:
-            edits_num_str = ""
-
-        if 0 < edits_num:
-            latest_move = self._board_editing_history.items[-1].move
-            if latest_move.when_edit:
-                latest_move_str = f"edited {latest_move.to_code()}"
-            else:
-                latest_move_str = f"moved {latest_move.to_code()}"
-        else:
-            latest_move_str = 'init'
-
-
-        # クリアーターゲット状況
-        if searched_clear_targets is None:
-            clear_targets_list_str = ''
-
-        else:
-            clear_targets_u_list = []
-            if searched_clear_targets.clear_targets_list[0] != -1:
-                clear_targets_u_list.append('b3')
-            if searched_clear_targets.clear_targets_list[1] != -1:
-                clear_targets_u_list.append('b4')
-            if searched_clear_targets.clear_targets_list[2] != -1:
-                clear_targets_u_list.append('b5')
-            if searched_clear_targets.clear_targets_list[3] != -1:
-                clear_targets_u_list.append('w3')
-            if searched_clear_targets.clear_targets_list[4] != -1:
-                clear_targets_u_list.append('w4')
-            if searched_clear_targets.clear_targets_list[5] != -1:
-                clear_targets_u_list.append('w5')
-
-            if 0 < len(clear_targets_u_list):
-                clear_targets_list_str = f" | {' '.join(clear_targets_u_list)}"
-            else:
-                clear_targets_list_str = ''
-
-
-        # 次の手番
-        # NOTE 終局理由を取得するには、一手指していないと分からない。盤を表示するだけなのに一手指すのは激重すぎる。したがって終局理由は盤表示には含めないことにする
-        next_turn = self.get_next_turn()
-        if next_turn == C_BLACK:
-            next_turn_str = 'next black'
-        elif next_turn == C_WHITE:
-            next_turn_str = 'next white'
-        else:
-            raise ValueError(f"unsupported turn  {next_turn}")
-
-
-        print(f"[{self.moves_number:2} moves {edits_num_str}| {latest_move_str}{clear_targets_list_str} | {next_turn_str}]")
-
-
-        # 盤表示
-        # ------
-
-        # 数値を表示用文字列(Str)に変更
-        s = [' '] * BOARD_AREA
-        for sq in range(0, BOARD_AREA):
-            s[sq] = _color_to_str[self.get_color(sq)]
-
-        # 筋（段）の符号、またはロック
-        def get_way_code_2(way_code):
-            if self._way_locks[way_code]:
-                return '#'
-
-            return way_code
-
-        # Way
-        a = {
-            '1' : get_way_code_2('1'),
-            '2' : get_way_code_2('2'),
-            '3' : get_way_code_2('3'),
-            '4' : get_way_code_2('4'),
-            '5' : get_way_code_2('5'),
-            '6' : get_way_code_2('6'),
-            '7' : get_way_code_2('7'),
-            'a' : get_way_code_2('a'),
-            'b' : get_way_code_2('b'),
-            'c' : get_way_code_2('c'),
-            'd' : get_way_code_2('d'),
-            'e' : get_way_code_2('e'),
-            'f' : get_way_code_2('f'),
-        }
-
-        return f"""\
-    {a['1']} {a['2']} {a['3']} {a['4']} {a['5']} {a['6']} {a['7']}
-  +---------------+
-{a['a']} | {s[0]} {s[ 6]} {s[12]} {s[18]} {s[24]} {s[30]} {s[36]} |
-{a['b']} | {s[1]} {s[ 7]} {s[13]} {s[19]} {s[25]} {s[31]} {s[37]} |
-{a['c']} | {s[2]} {s[ 8]} {s[14]} {s[20]} {s[26]} {s[32]} {s[38]} |
-{a['d']} | {s[3]} {s[ 9]} {s[15]} {s[21]} {s[27]} {s[33]} {s[39]} |
-{a['e']} | {s[4]} {s[10]} {s[16]} {s[22]} {s[28]} {s[34]} {s[40]} |
-{a['f']} | {s[5]} {s[11]} {s[17]} {s[23]} {s[29]} {s[35]} {s[41]} |
-  +---------------+\
-"""
 
 
     def get_next_turn(self):

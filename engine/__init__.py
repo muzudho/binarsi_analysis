@@ -3,6 +3,7 @@ import random
 import time
 from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand
 from views import Views
+from views.board import BoardViews
 
 
 class UsiEngine():
@@ -539,7 +540,8 @@ class UsiEngine():
         """盤表示
             code: board
         """
-        print(self._board.as_str(searched_clear_targets))
+        print(BoardViews.stringify_board_header(self._board, searched_clear_targets))  # １行目表示
+        print(BoardViews.stringify_board_normal(self._board))   # 盤面
 
 
     def print_moves_for_edit(self):

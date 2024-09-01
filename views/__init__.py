@@ -116,7 +116,7 @@ class Views():
     @staticmethod
     def print_settled_for_play_command(board, searched_clear_targets, searched_gameover):
         """決着の表示、play コマンド用"""
-        current_turn = Colors.Opponent(board.get_next_turn())
+        current_turn = Colors.opponent(board.get_next_turn())
         
         if searched_gameover.is_black_win:
             if current_turn == C_BLACK:
@@ -151,7 +151,7 @@ class Views():
         # TODO デバッグ消す
         print(f"DEBUG コロシアム用の決着表示")
 
-        current_turn = Colors.Opponent(board.get_next_turn())
+        current_turn = Colors.opponent(board.get_next_turn())
         
         if searched_gameover.is_black_win:
             if current_turn == C_BLACK:

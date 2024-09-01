@@ -3,6 +3,7 @@ import re
 import time
 from py_binarsi import Board, SearchedClearTargets, SearchLegalMoves, SearchedGameover, PositionCommand
 from views import Views
+from views.board import BoardViews
 
 
 class Coliceum():
@@ -133,8 +134,12 @@ class Coliceum():
 
         # 盤表示
         print() # 改行
-        print(self._board.as_str(position_command.searched_clear_targets))
+        print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
+        print(BoardViews.stringify_board_normal(self._board))   # 盤面
         print() # 改行
+
+        # 盤表示後、間隔を空ける
+        time.sleep(0.7)
 
         # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
         if Views.is_one_settled(self._board, position_command.searched_clear_targets):
@@ -165,10 +170,9 @@ class Coliceum():
         legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
         Views.print_legal_moves_menu(legal_move_code_help_list)
 
-        print(f"""Please input No(1-{len(legal_move_code_help_list)}) or Code or "help":""")
-
         # コマンド入力ループ
         while True:
+            print(f"""Please input No(1-{len(legal_move_code_help_list)}) or Code or "help":""")
             input_str = input()
 
             # TODO help
@@ -197,14 +201,14 @@ class Coliceum():
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
         self.expect_line("\\[from beginning\\](.*?)", timeout=None)
 
-        print(f"""\
-Ignored lines
--------------
-{self.messages_until_match}
+#         print(f"""\
+# Ignored lines
+# -------------
+# {self.messages_until_match}
 
-Matched message (Debug 1)
----------------
-{self.matched_message}""")
+# Matched message (Debug 1)
+# ---------------
+# {self.matched_message}""")
 
         position_command_str = f"position{self.group(1)}"
         print(f"(Debug 163) {position_command_str=}")
@@ -220,8 +224,12 @@ Matched message (Debug 1)
 
         # 盤表示
         print() # 改行
-        print(self._board.as_str(position_command.searched_clear_targets))
+        print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
+        print(BoardViews.stringify_board_normal(self._board))   # 盤面
         print() # 改行
+
+        # 盤表示後、間隔を空ける
+        time.sleep(0.7)
 
         # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
         if Views.is_one_settled(self._board, position_command.searched_clear_targets):
