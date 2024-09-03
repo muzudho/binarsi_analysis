@@ -65,9 +65,6 @@ _num_to_rank_str = {
     5 : 'f',
 }
 
-# 路の符号
-_way_characters = ['1', '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f']
-
 # クリアーターゲットの数
 CLEAR_TARGETS_LEN = 6
 
@@ -222,6 +219,9 @@ class Way():
         '-'
     """
 
+    # 路の符号
+    _characters = ['1', '2', '3', '4', '5', '6', '7', 'a', 'b', 'c', 'd', 'e', 'f']
+
 
     _code_to_obj = None
     _to_human_presentable_text = None
@@ -243,6 +243,12 @@ class Way():
 
         self._axis_id = axis_id
         self._number = number
+
+
+    @classmethod
+    @property
+    def characters(clazz):
+        return clazz._characters
 
 
     @property
@@ -420,7 +426,7 @@ class Way():
 
 # 全ての種類の路を生成
 _all_ways = []
-for way_u in _way_characters:
+for way_u in Way.characters:
     _all_ways.append(Way.code_to_obj(way_u))
 
 
@@ -1088,7 +1094,6 @@ class Sfen():
             SFEN に［何手目］を含まないようにするフラグです。
             同じ盤面をチェックしたいとき、［何手目］が異なるかは無視したいという要望があります
         """
-        global _way_characters
 
         if self._code_cached is None:
 
@@ -1144,7 +1149,7 @@ class Sfen():
             if not without_way_lock:
                 locked = False
 
-                for way_code in _way_characters:
+                for way_code in Way.characters:
                     if self._way_locks[way_code]:
 
                         if not locked:
@@ -1574,6 +1579,14 @@ class Board():
         return self._way_locks
 
 
+    def get_current_way_str(self, way_code):
+        """路の符号取得。ロック時は "#" を返却"""
+        if self.way_locks[way_code]:
+            return '#'
+
+        return way_code
+
+
     def get_color(self, sq):
         """マス上の石の色を取得"""
         return self._squares[sq]
@@ -1689,7 +1702,6 @@ class Board():
         searched_clear_targets : SearchedClearTargets
             クリアーターゲット
         """
-        global _way_characters
 
         # 盤面の初期化
         self.subinit()
@@ -1745,7 +1757,7 @@ class Board():
         # ----------------------
         if parts[2] != '-':
             for way_u in parts[2]:
-                if way_u in _way_characters:
+                if way_u in Way.characters:
                     self.set_way_lock_by_code(way_u, True, is_it_init=True)
 
                 else:
@@ -3178,10 +3190,9 @@ class SearchLegalMoves():
         ゼロビットシフトは禁止する
         枝が増えてしまうのを防ぐ
         """
-        global _way_characters
 
         # 筋（段）方向両用
-        for way_u in _way_characters:
+        for way_u in Way.characters:
             way = Way.code_to_obj(way_u)
 
             # 路にロックが掛かっていたら Shift は禁止

@@ -1,4 +1,4 @@
-from py_binarsi import C_BLACK, C_WHITE, BOARD_AREA, Colors
+from py_binarsi import C_BLACK, C_WHITE, BOARD_AREA, Colors, Square
 
 
 class BoardViews():
@@ -93,28 +93,21 @@ class BoardViews():
         for sq in range(0, BOARD_AREA):
             s[sq] = Colors.as_string_board(board.get_color(sq))
 
-        # 筋（段）の符号、またはロック
-        def get_way_code_2(way_code):
-            if board.way_locks[way_code]:
-                return '#'
-
-            return way_code
-
         # Way
         a = {
-            '1' : get_way_code_2('1'),
-            '2' : get_way_code_2('2'),
-            '3' : get_way_code_2('3'),
-            '4' : get_way_code_2('4'),
-            '5' : get_way_code_2('5'),
-            '6' : get_way_code_2('6'),
-            '7' : get_way_code_2('7'),
-            'a' : get_way_code_2('a'),
-            'b' : get_way_code_2('b'),
-            'c' : get_way_code_2('c'),
-            'd' : get_way_code_2('d'),
-            'e' : get_way_code_2('e'),
-            'f' : get_way_code_2('f'),
+            '1' : board.get_current_way_str('1'),
+            '2' : board.get_current_way_str('2'),
+            '3' : board.get_current_way_str('3'),
+            '4' : board.get_current_way_str('4'),
+            '5' : board.get_current_way_str('5'),
+            '6' : board.get_current_way_str('6'),
+            '7' : board.get_current_way_str('7'),
+            'a' : board.get_current_way_str('a'),
+            'b' : board.get_current_way_str('b'),
+            'c' : board.get_current_way_str('c'),
+            'd' : board.get_current_way_str('d'),
+            'e' : board.get_current_way_str('e'),
+            'f' : board.get_current_way_str('f'),
         }
 
         return f"""\
@@ -128,3 +121,71 @@ class BoardViews():
 {a['f']} | {s[5]} {s[11]} {s[17]} {s[23]} {s[29]} {s[35]} {s[41]} |
   +---------------+\
 """
+
+    @staticmethod
+    def stringify_board_hard(board):
+        """TODO 罫線も引ける盤面
+
+        例：
+                1 2 # 4 5 6 7
+              +------+-+------+
+            a | . . .|.|. . . |
+            b | . . .|.|. . . |
+            c | . . 1|.|. . . |
+            d | . . 0|.|. . . |
+            e | . . .|.|. . . |
+            f | . . .|.|. . . |
+              +------+-+------+
+
+        あまりにも複雑なので、画面全体を単なる１８×９の配列として実装する。
+        例：
+                0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17
+              +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+            0 |   |   |   | 1 |   | 2 |   | # |   | 4 |   | 5 |   | 6 |   | 7 |   |   |
+            1 |   |   | + | - | - | - | - | - | + | - | + | - | - | - | - | - | - | + |
+            2 | a |   | | | . |   | . |   | . | | | . | | | . |   | . |   | . |   | | |
+            3 | b |   | | | . |   | . |   | . | | | . | | | . |   | . |   | . |   | | |
+            4 | c |   | | | . |   | . |   | 1 | | | . | | | . |   | . |   | . |   | | |
+            5 | d |   | | | . |   | . |   | 0 | | | . | | | . |   | . |   | . |   | | |
+            6 | e |   | | | . |   | . |   | . | | | . | | | . |   | . |   | . |   | | |
+            7 | f |   | | | . |   | . |   | . | | | . | | | . |   | . |   | . |   | | |
+            8 |   |   | + | - | - | - | - | - | + | - | + | - | - | - | - | - | - | + |
+              +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        """
+
+        width = 18
+        height = 9
+        t = [' '] * (width * height)
+
+        # 筋の符号
+        # -------
+        # TODO キャッシュ化したい
+        way_squares = {
+            '1' : Square.file_rank_to_sq(3, 0),
+            '2' : Square.file_rank_to_sq(5, 0),
+            '3' : Square.file_rank_to_sq(7, 0),
+            '4' : Square.file_rank_to_sq(9, 0),
+            '5' : Square.file_rank_to_sq(11, 0),
+            '6' : Square.file_rank_to_sq(13, 0),
+            '7' : Square.file_rank_to_sq(15, 0),
+            'a' : Square.file_rank_to_sq(0, 2),
+            'b' : Square.file_rank_to_sq(0, 3),
+            'c' : Square.file_rank_to_sq(0, 4),
+            'd' : Square.file_rank_to_sq(0, 5),
+            'e' : Square.file_rank_to_sq(0, 6),
+            'f' : Square.file_rank_to_sq(0, 7),
+        }
+
+        for way_code in Way.characters:
+            t[way_squares[way_code]] = board.get_current_way_str(way_code)
+
+
+        print("罫線も引ける盤面　ここから：")
+        for j in range(0, height):
+            for i in range(0, width):
+                sq = j*width+i
+                print(t[sq], end='')
+            
+            print() # 改行
+
+        print("罫線も引ける盤面　ここまで：")
