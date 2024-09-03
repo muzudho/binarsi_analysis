@@ -157,11 +157,27 @@ class Coliceum():
 
         # 終局判定
         searched_gameover = SearchedGameover.search(self._board, legal_moves_for_you, position_command.searched_clear_targets.clear_targets_list)
-        print(f"[Coliceum > go_you (debug 155)] {searched_gameover.dump()}")
+        #print(f"[Coliceum > go_you (debug 155)] {searched_gameover.dump()}")
 
         # 決着が付いていれば、結果表示
         if self._board.is_gameover(searched_gameover):
             Views.print_settled_for_coliceum(self._board, position_command.searched_clear_targets, searched_gameover)
+
+
+    def ask_position_command(self):
+        """初期局面と棋譜付きの positionコマンドを取得する"""
+
+        # Coliceum sayd:
+        self.sendline(f"sfen")
+
+        # Engine said
+        # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
+        self.expect_line("\\[from beginning\\](.*?)", timeout=None)
+        position_command_str = f"position{self.group(1)}"
+        print(f"(debug 98) {position_command_str=}")
+        position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
+
+        return position_command
 
 
     def go_you(self):
@@ -176,9 +192,26 @@ class Coliceum():
             print(f"""Please input No(1-{len(legal_move_code_help_list)}) or Code or "help":""")
             input_str = input()
 
-            # TODO help
-            if input_str == "help":
-                print(f"開発中")
+            # その他のコマンド表示
+            if input_str == 'help':
+                print(f"""\
+`quit` - Exit the application.
+`board` - Display the board.""")
+
+            # アプリケーション終了
+            elif input_str == 'quit':
+                return
+
+            # 盤表示
+            elif input_str == 'board':
+                # コロシアムからエンジンへ SFEN コマンドを投げて、その結果から　クリアーターゲットを取得する必要がある
+
+                position_command = self.ask_position_command()
+
+                print() # 改行
+                print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
+                print(BoardViews.stringify_board_normal(self._board))   # 盤面
+                print() # 改行
 
             else:
                 result = re.match(r"^[0-9]+$", input_str)
@@ -247,7 +280,7 @@ class Coliceum():
 
         # 終局判定
         searched_gameover = SearchedGameover.search(self._board, legal_moves_for_computer, position_command.searched_clear_targets.clear_targets_list)
-        print(f"[Coliceum > go_you (debug 231)] {searched_gameover.dump()}")
+        #print(f"[Coliceum > go_you (debug 231)] {searched_gameover.dump()}")
 
         # 決着が付いていれば、結果表示
         if self._board.is_gameover(searched_gameover):
@@ -299,6 +332,9 @@ class Coliceum():
         # タイトル表示
         ColiceumViews.print_title()
         input_str = input()
+
+        if input_str == '2':
+            return
 
 
         coliceum.sendline("position startpos")

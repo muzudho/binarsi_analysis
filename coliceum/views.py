@@ -19,6 +19,7 @@ class Views():
  v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v
 
 (1) VS computer
+(2) quit
 
-please input number(1):""")
+please input number(1-2):""")
 
