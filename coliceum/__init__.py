@@ -2,6 +2,7 @@ import pexpect.popen_spawn as psp
 import re
 import time
 from py_binarsi import Board, SearchedClearTargets, SearchLegalMoves, SearchedGameover, PositionCommand
+from coliceum.views import Views as ColiceumViews
 from views import Views
 from views.board import BoardViews
 
@@ -30,7 +31,7 @@ class Coliceum():
     def sendline(self, message):
         """子プロセスの標準入力へ文字列を送ります"""
 
-        print(f"Coliceum said> {message}")
+        #print(f"Coliceum said> {message}")
         self._proc.sendline(message)
 
 
@@ -72,7 +73,7 @@ class Coliceum():
             文字列。正規表現で書く
         """
 
-        print(f"The engine would say: {format}")
+        #print(f"The engine would say> {format}")
         self._proc.expect(f"{format}{end}", timeout=timeout)
 
 
@@ -267,7 +268,7 @@ class Coliceum():
 
         # binarsi_analisis リポジトリー直下の main.py を起動しています
         # engine は対局エンジンプロセス
-        print("Coliceum> python main.py")
+        #print("Coliceum> python main.py")
         coliceum = Coliceum(
             child_process=psp.PopenSpawn('python main.py'))
 
@@ -278,10 +279,10 @@ class Coliceum():
 
         # Engine said
         coliceum.expect_line(r"id name (\w+)", timeout=None)
-        print(f"{coliceum.messages_until_match=}")  # ""
-        print(f"{coliceum.matched_message=}")       # "id name KifuwarabeBinarsi\r\n"
-        print(f"{coliceum.group(0)=}")    # "id name KifuwarabeBinarsi\r\n"
-        print(f"{coliceum.group(1)=}")    # "KifuwarabeBinarsi"
+        #print(f"{coliceum.messages_until_match=}")  # ""
+        #print(f"{coliceum.matched_message=}")       # "id name KifuwarabeBinarsi\r\n"
+        #print(f"{coliceum.group(0)=}")    # "id name KifuwarabeBinarsi\r\n"
+        #print(f"{coliceum.group(1)=}")    # "KifuwarabeBinarsi"
 
         # Engine said
         coliceum.expect_line("id author Muzudho", timeout=None)
@@ -293,6 +294,13 @@ class Coliceum():
         # Engine said
         coliceum.expect_line("readyok", timeout=None)
         coliceum.sendline("usinewgame")
+
+
+        # タイトル表示
+        ColiceumViews.print_title()
+        input_str = input()
+
+
         coliceum.sendline("position startpos")
 
         # TODO どちらの先手かは決められるようにしたい
