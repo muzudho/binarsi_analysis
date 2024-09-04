@@ -185,7 +185,8 @@ class Coliceum():
 `mate1` - Display the 1 move in mate 1 ply.
 `distinct_legal_moves` - Display the distinct legal moves.
 `history` - Display the input command list.
-`moves_for_edit` - Display the operation for edit.""")
+`moves_for_edit` - Display the operation for edit.
+`test_board` - Test to display the new board (under development).""")
 
             # アプリケーション終了
             elif input_str == 'quit':
@@ -201,6 +202,10 @@ class Coliceum():
                 print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
                 print(BoardViews.stringify_board_normal(self._board))   # 盤面
                 print() # 改行
+
+            # TODO デバッグ用の盤表示。まだできてない
+            elif input_str == 'test_board':
+                ColiceumViews.print_test_board(self._board)
 
             # クリアーターゲット表示
             elif input_str == 'clear_targets':

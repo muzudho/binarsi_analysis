@@ -1,4 +1,5 @@
 from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand
+from views.board import BoardViews
 
 
 class Views():
@@ -97,3 +98,12 @@ HISTORY
             return
 
         print(mate_move.to_code())
+
+
+    @staticmethod
+    def print_test_board(board):
+        """デバッグ用の盤表示
+            code: board
+            TODO あとで消す
+        """
+        print(BoardViews.stringify_board_hard(board))   # 盤面

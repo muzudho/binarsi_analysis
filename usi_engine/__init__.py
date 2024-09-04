@@ -93,11 +93,6 @@ class UsiEngine():
             elif cmd[0] == 'board':
                 self.print_board(searched_clear_targets)
 
-            # デバッグ用の盤表示
-            #   code: test_board
-            elif cmd[0] == 'test_board':
-                self.print_test_board()
-
             # 自己対局
             #   code: selfmatch
             #   code: selfmatch 100
@@ -518,14 +513,6 @@ class UsiEngine():
         """
         print(BoardViews.stringify_board_header(self._board, searched_clear_targets))  # １行目表示
         print(BoardViews.stringify_board_normal(self._board))   # 盤面
-
-
-    def print_test_board(self):
-        """デバッグ用の盤表示
-            code: board
-            TODO あとで消す
-        """
-        print(BoardViews.stringify_board_hard(self._board))   # 盤面
 
 
     def self_match_once(self, match_count):

@@ -159,7 +159,7 @@ class BoardViews():
 
         # 筋の符号
         # -------
-        # TODO キャッシュ化したい
+        # TODO キャッシュ化したい。まだできてない
         way_squares = {
             '1' : Square.file_rank_to_sq(3, 0),
             '2' : Square.file_rank_to_sq(5, 0),
