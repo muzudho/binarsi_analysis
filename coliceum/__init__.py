@@ -182,11 +182,12 @@ class Coliceum():
 `board` - Display the board.
 `clear_targets` - Display the clear targets.
 `legal_moves` - Display the legal moves.
-`distinct_legal_moves` - Display the distinct legal moves.""")
+`distinct_legal_moves` - Display the distinct legal moves.
+`history` - Display the input command list.""")
 
             # アプリケーション終了
             elif input_str == 'quit':
-                return
+                return 'quit'
 
             # 盤表示
             elif input_str == 'board':
@@ -215,6 +216,10 @@ class Coliceum():
             elif input_str == 'distinct_legal_moves':
                 print() # 改行
                 Views.print_distinct_legal_move_list(self._board)
+
+            # 操作履歴表示
+            elif input_str == 'history':
+                ColiceumViews.print_history(self._board)
 
             else:
                 result = re.match(r"^[0-9]+$", input_str)
@@ -400,7 +405,11 @@ Do you play sente or gote(1-2)?> """)
 
                 # 人間のターン
                 if next_turn == your_turn:
-                    coliceum.go_you()
+                    message = coliceum.go_you()
+
+                    if message == 'quit':
+                        # アプリケーションを終了する
+                        return
 
                 # コンピューターのターン
                 else:

@@ -112,11 +112,6 @@ class UsiEngine():
             elif cmd[0] == 'sfen':
                 self.print_sfen(searched_clear_targets)
 
-            # 操作履歴を出力
-            #   code: history
-            elif cmd[0] == 'history':
-                self.print_history()
-
             # プレイ
             #   code: play 4n
             elif cmd[0] == 'play':
@@ -553,41 +548,6 @@ class UsiEngine():
             print(f"    ({i + 1:2}) move_for_edit:{move.to_code()}")
 
         print("編集用の手一覧表示（合法手除く）　ここまで：")
-
-
-    def print_history(self):
-        """履歴表示
-            code: history
-        """
-        print("""\
-HISTORY
--------
-    番号： (対局棋譜番号|盤面編集番号）
-    凡例： `&` - 対局棋譜ではなく盤面編集の操作を示す
-    　　： `$` - 上書された石の並びを示す""")
-
-        moves_num = 0
-
-        for i in range(0, len(self._board.board_editing_history.items)):
-            board_editing_item = self._board.board_editing_history.items[i]
-            move = board_editing_item.move
-
-            if not move.when_edit:
-                moves_num += 1
-                sequence_number_str = f'{moves_num:2}|{i + 1:2}'
-            else:
-                sequence_number_str = f'  |{i + 1:2}'
-
-            stones_before_change = board_editing_item.stones_before_change
-
-            if stones_before_change == '':
-                stones_before_change = '-'
-
-            print(f"    ({sequence_number_str}) move:{move.to_code()} ${stones_before_change}")
-
-        print("""\
--------
-""")
 
 
     def self_match_once(self, match_count):
