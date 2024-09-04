@@ -4,11 +4,13 @@
 
 `binary` （バイナリー） ＋ `riverse` （リバーシ） ＝ `binarsi` （ビナーシ）  
 
-👇　ビナーシの遊び方は note で説明しています  
-📖　[ビナーシ（Binarsi）の遊び方説明](https://note.com/muzudho/n/n58c1db0dce14)  
 
-👇　ビナーシのプログラムは以下で説明しています  
+📖　[note > ビナーシ（Binarsi）の遊び方説明](https://note.com/muzudho/n/n58c1db0dce14)  
+　👆　まずは、ビナーシの遊び方を読んでください  
+
 📖 [ビナーシ USI エンジン](./usi_engine/README.md)  
+　👆　コンピューター・ビナーシの思考エンジンに関心がある方は、上記のリンクから進んでください。それ以外の方は無視してください  
+
 
 以下は、対局ツールの使い方を説明します  
 
