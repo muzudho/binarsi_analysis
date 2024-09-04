@@ -1,5 +1,5 @@
 # python main.py
-from engine import UsiEngine
+from usi_engine import UsiEngine
 
 
 if __name__ == '__main__':
