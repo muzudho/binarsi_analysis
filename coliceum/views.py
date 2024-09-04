@@ -1,4 +1,4 @@
-from py_binarsi import SearchLegalMoves
+from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand
 
 
 class Views():
@@ -78,3 +78,22 @@ HISTORY
             print(f"    ({i + 1:2}) move_for_edit:{move.to_code()}")
 
         print("編集用の手一覧表示（合法手除く）　ここまで：")
+
+
+    @staticmethod
+    def print_mate1(board, searched_clear_targets):
+        """１手詰めがあれば、その手をどれか１つ表示"""
+
+        legal_moves = SearchLegalMoves.generate_legal_moves(board)
+
+        # 一手詰めの手を返す。無ければナンを返す
+        mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
+            board=board,
+            move_list=legal_moves.distinct_items,
+            searched_clear_targets=searched_clear_targets)
+
+        if mate_move_in_1ply is None:
+            print(f"there is no checkmate")
+            return
+
+        print(mate_move.to_code())

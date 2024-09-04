@@ -123,11 +123,6 @@ class UsiEngine():
             elif cmd[0] == 'dump':
                 self.dump()
 
-            # １手詰めがあれば、その手をどれか１つ表示
-            #   code: mate1
-            elif cmd[0] == 'mate1':
-                self.print_mate1(searched_clear_targets)
-
             # 動作テスト
             #   code: test
             elif cmd[0] == 'test':
@@ -871,24 +866,6 @@ class UsiEngine():
     def dump(self):
         """デバッグ情報表示"""
         print(f"[dump] {self._board._next_turn_at_init=}")
-
-
-    def print_mate1(self, searched_clear_targets):
-        """１手詰めがあれば、その手をどれか１つ表示"""
-
-        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
-
-        # 一手詰めの手を返す。無ければナンを返す
-        mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
-            board=self._board,
-            move_list=legal_moves.distinct_items,
-            searched_clear_targets=searched_clear_targets)
-
-        if mate_move_in_1ply is None:
-            print(f"there is no checkmate")
-            return
-
-        print(mate_move.to_code())
 
 
     def test(self):

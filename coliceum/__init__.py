@@ -182,6 +182,7 @@ class Coliceum():
 `board` - Display the board.
 `clear_targets` - Display the clear targets.
 `legal_moves` - Display the legal moves.
+`mate1` - Display the 1 move in mate 1 ply.
 `distinct_legal_moves` - Display the distinct legal moves.
 `history` - Display the input command list.
 `moves_for_edit` - Display the operation for edit.""")
@@ -217,6 +218,11 @@ class Coliceum():
             elif input_str == 'distinct_legal_moves':
                 print() # 改行
                 Views.print_distinct_legal_move_list(self._board)
+
+            # １手詰めがあれば、その手をどれか１つ表示
+            elif input_str == 'mate1':
+                position_command = self.update_board()
+                ColiceumViews.print_mate1(self._board, position_command.searched_clear_targets)
 
             # 編集用の操作一覧
             elif input_str == 'moves_for_edit':
