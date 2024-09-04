@@ -150,14 +150,14 @@ class Views():
 
         finished_turn = Colors.opponent(board.get_next_turn())
 
-        # TODO デバッグ消す
-        print(f"""\
-DEBUG コロシアム用の決着表示
-    {finished_turn=}
-    {searched_gameover.is_black_win=}
-    {searched_gameover.is_white_win=}
-    {your_turn=}
-""")
+#         # TODO デバッグ消す
+#         print(f"""\
+# DEBUG コロシアム用の決着表示
+#     {finished_turn=}
+#     {searched_gameover.is_black_win=}
+#     {searched_gameover.is_white_win=}
+#     {your_turn=}
+# """)
         
         # どちらも勝っていないなら、この関数を呼び出さないでください
         if not searched_gameover.is_black_win and not searched_gameover.is_white_win:
