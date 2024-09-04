@@ -167,10 +167,27 @@ class Coliceum():
         # もう１行 stones_before_change が続く可能性もある
 
 
-    def go_you(self):
-        """あなたに１手指させる～盤表示まで"""
+    def go_human(self, who):
+        """あなたに１手指させる～盤表示まで
+        
+        Parameters
+        ----------
+        who : str
+            'you', 'black', 'white' の３つ
+        """
 
-        Views.print_you()
+        if who == 'you':
+            Views.print_you()
+
+        elif who == 'black':
+            Views.print_black()
+
+        elif who == 'white':
+            Views.print_white()
+
+        else:
+            raise ValueError("error go human")
+
 
         # 合法手メニューの表示
         legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
@@ -483,21 +500,34 @@ class Coliceum():
             ColiceumViews.print_title()
             input_str = input()
 
-            # コロシアム終了
-            if input_str == '2':
-                # 思考エンジンを終了させる
-                coliceum.sendline("quit")
+            your_turn = None
+            is_human_vs_human = False
 
-                # タイトル～対局終了までのループから抜ける
-                break
+            # 人間 VS コンピューター
+            if input_str == '1':
+                # DO どちらの先手かは決められるようにした
+                print(f"""\
 
-            # セルフマッチ
+CHOOSE
+---------
+(1) sente
+(2) gote
+---------
+Do you play sente or gote(1-2)?> """)
+                input_str = input()
+
+                if input_str == '1':
+                    your_turn = C_BLACK
+
+                else:
+                    your_turn = C_WHITE
+
+            # 人間 VS 人間
+            elif input_str == '2':
+                is_human_vs_human = True
+
+            # コンピューター VS コンピューター（セルフマッチ）
             elif input_str == '3':
-                # 自己対局
-                #   code: selfmatch
-                #   code: selfmatch 100
-                #
-                #   FIXME position startpos まで打ってから selfmatch を打つことを想定。もっと簡単にできないか？
                 print("how many games(1-)?")
 
                 rounds = input()
@@ -509,25 +539,15 @@ class Coliceum():
 
                 continue
 
+            # コロシアム終了
+            elif input_str == '4':
+                # 思考エンジンを終了させる
+                coliceum.sendline("quit")
 
-            # DO どちらの先手かは決められるようにした
-            print(f"""\
+                # タイトル～対局終了までのループから抜ける
+                break
 
-CHOOSE
----------
-(1) sente
-(2) gote
----------
-Do you play sente or gote(1-2)?> """)
-            input_str = input()
 
-            your_turn = None
-
-            if input_str == '1':
-                your_turn = C_BLACK
-
-            else:
-                your_turn = C_WHITE
 
 
             coliceum.sendline("position startpos")
@@ -566,11 +586,11 @@ Do you play sente or gote(1-2)?> """)
 
                 # 終局判定
                 searched_gameover = SearchedGameover.search(coliceum.board, legal_moves, position_command.searched_clear_targets.clear_targets_list)
-                #print(f"[Coliceum > go_you (debug 231)] {searched_gameover.dump()}")
+                #print(f"[Coliceum > go_human (debug 231)] {searched_gameover.dump()}")
 
                 # 決着が付いていれば、結果表示
                 if coliceum.board.is_gameover(searched_gameover):
-                    Views.print_settled_for_coliceum(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn)
+                    Views.print_settled_for_coliceum(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn, is_human_vs_human)
 
                     # 結果表示後、間隔を空ける
                     time.sleep(0.7)
@@ -588,8 +608,17 @@ Do you play sente or gote(1-2)?> """)
                 next_turn = coliceum.board.get_next_turn()
 
                 # 人間のターン
-                if next_turn == your_turn:
-                    message = coliceum.go_you()
+                if next_turn == your_turn or is_human_vs_human:
+                    if your_turn is not None:
+                        who = 'you'
+                    elif next_turn == C_BLACK:
+                        who = 'black'
+                    elif next_turn == C_WHITE:
+                        who = 'white'
+                    else:
+                        raise ValueError("error on human turn")
+                    
+                    message = coliceum.go_human(who)
 
                     if message == 'quit':
                         # アプリケーションを終了する

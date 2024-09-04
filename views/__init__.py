@@ -90,6 +90,30 @@ class Views():
 
 
     @staticmethod
+    def print_black():
+        print("""\
+     ________    ___     ________     ________   __    __ 
+    /   __   |  |_  |   /_____   |   /   ____|  |  |  |  |
+    |  |__|  |   |  |    _____|  |   |  /       |  |_/  / 
+    |   __  /_   |  |   /   __   |   |  |       |      /_
+    |  |  |  |   |  |   |  |  |  |   |  |       |   /|_ |_
+    |  |_/   |   |  |_  |  |_/   |_  |  |____   |  |  |_ |_
+    |_______/    |___|  |__________| |_______|  |__|   |__|""", flush=True)
+
+
+    @staticmethod
+    def print_white():
+        print("""\
+     __     ___     ___   ___         ___      __        ________
+    |  |   /   |   /  /  /  |        /  |   __|  |____  |   __   |
+    |  |  /    |  /  /   |  |____    |_/   |__    ___/  |  |__|  |
+    |  | /     | /  /    |   __  |_   __      |  |      |   _____/
+    |  |/  /|  |/  /     |  |  |  |  |  |     |  |      |  |   ___
+    |     / |     /      |  |  |  |  |  |     |  |      |  |__/  /
+    |____/  |____/       |__|  |__/  |__|     |__|      |_______/""", flush=True)
+
+
+    @staticmethod
     def print_win():
         print("""\
      __     ___     ___   ___   ____      __ 
@@ -141,19 +165,16 @@ class Views():
 
 
     @staticmethod
-    def print_settled_for_coliceum(board, searched_clear_targets, searched_gameover, your_turn):
+    def print_settled_for_coliceum(board, searched_clear_targets, searched_gameover, your_turn, is_human_vs_human):
         """決着の表示、コロシアム用
         
         - 三本勝負で決着したのなら、特に説明は要らない
         - 点数計算で決着したのなら、点数も表示
         """
 
-        finished_turn = Colors.opponent(board.get_next_turn())
-
 #         # TODO デバッグ消す
 #         print(f"""\
 # DEBUG コロシアム用の決着表示
-#     {finished_turn=}
 #     {searched_gameover.is_black_win=}
 #     {searched_gameover.is_white_win=}
 #     {your_turn=}
@@ -163,15 +184,28 @@ class Views():
         if not searched_gameover.is_black_win and not searched_gameover.is_white_win:
             raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
 
-        # あなたの勝ち
-        if finished_turn == your_turn:
-            Views.print_you()
-            Views.print_win()
-        
-        # あなたの負け
+        # 人間 VS 人間
+        if is_human_vs_human:
+            # 黒番の勝ち
+            if searched_gameover.is_black_win:
+                Views.print_black()
+                Views.print_win()
+            
+            # 白番の勝ち
+            else:
+                Views.print_white()
+                Views.print_win()                
+
         else:
-            Views.print_you()
-            Views.print_lose()
+            # あなたの勝ち
+            if (your_turn == C_BLACK and searched_gameover.is_black_win) or (your_turn == C_WHITE and searched_gameover.is_white_win):
+                Views.print_you()
+                Views.print_win()
+            
+            # あなたの負け
+            else:
+                Views.print_you()
+                Views.print_lose()
 
         # 点数計算で決着したなら、点数も表示
         if searched_gameover.is_point_calculation:

@@ -24,10 +24,11 @@ class Views():
  v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v
 
 (1) human VS computer
-(2) quit
-(3) selfmatch
+(2) human VS human
+(3) computer VS computer
+(4) quit
 
-please input number(1-3):""")
+please input number(1-4):""")
 
 
     @staticmethod

@@ -37,13 +37,14 @@ Output:
  v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v
 
 (1) human VS computer
-(2) quit
-(3) selfmatch
+(2) human VS human
+(3) computer VS computer
+(4) quit
 
 please input number(1-3):
 ```
 
-👆 `human VS computer` を遊ぶなら、 `1` と打鍵してエンターキーを押してください  
+👆 対コンピューター戦を遊ぶなら、 `1` と打鍵してエンターキーを押してください  
 
 
 Output:  
