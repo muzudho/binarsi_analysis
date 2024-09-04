@@ -12,10 +12,10 @@
 　👆　コンピューター・ビナーシの思考エンジンに関心がある方は、上記のリンクから進んでください。それ以外の方は無視してください  
 
 
-以下は、対局ツールの使い方を説明します  
+以下は、対局ツールの使い方（コロシアム）を説明します  
 
 
-# 対局ツールの使い方
+# 対局ツール（コロシアム）の使い方
 
 Input:  
 
@@ -219,6 +219,140 @@ CLEAR TARGETS
 ```
 
 👆 勝敗判定が出て、タイトル画面へ戻ります  
+
+
+## コロシアムのその他のコマンド
+
+Output:  
+
+```plaintext
+LEGAL MOVES
+-----------
+
++--+----+------------------------------------+
+|No|Code|Description                         |
++--+----+------------------------------------+--+----+------------------------------------+--+----+------------------------------------+
+| 1|2n  | 2-file <-        NOT  3-file       | 3|bn  | b-rank <-        NOT  c-rank       |  |    |                                    |
+| 2|4n  | 4-file <-        NOT  3-file       | 4|dn  | d-rank <-        NOT  c-rank       |  |    |                                    |
++--+----+------------------------------------+--+----+------------------------------------+--+----+------------------------------------+
+Please input No(1-4) or Code or "help":
+```
+
+👆 指し手の入力を促されたときに `help` と打鍵してエンターキーを押すと、その他のコマンドの一覧が表示されます  
+
+
+input:  
+
+```plaintext
+help
+```
+
+Output:  
+
+```plaintext
+`quit` - Exit the application.
+`board` - Display the board.
+`clear_targets` - Display the clear targets.
+`legal_moves` - Display the legal moves.
+`mate1` - Display the 1 move in mate 1 ply.
+`distinct_legal_moves` - Display the distinct legal moves.
+`history` - Display the input command list.
+`moves_for_edit` - Display the operation for edit.
+`test_board` - Test to display the new board (under development).
+`inverse 4n` - Displays the inverse operation. The argument must be a move code.
+```
+
+
+### quit コマンド
+
+コロシアムを終了します  
+
+### board コマンド
+
+盤を表示します  
+
+例：  
+
+```plaintext
+[ 0 moves | init | next black]
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . . . . . . |
+c | . . 0 . . . . |
+d | . . . . . . . |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+```
+
+👆 まっさらな状態から、 3c の位置に `0` が１つ置いてある盤面を　平手初期局面（ひらてしょききょくめん；Start position）　と呼びます  
+
+各部名称：  
+
+```
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . * . . . |
+b | . . . * . . . |
+c | . . . * . . . |
+d | . . . * . . . |
+e | . . . * . . . |
+f | . . . * . . . |
+  +---------------+
+```
+
+👆　上図 `*` の場所は **4筋（すじ）**（4th file）、または **4路（ろ）**（4th way）と呼びます  
+
+```
+    1 2 3 4 5 6 7
+  +---------------+
+a | . . . . . . . |
+b | . . . . . . . |
+c | . . . . . . . |
+d | * * * * * * * |
+e | . . . . . . . |
+f | . . . . . . . |
+  +---------------+
+```
+
+👆　上図 `*` の場所は **d段（だん）**（d rank）、または **d路（ろ）**（d way）と呼びます  
+
+### board コマンド
+
+TODO board コマンド  
+
+### clear_targets コマンド
+
+TODO clear_targets コマンド  
+
+### legal_moves コマンド
+
+TODO legal_moves コマンド  
+
+### mate1 コマンド
+
+TODO mate1 コマンド  
+
+### distinct_legal_moves コマンド
+
+TODO distinct_legal_moves コマンド  
+
+### history コマンド
+
+TODO history コマンド  
+
+### moves_for_edit コマンド
+
+TODO moves_for_edit コマンド  
+
+### test_board コマンド
+
+TODO test_board コマンド
+
+### inverse 4n コマンド
+
+TODO inverse 4n コマンド
 
 
 # 参考文献
