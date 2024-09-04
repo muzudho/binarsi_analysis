@@ -280,19 +280,30 @@ class Coliceum():
 
         # Engine said
         coliceum.expect_line("readyok", timeout=None)
-        coliceum.sendline("usinewgame")
 
 
-        # タイトル表示
-        ColiceumViews.print_title()
-        input_str = input()
-
-        if input_str == '2':
-            return
+        # タイトル～対局終了までのループ
+        while True:
+            coliceum.sendline("usinewgame")
 
 
-        # DO どちらの先手かは決められるようにした
-        print(f"""\
+
+            # タイトル表示
+            ColiceumViews.print_title()
+            input_str = input()
+
+            # コロシアム終了
+            if input_str == '2':
+                # 思考エンジンを終了させる
+                coliceum.sendline("quit")
+
+                # タイトル～対局終了までのループから抜ける
+                break
+                #return
+
+
+            # DO どちらの先手かは決められるようにした
+            print(f"""\
 
 CHOOSE
 ---------
@@ -300,69 +311,76 @@ CHOOSE
 (2) gote
 ---------
 Do you play sente or gote(1-2)?> """)
-        input_str = input()
+            input_str = input()
 
-        your_turn = None
+            your_turn = None
 
-        if input_str == '1':
-            your_turn = C_BLACK
+            if input_str == '1':
+                your_turn = C_BLACK
 
-        else:
-            your_turn = C_WHITE
+            else:
+                your_turn = C_WHITE
 
-        coliceum.sendline("position startpos")
+            coliceum.sendline("position startpos")
 
 
-        # DO 手番交互ループ
-        while True:
+            # DO 手番交互ループ
+            while True:
 
-            # 盤面を最新にする
-            position_command = coliceum.update_board()
+                # 盤面を最新にする
+                position_command = coliceum.update_board()
 
-            # 盤表示
-            print() # 改行
-            print(BoardViews.stringify_board_header(coliceum.board, position_command.searched_clear_targets))  # １行目表示
-            print(BoardViews.stringify_board_normal(coliceum.board))   # 盤面
-            print() # 改行
+                # 盤表示
+                print() # 改行
+                print(BoardViews.stringify_board_header(coliceum.board, position_command.searched_clear_targets))  # １行目表示
+                print(BoardViews.stringify_board_normal(coliceum.board))   # 盤面
+                print() # 改行
 
-            # 盤表示後、間隔を空ける
-            time.sleep(0.7)
-
-            # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
-            if Views.is_one_settled(coliceum.board, position_command.searched_clear_targets):
-                Views.print_clear_targets(position_command.searched_clear_targets)
+                # 盤表示後、間隔を空ける
                 time.sleep(0.7)
 
-            # 現局面の合法手一覧取得
-            #
-            #   ステールメートしているかどうかの判定に使う
-            #
-            legal_moves = SearchLegalMoves.generate_legal_moves(coliceum.board)
-
-            # 終局判定
-            searched_gameover = SearchedGameover.search(coliceum.board, legal_moves, position_command.searched_clear_targets.clear_targets_list)
-            #print(f"[Coliceum > go_you (debug 231)] {searched_gameover.dump()}")
-
-            # 決着が付いていれば、結果表示
-            if coliceum.board.is_gameover(searched_gameover):
-                Views.print_settled_for_coliceum(coliceum.board, position_command.searched_clear_targets, searched_gameover)
-
-                # 手番交互ループから抜ける
-                break
+                # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
+                if Views.is_one_settled(coliceum.board, position_command.searched_clear_targets):
+                    Views.print_clear_targets(position_command.searched_clear_targets)
+                    
+                    # クリアーターゲット表示後、間隔を空ける
+                    time.sleep(0.7)
 
 
-            # 現在の手番を取得
-            next_turn = coliceum.board.get_next_turn()
+                # 現局面の合法手一覧取得
+                #
+                #   ステールメートしているかどうかの判定に使う
+                #
+                legal_moves = SearchLegalMoves.generate_legal_moves(coliceum.board)
 
-            # 人間のターン
-            if next_turn == your_turn:
-                coliceum.go_you()
+                # 終局判定
+                searched_gameover = SearchedGameover.search(coliceum.board, legal_moves, position_command.searched_clear_targets.clear_targets_list)
+                #print(f"[Coliceum > go_you (debug 231)] {searched_gameover.dump()}")
 
-            # コンピューターのターン
-            else:
-                coliceum.go_computer()
+                # 決着が付いていれば、結果表示
+                if coliceum.board.is_gameover(searched_gameover):
+                    Views.print_settled_for_coliceum(coliceum.board, position_command.searched_clear_targets, searched_gameover)
+
+                    # 結果表示後、間隔を空ける
+                    time.sleep(0.7)
+
+                    # ２行空行を入れる
+                    print(f"""\
+
+""")
+
+                    # 手番交互ループから抜ける
+                    break
 
 
-        # 思考エンジンを終了させる
-        coliceum.sendline("quit")
+                # 現在の手番を取得
+                next_turn = coliceum.board.get_next_turn()
+
+                # 人間のターン
+                if next_turn == your_turn:
+                    coliceum.go_you()
+
+                # コンピューターのターン
+                else:
+                    coliceum.go_computer()
 

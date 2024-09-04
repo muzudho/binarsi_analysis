@@ -149,7 +149,7 @@ class Views():
         """
 
         # TODO デバッグ消す
-        print(f"DEBUG コロシアム用の決着表示")
+        #print(f"DEBUG コロシアム用の決着表示")
 
         current_turn = Colors.opponent(board.get_next_turn())
         
