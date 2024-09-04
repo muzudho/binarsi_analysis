@@ -379,8 +379,8 @@ class UsiEngine():
             move_list=legal_moves.distinct_items,
             searched_clear_targets=searched_clear_targets)
 
-        # クリアーターゲット更新
-        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+        # クリアーターゲット新規作成
+        searched_clear_targets = SearchedClearTargets.create_new_clear_targets(
             board=self._board,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
@@ -464,19 +464,13 @@ class UsiEngine():
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
         # クリアーターゲット更新
-        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+        searched_clear_targets = SearchedClearTargets.create_new_clear_targets(
             board=self._board,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
 
         # 終局判定
         searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
-
-        # 現在の盤表示
-        self.print_board(searched_clear_targets)
-        self.print_sfen(searched_clear_targets, from_present=True)
-
-        print("") # 空行
 
         # 終了の符牒
         print("do ok")
@@ -528,8 +522,8 @@ class UsiEngine():
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
-        # クリアーターゲット更新
-        searched_clear_targets = SearchedClearTargets.update_clear_targets(
+        # クリアーターゲット新規作成
+        searched_clear_targets = SearchedClearTargets.create_new_clear_targets(
             board=self._board,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
@@ -630,8 +624,8 @@ HISTORY
                 move_list=legal_moves.distinct_items,
                 searched_clear_targets=searched_clear_targets)
 
-            # クリアーターゲット更新
-            searched_clear_targets = SearchedClearTargets.update_clear_targets(
+            # クリアーターゲット新規作成
+            searched_clear_targets = SearchedClearTargets.create_new_clear_targets(
                 board=self._board,
                 # 引き継ぎ
                 clear_targets_list=searched_clear_targets.clear_targets_list)
@@ -866,8 +860,8 @@ HISTORY
             move_list=legal_moves_for_computer.distinct_items,
             searched_clear_targets=searched_clear_targets)
 
-        # コンピューター側のためのクリアーターゲット更新
-        searched_clear_targets_for_computer = SearchedClearTargets.update_clear_targets(
+        # コンピューター側のためのクリアーターゲット新規作成
+        searched_clear_targets_for_computer = SearchedClearTargets.create_new_clear_targets(
             board=self._board,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
@@ -916,8 +910,8 @@ HISTORY
         # あなた側の合法手一覧
         legal_moves_for_you = SearchLegalMoves.generate_legal_moves(self._board)
 
-        # あなた側のためのクリアーターゲット更新
-        searched_clear_targets_for_you = SearchedClearTargets.update_clear_targets(
+        # あなた側のためのクリアーターゲット新規作成
+        searched_clear_targets_for_you = SearchedClearTargets.create_new_clear_targets(
             board=self._board,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets_for_computer.clear_targets_list)

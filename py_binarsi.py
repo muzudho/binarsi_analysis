@@ -2755,7 +2755,7 @@ class SearchedClearTargets():
         # 棒サイズ
         line_length = 3
         my_stone_color = C_BLACK
-        is_not_hit = False  # 外側の file ループを続行
+        hit_count = 0
 
         for rank in range(0, RANK_LEN):
             #             0,        6
@@ -2766,15 +2766,20 @@ class SearchedClearTargets():
 
                 for i in range(0, line_length):
                     if board.get_color(Square.file_rank_to_sq(file + i, rank)) != my_stone_color:
-                        is_not_hit = True
                         break
 
-                if is_not_hit:
-                    is_not_hit = False
-                    continue
+                    hit_count += 1
 
-                clear_targets_list[0] = board.moves_number
-                return
+                if hit_count == line_length:
+                    clear_targets_list[0] = board.moves_number
+                    break
+
+                hit_count = 0
+
+
+            if hit_count == line_length:
+                hit_count = 0
+                break
 
 
     @staticmethod
@@ -2800,7 +2805,7 @@ class SearchedClearTargets():
         # 棒サイズ
         line_length = 4
         my_stone_color = C_BLACK
-        is_not_hit = False  # 外側の file ループを続行
+        hit_count = 0
 
         # Sinister Diagonal
         for rank in range(0, RANK_LEN-line_length+1):
@@ -2813,15 +2818,21 @@ class SearchedClearTargets():
 
                 for i in range(0, line_length):
                     if board.get_color(Square.file_rank_to_sq(file + i, rank + i)) != my_stone_color:
-                        is_not_hit = True
                         break
 
-                if is_not_hit:
-                    is_not_hit = False
-                    continue
+                    hit_count += 1
 
-                clear_targets_list[1] = board.moves_number
-                return
+                if hit_count == line_length:
+                    clear_targets_list[1] = board.moves_number
+                    break
+
+                hit_count = 0
+
+
+            if hit_count == line_length:
+                hit_count = 0
+                break
+
 
         # Baroque Diagonal
         for rank in range(0, RANK_LEN-(RANK_LEN-line_length)-1):
@@ -2833,15 +2844,20 @@ class SearchedClearTargets():
 
                 for i in range(0, line_length):
                     if board.get_color(Square.file_rank_to_sq(file - i, rank + i)) != my_stone_color:
-                        is_not_hit = True
                         break
 
-                if is_not_hit:
-                    is_not_hit = False
+                    hit_count += 1
+
+                if hit_count == line_length:
+                    clear_targets_list[1] = board.moves_number
                     break
 
-                clear_targets_list[1] = board.moves_number
-                return
+                hit_count = 0
+
+
+            if hit_count == line_length:
+                hit_count = 0
+                break
 
 
     @staticmethod
@@ -2866,7 +2882,7 @@ class SearchedClearTargets():
         # 棒サイズ
         line_length = 5
         my_stone_color = C_BLACK
-        is_not_hit = False  # 外側の file ループを続行
+        hit_count = 0
 
         for rank in range(0, RANK_LEN-line_length+1):
             #             0,        6-          5+1
@@ -2877,15 +2893,20 @@ class SearchedClearTargets():
 
                 for i in range(0, line_length):
                     if board.get_color(Square.file_rank_to_sq(file, rank + i)) != my_stone_color:
-                        is_not_hit = True
                         break
 
-                if is_not_hit:
-                    is_not_hit = False
-                    continue
+                    hit_count += 1
 
-                clear_targets_list[2] = board.moves_number
-                return
+                if hit_count == line_length:
+                    clear_targets_list[2] = board.moves_number
+                    break
+
+                hit_count = 0
+
+
+            if hit_count == line_length:
+                hit_count = 0
+                break
 
 
     @staticmethod
@@ -2909,7 +2930,7 @@ class SearchedClearTargets():
         # 棒サイズ
         line_length = 3
         my_stone_color = C_WHITE
-        is_not_hit = False  # 外側の file ループを続行
+        hit_count = 0
 
         for rank in range(0, RANK_LEN-line_length+1):
             #             0,        6-          3+1
@@ -2920,15 +2941,20 @@ class SearchedClearTargets():
 
                 for i in range(0, line_length):
                     if board.get_color(Square.file_rank_to_sq(file, rank + i)) != my_stone_color:
-                        is_not_hit = True
                         break
 
-                if is_not_hit:
-                    is_not_hit = False
-                    continue
+                    hit_count += 1
 
-                clear_targets_list[3] = board.moves_number
-                return
+                if hit_count == line_length:
+                    clear_targets_list[3] = board.moves_number
+                    break
+
+                hit_count = 0
+
+
+            if hit_count == line_length:
+                hit_count = 0
+                break
 
 
     @staticmethod
@@ -2953,7 +2979,7 @@ class SearchedClearTargets():
         # 棒サイズ
         line_length = 4
         my_stone_color = C_WHITE
-        is_not_hit = False  # 外側の file ループを続行
+        hit_count = 0
 
         # Sinister Diagonal
         for rank in range(0, RANK_LEN-line_length+1):
@@ -2966,15 +2992,21 @@ class SearchedClearTargets():
 
                 for i in range(0, line_length):
                     if board.get_color(Square.file_rank_to_sq(file + i, rank + i)) != my_stone_color:
-                        is_not_hit = True
                         break
 
-                if is_not_hit:
-                    is_not_hit = False
-                    continue
+                    hit_count += 1
 
-                clear_targets_list[4] = board.moves_number
-                return
+                if hit_count == line_length:
+                    clear_targets_list[4] = board.moves_number
+                    break
+
+                hit_count = 0
+
+
+            if hit_count == line_length:
+                hit_count = 0
+                break
+
 
         # Baroque Diagonal
         for rank in range(0, RANK_LEN-(RANK_LEN-line_length)-1):
@@ -2987,15 +3019,20 @@ class SearchedClearTargets():
 
                 for i in range(0, line_length):
                     if board.get_color(Square.file_rank_to_sq(file - i, rank + i)) != my_stone_color:
-                        is_not_hit = True
                         break
 
-                if is_not_hit:
-                    is_not_hit = False
+                    hit_count += 1
+
+                if hit_count == line_length:
+                    clear_targets_list[4] = board.moves_number
                     break
 
-                clear_targets_list[4] = board.moves_number
-                return
+                hit_count = 0
+
+
+            if hit_count == line_length:
+                hit_count = 0
+                break
 
 
     @staticmethod
@@ -3019,7 +3056,7 @@ class SearchedClearTargets():
         # 棒サイズ
         line_length = 5
         my_stone_color = C_WHITE
-        is_not_hit = False  # 外側の file ループを続行
+        hit_count = 0
 
         for rank in range(0, RANK_LEN):
             #             0,        6
@@ -3030,20 +3067,25 @@ class SearchedClearTargets():
 
                 for i in range(0, line_length):
                     if board.get_color(Square.file_rank_to_sq(file + i, rank)) != my_stone_color:
-                        is_not_hit = True
                         break
 
-                if is_not_hit:
-                    is_not_hit = False
-                    continue
+                    hit_count += 1
 
-                clear_targets_list[5] = board.moves_number
-                return
+                if hit_count == line_length:
+                    clear_targets_list[5] = board.moves_number
+                    break
+
+                hit_count = 0
+
+
+            if hit_count == line_length:
+                hit_count = 0
+                break
 
 
     @staticmethod
-    def update_clear_targets(board, clear_targets_list):
-        """クリアーターゲット判定を更新
+    def create_new_clear_targets(board, clear_targets_list):
+        """クリアーターゲット判定オブジェクトを新規作成
         
         先に generate_legal_moves() メソッドを呼び出すように働きます
 
@@ -3327,7 +3369,7 @@ class SearchMateMoveIn1Play():
             next_legal_moves = SearchLegalMoves.generate_legal_moves(board)
 
             # 未来のクリアーターゲット新規作成
-            next_searched_clear_targets = SearchedClearTargets.update_clear_targets(
+            next_searched_clear_targets = SearchedClearTargets.create_new_clear_targets(
                 board=board,
                 # 引き継ぎ
                 clear_targets_list=searched_clear_targets.clear_targets_list)
