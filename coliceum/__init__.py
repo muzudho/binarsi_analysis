@@ -106,6 +106,10 @@ class Coliceum():
 
     def go_computer(self):
         """コンピューターに１手指させる～盤表示まで"""
+
+        Views.print_comp()
+        print() # 改行
+
         self.sendline("go")
 
         # Engine said
@@ -166,8 +170,11 @@ class Coliceum():
     def go_you(self):
         """あなたに１手指させる～盤表示まで"""
 
+        Views.print_you()
+
         # 合法手メニューの表示
         legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
+        print() # 改行
         Views.print_legal_moves_menu(legal_move_code_help_list)
 
         # コマンド入力ループ
@@ -187,8 +194,7 @@ class Coliceum():
 `history` - Display the input command list.
 `moves_for_edit` - Display the operation for edit.
 `test_board` - Test to display the new board (under development).
-`inverse 4n` - Displays the inverse operation. The argument must be a move code.
-`selfmatch 200` - Selfmatch and its count.""")
+`inverse 4n` - Displays the inverse operation. The argument must be a move code.""")
 
             # アプリケーション終了
             elif input_str == 'quit':
@@ -261,13 +267,14 @@ class Coliceum():
                         # FIXME 入力チェック要るか？
                         do_command = f"do {input_str}"
 
-                    # コマンド入力ループから抜ける
+                    # Coliceum said
+                    self.sendline(do_command)
+                    # do コマンドすると、 `do ok` が出て終わる
+                    self.expect_line("do ok", timeout=None)
+
+                    # コマンド入力ループから抜ける（次のターンへ）
                     break
 
-        # Coliceum said
-        self.sendline(do_command)
-        # do コマンドすると、 `do ok` が出て終わる
-        self.expect_line("do ok", timeout=None)
 
         # Engine said
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
@@ -529,6 +536,8 @@ Do you play sente or gote(1-2)?> """)
             # DO 手番交互ループ
             while True:
 
+                #print(f"[Coliceum > start] 手番交互ループ始まり")
+
                 # 盤面を最新にする
                 position_command = coliceum.update_board()
 
@@ -585,6 +594,8 @@ Do you play sente or gote(1-2)?> """)
                     if message == 'quit':
                         # アプリケーションを終了する
                         return
+
+                    #print(f"[Coliceum > start] 人間のターン終わり")
 
                 # コンピューターのターン
                 else:
