@@ -141,38 +141,37 @@ class Views():
 
 
     @staticmethod
-    def print_settled_for_coliceum(board, searched_clear_targets, searched_gameover):
+    def print_settled_for_coliceum(board, searched_clear_targets, searched_gameover, your_turn):
         """決着の表示、コロシアム用
         
         - 三本勝負で決着したのなら、特に説明は要らない
         - 点数計算で決着したのなら、点数も表示
         """
 
+        finished_turn = Colors.opponent(board.get_next_turn())
+
         # TODO デバッグ消す
-        #print(f"DEBUG コロシアム用の決着表示")
-
-        current_turn = Colors.opponent(board.get_next_turn())
+        print(f"""\
+DEBUG コロシアム用の決着表示
+    {finished_turn=}
+    {searched_gameover.is_black_win=}
+    {searched_gameover.is_white_win=}
+    {your_turn=}
+""")
         
-        if searched_gameover.is_black_win:
-            if current_turn == C_BLACK:
-                Views.print_you()
-                Views.print_win()
-            
-            elif current_turn == C_WHITE:
-                Views.print_you()
-                Views.print_lose()
-
-        elif searched_gameover.is_white_win:
-            if current_turn == C_BLACK:
-                Views.print_you()
-                Views.print_lose()
-            
-            elif current_turn == C_WHITE:
-                Views.print_you()
-                Views.print_win()
-        
-        else:
+        # どちらも勝っていないなら、この関数を呼び出さないでください
+        if not searched_gameover.is_black_win and not searched_gameover.is_white_win:
             raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
+
+        # あなたの勝ち
+        if finished_turn == your_turn:
+            Views.print_you()
+            Views.print_win()
+        
+        # あなたの負け
+        else:
+            Views.print_you()
+            Views.print_lose()
 
         # 点数計算で決着したなら、点数も表示
         if searched_gameover.is_point_calculation:

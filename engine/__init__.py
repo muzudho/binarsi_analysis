@@ -475,7 +475,11 @@ class UsiEngine():
         # 現在の盤表示
         self.print_board(searched_clear_targets)
         self.print_sfen(searched_clear_targets, from_present=True)
+
         print("") # 空行
+
+        # 終了の符牒
+        print("do ok")
 
         return searched_clear_targets
 

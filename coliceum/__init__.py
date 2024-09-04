@@ -129,14 +129,15 @@ class Coliceum():
 
 
         self.sendline(f"do {bestmove_str}")
-        # do コマンドすると、SFEN が出て終わる
+        # do コマンドすると、 `do ok` が出て終わる
+        self.expect_line("do ok", timeout=None)
 
-        # Engine said
-        # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
-        self.expect_line("\\[from beginning\\](.*?)", timeout=None)
-        position_command_str = f"position{self.group(1)}"
-        #print(f"(debug 98) {position_command_str=}")
-        position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
+        # # Engine said
+        # # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
+        # self.expect_line("\\[from beginning\\](.*?)", timeout=None)
+        # position_command_str = f"position{self.group(1)}"
+        # #print(f"(debug 98) {position_command_str=}")
+        # position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
 #         print(f"""\
 # Ignored lines
 # -------------
@@ -148,7 +149,7 @@ class Coliceum():
         # もう１行 stones_before_change が続く可能性もある
 
         # Engine said
-        self.expect_line("\\[from present\\](.*?)", timeout=None)
+        #self.expect_line("\\[from present\\](.*?)", timeout=None)
         #position_args = self.group(1)
 
 #         print(f"""\
@@ -212,7 +213,8 @@ class Coliceum():
 
         # Coliceum said
         self.sendline(do_command)
-        # do コマンドすると、SFEN が出て終わる
+        # do コマンドすると、 `do ok` が出て終わる
+        self.expect_line("do ok", timeout=None)
 
         # Engine said
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
@@ -233,7 +235,7 @@ class Coliceum():
 
         # Engine said
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
-        self.expect_line("\\[from present\\](.*?)", timeout=None)
+        #self.expect_line("\\[from present\\](.*?)", timeout=None)
         #position_args = self.group(1)
 #         print(f"""\
 # Ignored lines
@@ -359,7 +361,7 @@ Do you play sente or gote(1-2)?> """)
 
                 # 決着が付いていれば、結果表示
                 if coliceum.board.is_gameover(searched_gameover):
-                    Views.print_settled_for_coliceum(coliceum.board, position_command.searched_clear_targets, searched_gameover)
+                    Views.print_settled_for_coliceum(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn)
 
                     # 結果表示後、間隔を空ける
                     time.sleep(0.7)
