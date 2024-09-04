@@ -461,16 +461,11 @@ class UsiEngine():
         # 一手指す
         self._board.push_usi(move_u)
 
-        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
-
-        # クリアーターゲット更新
+        # 新規クリアーターゲット作成（そして関数の戻り値として返却）
         searched_clear_targets = SearchedClearTargets.create_new_clear_targets(
             board=self._board,
             # 引き継ぎ
             clear_targets_list=searched_clear_targets.clear_targets_list)
-
-        # 終局判定
-        searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
         # 終了の符牒
         print("do ok")
