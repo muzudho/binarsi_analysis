@@ -94,11 +94,6 @@ class UsiEngine():
             elif cmd[0] == 'test_board':
                 self.print_test_board()
 
-            # 合法手一覧表示
-            #   code: legal_moves
-            elif cmd[0] == 'legal_moves':
-                Views.print_sorted_legal_move_list(self._board)
-
             # 編集用の手一覧表示（合法手除く）
             #   code: moves_for_edit
             elif cmd[0] == 'moves_for_edit':

@@ -419,12 +419,14 @@ CLEAR TARGETS
 
 
     @staticmethod
-    def print_sorted_legal_move_list(board):
-        """合法手一覧表示
+    def print_distinct_legal_move_list(board):
+        """（同じ指し手を除いた）合法手一覧表示
             code: legal_moves
         """
         print("""\
-LEGAL MOVES
+DISTINCT LEGAL MOVES
+--------------------
+
 +--------+---+
 |Distinct|All| Command
 +--------+---+""")

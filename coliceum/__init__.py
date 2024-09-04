@@ -180,7 +180,9 @@ class Coliceum():
                 print(f"""\
 `quit` - Exit the application.
 `board` - Display the board.
-`clear_targets` - Display the clear targets.""")
+`clear_targets` - Display the clear targets.
+`legal_moves` - Display the legal moves.
+`distinct_legal_moves` - Display the distinct legal moves.""")
 
             # アプリケーション終了
             elif input_str == 'quit':
@@ -202,6 +204,17 @@ class Coliceum():
                 position_command = self.update_board()
                 print() # 改行
                 Views.print_clear_targets(position_command.searched_clear_targets)
+
+            # 合法手メニュー表示
+            elif input_str == 'legal_moves':
+                print() # 改行
+                legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
+                Views.print_legal_moves_menu(legal_move_code_help_list)
+
+            # 重複を覗いた合法手メニュー表示
+            elif input_str == 'distinct_legal_moves':
+                print() # 改行
+                Views.print_distinct_legal_move_list(self._board)
 
             else:
                 result = re.match(r"^[0-9]+$", input_str)
