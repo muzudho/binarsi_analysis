@@ -3629,7 +3629,7 @@ class PositionCommand():
 
         # SFEN 文字列
         sfen_u = pos_list[0]
-        print(f"[PositionCommand > parse_and_update_board (debug 3711)] {sfen_u=}")
+        #print(f"[PositionCommand > parse_and_update_board (debug 3711)] {sfen_u=}")
 
         #print(f"[position] {pos_list=}")
 

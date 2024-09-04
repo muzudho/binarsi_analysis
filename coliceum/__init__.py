@@ -1,7 +1,7 @@
 import pexpect.popen_spawn as psp
 import re
 import time
-from py_binarsi import Board, SearchedClearTargets, SearchLegalMoves, SearchedGameover, PositionCommand
+from py_binarsi import C_BLACK, C_WHITE, Board, SearchedClearTargets, SearchLegalMoves, SearchedGameover, PositionCommand
 from coliceum.views import Views as ColiceumViews
 from views import Views
 from views.board import BoardViews
@@ -26,6 +26,11 @@ class Coliceum():
 
         # 終局判定を新規作成
         self._searched_clear_targets = SearchedClearTargets.make_new_obj()
+
+
+    @property
+    def board(self):
+        return self._board
 
 
     def sendline(self, message):
@@ -77,6 +82,28 @@ class Coliceum():
         self._proc.expect(f"{format}{end}", timeout=timeout)
 
 
+    def update_board(self):
+        """盤面を最新にする。
+        初期局面と棋譜付きの positionコマンドも返す
+        
+        Returns
+        -------
+        初期局面と棋譜付きの positionコマンド
+        """
+
+        # Coliceum sayd:
+        self.sendline(f"sfen")
+
+        # Engine said
+        # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
+        self.expect_line("\\[from beginning\\](.*?)", timeout=None)
+        position_command_str = f"position{self.group(1)}"
+        print(f"(debug 98) {position_command_str=}")
+        position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
+
+        return position_command
+
+
     def go_computer(self):
         """コンピューターに１手指させる～盤表示まで"""
         self.sendline("go")
@@ -102,12 +129,13 @@ class Coliceum():
 
 
         self.sendline(f"do {bestmove_str}")
+        # do コマンドすると、SFEN が出て終わる
 
         # Engine said
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
         self.expect_line("\\[from beginning\\](.*?)", timeout=None)
         position_command_str = f"position{self.group(1)}"
-        print(f"(debug 98) {position_command_str=}")
+        #print(f"(debug 98) {position_command_str=}")
         position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
 #         print(f"""\
 # Ignored lines
@@ -121,7 +149,7 @@ class Coliceum():
 
         # Engine said
         self.expect_line("\\[from present\\](.*?)", timeout=None)
-        position_args = self.group(1)
+        #position_args = self.group(1)
 
 #         print(f"""\
 # Ignored lines
@@ -132,52 +160,6 @@ class Coliceum():
 # ---------------
 # [from present]{position_args}""")
         # もう１行 stones_before_change が続く可能性もある
-
-        # 盤表示
-        print() # 改行
-        print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
-        print(BoardViews.stringify_board_normal(self._board))   # 盤面
-        print() # 改行
-
-        # 盤表示後、間隔を空ける
-        time.sleep(0.7)
-
-        # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
-        if Views.is_one_settled(self._board, position_command.searched_clear_targets):
-            Views.print_clear_targets(position_command.searched_clear_targets)
-            time.sleep(0.7)
-
-        # 勝敗判定
-
-        # 人間の手番のための合法手一覧
-        #
-        #   ステールメートしているかどうかの判定に使う
-        #
-        legal_moves_for_you = SearchLegalMoves.generate_legal_moves(self._board)
-
-        # 終局判定
-        searched_gameover = SearchedGameover.search(self._board, legal_moves_for_you, position_command.searched_clear_targets.clear_targets_list)
-        #print(f"[Coliceum > go_you (debug 155)] {searched_gameover.dump()}")
-
-        # 決着が付いていれば、結果表示
-        if self._board.is_gameover(searched_gameover):
-            Views.print_settled_for_coliceum(self._board, position_command.searched_clear_targets, searched_gameover)
-
-
-    def ask_position_command(self):
-        """初期局面と棋譜付きの positionコマンドを取得する"""
-
-        # Coliceum sayd:
-        self.sendline(f"sfen")
-
-        # Engine said
-        # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
-        self.expect_line("\\[from beginning\\](.*?)", timeout=None)
-        position_command_str = f"position{self.group(1)}"
-        print(f"(debug 98) {position_command_str=}")
-        position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
-
-        return position_command
 
 
     def go_you(self):
@@ -206,7 +188,7 @@ class Coliceum():
             elif input_str == 'board':
                 # コロシアムからエンジンへ SFEN コマンドを投げて、その結果から　クリアーターゲットを取得する必要がある
 
-                position_command = self.ask_position_command()
+                position_command = self.update_board()
 
                 print() # 改行
                 print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
@@ -230,10 +212,11 @@ class Coliceum():
 
         # Coliceum said
         self.sendline(do_command)
+        # do コマンドすると、SFEN が出て終わる
 
         # Engine said
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
-        self.expect_line("\\[from beginning\\](.*?)", timeout=None)
+        #self.expect_line("\\[from beginning\\](.*?)", timeout=None)
 
 #         print(f"""\
 # Ignored lines
@@ -244,47 +227,18 @@ class Coliceum():
 # ---------------
 # {self.matched_message}""")
 
-        position_command_str = f"position{self.group(1)}"
-        print(f"(Debug 163) {position_command_str=}")
-        position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
+        #position_command_str = f"position{self.group(1)}"
+        #print(f"(Debug 163) {position_command_str=}")
+        #position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
 
         # Engine said
+        # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
         self.expect_line("\\[from present\\](.*?)", timeout=None)
-        position_args = self.group(1)
+        #position_args = self.group(1)
 #         print(f"""\
 # Ignored lines
 # -------------
 # {self.messages_until_match}""")
-
-        # 盤表示
-        print() # 改行
-        print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
-        print(BoardViews.stringify_board_normal(self._board))   # 盤面
-        print() # 改行
-
-        # 盤表示後、間隔を空ける
-        time.sleep(0.7)
-
-        # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
-        if Views.is_one_settled(self._board, position_command.searched_clear_targets):
-            Views.print_clear_targets(position_command.searched_clear_targets)
-            time.sleep(0.7)
-
-        # 勝敗判定
-
-        # コンピューターの手番のための合法手一覧
-        #
-        #   ステールメートしているかどうかの判定に使う
-        #
-        legal_moves_for_computer = SearchLegalMoves.generate_legal_moves(self._board)
-
-        # 終局判定
-        searched_gameover = SearchedGameover.search(self._board, legal_moves_for_computer, position_command.searched_clear_targets.clear_targets_list)
-        #print(f"[Coliceum > go_you (debug 231)] {searched_gameover.dump()}")
-
-        # 決着が付いていれば、結果表示
-        if self._board.is_gameover(searched_gameover):
-            Views.print_settled_for_coliceum(self._board, position_command.searched_clear_targets, searched_gameover)
 
 
     @staticmethod
@@ -337,17 +291,77 @@ class Coliceum():
             return
 
 
+        # DO どちらの先手かは決められるようにした
+        print(f"""\
+
+CHOOSE
+---------
+(1) sente
+(2) gote
+---------
+Do you play sente or gote(1-2)?> """)
+        input_str = input()
+
+        your_turn = None
+
+        if input_str == '1':
+            your_turn = C_BLACK
+
+        else:
+            your_turn = C_WHITE
+
         coliceum.sendline("position startpos")
 
-        # TODO どちらの先手かは決められるようにしたい
 
-        # TODO 終わりを知りたい
+        # DO 手番交互ループ
         while True:
-            # Coliceum said
-            coliceum.go_computer()
 
-            # Colosseum asks
-            coliceum.go_you()
+            # 盤面を最新にする
+            position_command = coliceum.update_board()
+
+            # 盤表示
+            print() # 改行
+            print(BoardViews.stringify_board_header(coliceum.board, position_command.searched_clear_targets))  # １行目表示
+            print(BoardViews.stringify_board_normal(coliceum.board))   # 盤面
+            print() # 改行
+
+            # 盤表示後、間隔を空ける
+            time.sleep(0.7)
+
+            # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
+            if Views.is_one_settled(coliceum.board, position_command.searched_clear_targets):
+                Views.print_clear_targets(position_command.searched_clear_targets)
+                time.sleep(0.7)
+
+            # 現局面の合法手一覧取得
+            #
+            #   ステールメートしているかどうかの判定に使う
+            #
+            legal_moves = SearchLegalMoves.generate_legal_moves(coliceum.board)
+
+            # 終局判定
+            searched_gameover = SearchedGameover.search(coliceum.board, legal_moves, position_command.searched_clear_targets.clear_targets_list)
+            #print(f"[Coliceum > go_you (debug 231)] {searched_gameover.dump()}")
+
+            # 決着が付いていれば、結果表示
+            if coliceum.board.is_gameover(searched_gameover):
+                Views.print_settled_for_coliceum(coliceum.board, position_command.searched_clear_targets, searched_gameover)
+
+                # 手番交互ループから抜ける
+                break
+
+
+            # 現在の手番を取得
+            next_turn = coliceum.board.get_next_turn()
+
+            # 人間のターン
+            if next_turn == your_turn:
+                coliceum.go_you()
+
+            # コンピューターのターン
+            else:
+                coliceum.go_computer()
+
 
         # 思考エンジンを終了させる
         coliceum.sendline("quit")
