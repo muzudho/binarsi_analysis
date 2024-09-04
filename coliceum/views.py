@@ -25,8 +25,9 @@ class Views():
 
 (1) human VS computer
 (2) quit
+(3) selfmatch
 
-please input number(1-2):""")
+please input number(1-3):""")
 
 
     @staticmethod

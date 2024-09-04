@@ -1,7 +1,7 @@
 import pexpect.popen_spawn as psp
 import re
 import time
-from py_binarsi import C_BLACK, C_WHITE, Board, SearchedClearTargets, SearchLegalMoves, SearchedGameover, PositionCommand
+from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand
 from coliceum.views import Views as ColiceumViews
 from views import Views
 from views.board import BoardViews
@@ -98,7 +98,7 @@ class Coliceum():
         # NOTE `.*` では最右マッチしてしまうので、 `.*?` にして最左マッチにする
         self.expect_line("\\[from beginning\\](.*?)", timeout=None)
         position_command_str = f"position{self.group(1)}"
-        print(f"(debug 98) {position_command_str=}")
+        #print(f"(debug 98) {position_command_str=}")
         position_command = PositionCommand.parse_and_update_board(self._board, position_command_str)
 
         return position_command
@@ -187,7 +187,8 @@ class Coliceum():
 `history` - Display the input command list.
 `moves_for_edit` - Display the operation for edit.
 `test_board` - Test to display the new board (under development).
-`inverse 4n` - Displays the inverse operation. The argument must be a move code.""")
+`inverse 4n` - Displays the inverse operation. The argument must be a move code.
+`selfmatch 200` - Selfmatch and its count.""")
 
             # アプリケーション終了
             elif input_str == 'quit':
@@ -247,21 +248,21 @@ class Coliceum():
                     #   code: inverse 4n
                     if cmd[0] == 'inverse':
                         ColiceumViews.print_inverse_move(self._board, input_str)
-
-
-                result = re.match(r"^[0-9]+$", input_str)
-                if result:
-                    input_num = int(input_str)
-
-                    move_code_help = legal_move_code_help_list[input_num - 1]
-                    do_command = f"do {move_code_help.code}" # message
-
+                
                 else:
-                    # FIXME 入力チェック要るか？
-                    do_command = f"do {input_str}"
+                    result = re.match(r"^[0-9]+$", input_str)
+                    if result:
+                        input_num = int(input_str)
 
-                # コマンド入力ループから抜ける
-                break
+                        move_code_help = legal_move_code_help_list[input_num - 1]
+                        do_command = f"do {move_code_help.code}" # message
+
+                    else:
+                        # FIXME 入力チェック要るか？
+                        do_command = f"do {input_str}"
+
+                    # コマンド入力ループから抜ける
+                    break
 
         # Coliceum said
         self.sendline(do_command)
@@ -293,6 +294,135 @@ class Coliceum():
 # Ignored lines
 # -------------
 # {self.messages_until_match}""")
+
+
+    def self_match_once(self, match_count):
+        """自己対局"""
+
+        print(f"{match_count + 1} 局目ここから：")
+
+        # 終局判定を新規作成
+        searched_clear_targets = SearchedClearTargets.make_new_obj()
+        
+        position_command = None
+
+        # 手数ループ。100手も使わない
+        for i in range(1, 100):
+
+            # 盤面を最新にする
+            position_command = self.update_board()
+
+            # 盤表示
+            print() # 改行
+            print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
+            print(BoardViews.stringify_board_normal(self._board))   # 盤面
+            print() # 改行
+
+            # １手探す
+            self.sendline("go")
+
+            # Engine said
+            self.expect_line(r"bestmove (\w+)", timeout=None)
+            move_u = self.group(1)
+
+            if move_u == 'resign':
+                # 手数ループから抜ける
+                break
+
+            else:
+                # １手指す
+                self.sendline(f"do {move_u}")
+                self.expect_line(r"do ok", timeout=None)
+
+
+        print(f"{match_count + 1} 局目ここまで")
+
+        return position_command.searched_clear_targets
+
+
+    def self_match(self, input_str):
+        """自己対局
+            code: selfmatch
+        
+        Parameters
+        ----------
+        input_str : str
+            コマンド文字列
+        """
+        print("自己対局　ここから：")
+
+        # 連続対局回数
+        tokens = input_str.split(' ')
+        if len(tokens) < 2:
+            max_match_count = 1
+        else:
+            max_match_count = int(tokens[1])
+        
+        black_bingo_win_count = 0
+        black_point_win_count_when_simultaneous_clearing = 0
+        black_point_win_count_when_stalemate = 0
+        white_bingo_win_count = 0
+        white_point_win_count_when_simultaneous_clearing = 0
+        white_point_win_count_when_stalemate = 0
+
+        # 連続対局
+        for i in range(0, max_match_count):
+
+            self.sendline("usinewgame")
+            self.sendline('position startpos')
+
+            # 自己対局
+            # クリアーターゲット更新
+            searched_clear_targets = self.self_match_once(match_count=i)
+
+            # 終局判定のために、しかたなく終局後に合法手生成
+            legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+
+            # 終局判定
+            searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
+
+            if searched_gameover.is_black_win:
+                if searched_gameover.black_count_with_komi == -1:
+                    black_bingo_win_count += 1
+                elif searched_gameover.is_simultaneous_clearing:
+                    black_point_win_count_when_simultaneous_clearing += 1
+                else:
+                    black_point_win_count_when_stalemate += 1
+
+            elif searched_gameover.is_white_win:
+                if searched_gameover.white_count_with_komi == -1:
+                    white_bingo_win_count += 1
+                elif searched_gameover.is_simultaneous_clearing:
+                    white_point_win_count_when_simultaneous_clearing += 1
+                else:
+                    white_point_win_count_when_stalemate += 1
+            
+            else:
+                raise ValueError(f"{searched_gameover.is_black_win=}  {searched_gameover.is_white_win=}")
+
+            if i < max_match_count - 10 and i % 10 == 9:
+                # 対局結果の集計の表示、またはファイルへの上書き
+                BoardViews.print_result_summary(
+                    i,
+                    black_bingo_win_count,
+                    black_point_win_count_when_simultaneous_clearing,
+                    black_point_win_count_when_stalemate,
+                    white_bingo_win_count,
+                    white_point_win_count_when_simultaneous_clearing,
+                    white_point_win_count_when_stalemate)
+
+
+        # 対局結果の集計の表示、またはファイルへの上書き
+        BoardViews.print_result_summary(
+            max_match_count - 1,
+            black_bingo_win_count,
+            black_point_win_count_when_simultaneous_clearing,
+            black_point_win_count_when_stalemate,
+            white_bingo_win_count,
+            white_point_win_count_when_simultaneous_clearing,
+            white_point_win_count_when_stalemate)
+
+        print("自己対局　ここまで")
 
 
     @staticmethod
@@ -353,7 +483,24 @@ class Coliceum():
 
                 # タイトル～対局終了までのループから抜ける
                 break
-                #return
+
+            # セルフマッチ
+            elif input_str == '3':
+                # 自己対局
+                #   code: selfmatch
+                #   code: selfmatch 100
+                #
+                #   FIXME position startpos まで打ってから selfmatch を打つことを想定。もっと簡単にできないか？
+                print("how many games(1-)?")
+
+                rounds = input()
+
+                coliceum.self_match(f"selfmatch {rounds}")
+
+                print("please push any key:")
+                input()
+
+                continue
 
 
             # DO どちらの先手かは決められるようにした
@@ -374,6 +521,7 @@ Do you play sente or gote(1-2)?> """)
 
             else:
                 your_turn = C_WHITE
+
 
             coliceum.sendline("position startpos")
 
