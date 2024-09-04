@@ -183,7 +183,8 @@ class Coliceum():
 `clear_targets` - Display the clear targets.
 `legal_moves` - Display the legal moves.
 `distinct_legal_moves` - Display the distinct legal moves.
-`history` - Display the input command list.""")
+`history` - Display the input command list.
+`moves_for_edit` - Display the operation for edit.""")
 
             # アプリケーション終了
             elif input_str == 'quit':
@@ -216,6 +217,10 @@ class Coliceum():
             elif input_str == 'distinct_legal_moves':
                 print() # 改行
                 Views.print_distinct_legal_move_list(self._board)
+
+            # 編集用の操作一覧
+            elif input_str == 'moves_for_edit':
+                ColiceumViews.print_moves_for_edit(self._board)
 
             # 操作履歴表示
             elif input_str == 'history':

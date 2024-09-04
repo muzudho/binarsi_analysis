@@ -98,11 +98,6 @@ class UsiEngine():
             elif cmd[0] == 'test_board':
                 self.print_test_board()
 
-            # 編集用の手一覧表示（合法手除く）
-            #   code: moves_for_edit
-            elif cmd[0] == 'moves_for_edit':
-                self.print_moves_for_edit()
-
             # 自己対局
             #   code: selfmatch
             #   code: selfmatch 100
@@ -536,21 +531,6 @@ class UsiEngine():
             TODO あとで消す
         """
         print(BoardViews.stringify_board_hard(self._board))   # 盤面
-
-
-    def print_moves_for_edit(self):
-        """編集用の手一覧表示（合法手除く）
-            code: moves_for_edit
-        """
-        print("編集用の手一覧表示（合法手除く）　ここから：")
-
-        legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
-
-        for i in range(0, len(legal_moves.items_for_edit)):
-            move = legal_moves.items_for_edit[i]
-            print(f"    ({i + 1:2}) move_for_edit:{move.to_code()}")
-
-        print("編集用の手一覧表示（合法手除く）　ここまで：")
 
 
     def self_match_once(self, match_count):

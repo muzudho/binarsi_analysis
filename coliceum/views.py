@@ -1,3 +1,6 @@
+from py_binarsi import SearchLegalMoves
+
+
 class Views():
     """コロシアム用画面"""
 
@@ -19,7 +22,7 @@ class Views():
 <                                                                   >
  v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v
 
-(1) VS computer
+(1) human VS computer
 (2) quit
 
 please input number(1-2):""")
@@ -59,3 +62,19 @@ HISTORY
         print("""\
 -------
 """)
+
+
+    @staticmethod
+    def print_moves_for_edit(board):
+        """編集用の手一覧表示（合法手除く）
+            code: moves_for_edit
+        """
+        print("編集用の手一覧表示（合法手除く）　ここから：")
+
+        legal_moves = SearchLegalMoves.generate_legal_moves(board)
+
+        for i in range(0, len(legal_moves.items_for_edit)):
+            move = legal_moves.items_for_edit[i]
+            print(f"    ({i + 1:2}) move_for_edit:{move.to_code()}")
+
+        print("編集用の手一覧表示（合法手除く）　ここまで：")
