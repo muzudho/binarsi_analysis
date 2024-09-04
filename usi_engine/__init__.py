@@ -93,13 +93,6 @@ class UsiEngine():
             elif cmd[0] == 'sfen':
                 BoardViews.print_sfen(self._board, searched_clear_targets)
 
-            # プレイ
-            #   code: play 4n
-            elif cmd[0] == 'play':
-                searched_clear_targets = self.play(input_str, searched_clear_targets)
-                if searched_clear_targets is None:
-                    raise ValueError("searched_clear_targets is None")
-
             # デバッグ情報表示
             #   code: dump
             elif cmd[0] == 'dump':
@@ -457,121 +450,6 @@ class UsiEngine():
         print("") # 空行
 
         return searched_clear_targets
-
-
-    def play(self, input_str, searched_clear_targets):
-        """一手入力すると、相手番をコンピュータが指してくれる
-        
-        Returns
-        -------
-        searched_clear_targets : SearchedClearTargets
-            クリアーターゲット
-        """
-
-        # 待ち時間（秒）を置く。ターミナルの行が詰まって見づらいので、イラストでも挟む
-        if self._board.get_next_turn() == C_BLACK:
-            Views.print_1()
-        else:
-            Views.print_0()
-
-        time.sleep(0.7)
-
-        # DO あなたが一手指す
-        move_u = input_str.split(' ')[1]
-
-        if not Move.validate_code(move_u, no_panic=True):
-            print("illegal move")
-            return searched_clear_targets
-
-        self._board.push_usi(move_u)
-
-        # コンピューター側の合法手一覧
-        legal_moves_for_computer = SearchLegalMoves.generate_legal_moves(self._board)
-
-        # 一手詰めの手を返す。無ければナンを返す
-        mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
-            board=self._board,
-            move_list=legal_moves_for_computer.distinct_items,
-            searched_clear_targets=searched_clear_targets)
-
-        # コンピューター側のためのクリアーターゲット新規作成
-        searched_clear_targets_for_computer = SearchedClearTargets.create_new_clear_targets(
-            board=self._board,
-            # 引き継ぎ
-            clear_targets_list=searched_clear_targets.clear_targets_list)
-
-        # コンピューター側のための終局判定
-        searched_gameover_for_computer = SearchedGameover.search(self._board, legal_moves_for_computer, searched_clear_targets_for_computer.clear_targets_list)
-
-        # 現在の盤表示
-        BoardViews.print_board(self._board, searched_clear_targets_for_computer)
-        BoardViews.print_sfen(self._board, searched_clear_targets_for_computer, from_present=True)
-        print("") # 空行
-
-        # 今１つでもクリアーしたものがあれば、クリアー目標表示
-        if Views.is_one_settled(self._board, searched_clear_targets_for_computer):
-            Views.print_clear_targets(searched_clear_targets_for_computer)
-            time.sleep(0.7)
-
-        if self._board.is_gameover(searched_gameover_for_computer):
-            Views.print_settled_for_play_command(self._board, searched_clear_targets_for_computer, searched_gameover_for_computer)
-            return searched_clear_targets_for_computer
-
-        # 待ち時間（秒）を置く。コンピュータの思考時間を演出。ターミナルの行が詰まって見づらいので、イラストでも挟む
-        time.sleep(0.7)
-        Views.print_comp()
-        time.sleep(0.7)
-
-        # DO コンピュータが次の一手を算出する
-        (best_move, reason) = UsiEngine.sub_go(self._board, legal_moves_for_computer, mate_move_in_1ply, searched_clear_targets_for_computer, searched_gameover_for_computer)
-
-        if best_move is None:
-            # ターミナルが見づらいので、空行を挟む
-            Views.print_win()
-            return searched_clear_targets_for_computer
-        
-        # ターミナルが見づらいので、イラストを挟む
-        if self._board.get_next_turn() == C_BLACK:
-            Views.print_1()
-        else:
-            Views.print_0()
-
-        time.sleep(0.7)
-
-        # DO コンピュータが一手指す
-        self._board.push_usi(best_move.to_code())
-
-        # あなた側の合法手一覧
-        legal_moves_for_you = SearchLegalMoves.generate_legal_moves(self._board)
-
-        # あなた側のためのクリアーターゲット新規作成
-        searched_clear_targets_for_you = SearchedClearTargets.create_new_clear_targets(
-            board=self._board,
-            # 引き継ぎ
-            clear_targets_list=searched_clear_targets_for_computer.clear_targets_list)
-
-        # あなた側のための終局判定
-        searched_gameover_for_you = SearchedGameover.search(self._board, legal_moves_for_you, searched_clear_targets_for_you.clear_targets_list)
-
-        # 現在の盤表示
-        BoardViews.print_board(self._board, searched_clear_targets_for_you)
-        BoardViews.print_sfen(self._board, searched_clear_targets_for_you, from_present=True)
-        print("") # 空行
-
-        # 今１つでもクリアーしたものがあれば、クリアー目標表示
-        if Views.is_one_settled(self._board, searched_clear_targets_for_you):
-            Views.print_clear_targets(searched_clear_targets_for_you)
-            time.sleep(0.7)
-
-        if self._board.is_gameover(searched_gameover_for_you):
-            Views.print_settled_for_play_command(self._board, searched_clear_targets_for_you, searched_gameover_for_you)
-            return searched_clear_targets_for_you
-
-        # ターミナルが見づらいので、イラストを挟む
-        time.sleep(0.7)
-        Views.print_you()
-
-        return searched_clear_targets_for_you
 
 
     def dump(self):

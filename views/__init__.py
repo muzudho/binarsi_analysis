@@ -138,34 +138,7 @@ class Views():
 
 
     @staticmethod
-    def print_settled_for_play_command(board, searched_clear_targets, searched_gameover):
-        """決着の表示、play コマンド用"""
-        current_turn = Colors.opponent(board.get_next_turn())
-        
-        if searched_gameover.is_black_win:
-            if current_turn == C_BLACK:
-                Views.print_you()
-                Views.print_win()
-            
-            elif current_turn == C_WHITE:
-                Views.print_you()
-                Views.print_lose()
-
-        elif searched_gameover.is_white_win:
-            if current_turn == C_BLACK:
-                Views.print_you()
-                Views.print_lose()
-            
-            elif current_turn == C_WHITE:
-                Views.print_you()
-                Views.print_win()
-        
-        else:
-            raise ValueError(f"undefined gameover. {searched_gameover.reason=}")
-
-
-    @staticmethod
-    def print_settled_for_coliceum(board, searched_clear_targets, searched_gameover, your_turn, is_human_vs_human):
+    def print_settled(board, searched_clear_targets, searched_gameover, your_turn, is_human_vs_human):
         """決着の表示、コロシアム用
         
         - 三本勝負で決着したのなら、特に説明は要らない
@@ -488,7 +461,7 @@ DISTINCT LEGAL MOVES
                 num_str = f'{j+1:8}|{i+1:3}'
                 j += 1
 
-            print(f"|{num_str}| play {move.to_code():<3}{same_move_str}")
+            print(f"|{num_str}| do {move.to_code():<3}{same_move_str}")
 
         print("""\
 +--------+---+

@@ -288,14 +288,26 @@ class Coliceum():
                         input_num = int(input_str)
 
                         move_code_help = legal_move_code_help_list[input_num - 1]
-                        do_command = f"do {move_code_help.code}" # message
+
+                        move_u = move_code_help.code
 
                     else:
-                        # FIXME 入力チェック要るか？
-                        do_command = f"do {input_str}"
+                        move_u = input_str
+
+
+                    # 入力チェック
+                    if not Move.validate_code(move_u, no_panic=True):
+                        print(f"illegal move: `{move_u}`")
+
+                        # 盤表示後、間隔を空ける
+                        time.sleep(0.7)
+
+                        # コマンドループをやり直し
+                        continue
+
 
                     # Coliceum said
-                    self.sendline(do_command)
+                    self.sendline(f"do {move_u}")
                     # do コマンドすると、 `do ok` が出て終わる
                     self.expect_line("do ok", timeout=None)
 
@@ -600,7 +612,7 @@ Do you play sente or gote(1-2)?> """)
 
                 # 決着が付いていれば、結果表示
                 if coliceum.board.is_gameover(searched_gameover):
-                    Views.print_settled_for_coliceum(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn, is_human_vs_human)
+                    Views.print_settled(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn, is_human_vs_human)
 
                     # 結果表示後、間隔を空ける
                     time.sleep(0.7)

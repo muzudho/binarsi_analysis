@@ -403,25 +403,25 @@ DISTINCT LEGAL MOVES
 +--------+---+
 |Distinct|All| Command
 +--------+---+
-|        |  1| play 1a  | same 1n
-|       1|  2| play 1n
-|        |  3| play 1na | same 1o
-|        |  4| play 1no | same 1n
-|       2|  5| play 1o
-|        |  6| play 1xn | same 1n
-|        |  7| play 1xo | same 1o
-|       3|  8| play 4nL
-|       4|  9| play 5a
-|       5| 10| play 5n
-|        | 11| play 5na | same 5n
-|        | 12| play 5no | same 5n
-|        | 13| play 5o  | same 5a
-|        | 14| play 5xn | same 5n
-|        | 15| play 5xo | same 5a
-|       6| 16| play bn
-|       7| 17| play cs1
-|       8| 18| play cs2
-|       9| 19| play dn
+|        |  1| do 1a  | same 1n
+|       1|  2| do 1n
+|        |  3| do 1na | same 1o
+|        |  4| do 1no | same 1n
+|       2|  5| do 1o
+|        |  6| do 1xn | same 1n
+|        |  7| do 1xo | same 1o
+|       3|  8| do 4nL
+|       4|  9| do 5a
+|       5| 10| do 5n
+|        | 11| do 5na | same 5n
+|        | 12| do 5no | same 5n
+|        | 13| do 5o  | same 5a
+|        | 14| do 5xn | same 5n
+|        | 15| do 5xo | same 5a
+|       6| 16| do bn
+|       7| 17| do cs1
+|       8| 18| do cs2
+|       9| 19| do dn
 +--------+---+
 ```
 
