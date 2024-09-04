@@ -1101,7 +1101,7 @@ class Sfen():
 
             # [盤面]
 
-            # usinewgame コマンドの直後に selfmatch をするとこの例外になる。暫定で position startpos まで打鍵してほしい
+            # position startpos を入力する前に呼び出すと、ここでエラー
             if self._squares is None:
                 raise ValueError(f"{self._squares=}")
 
@@ -1970,15 +1970,7 @@ class Board():
         (input_way_1, input_way_2, error_reason) = self.get_input_ways_by_binary_operation(move.way)
 
         if input_way_1.is_empty or input_way_2.is_empty:
-
-            # DEBUG 盤面出力
-            print(f"[binary_operate_on_way] error  {error_reason=}  {move.to_code()=}  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {self._way_locks=}")
-            # １行目表示
-            print(BoardViews.stringify_board_header(self))
-            # 盤面
-            print(BoardViews.stringify_board_normal(self))
-
-            raise ValueError(f"out of bounds  {move.to_code()=}  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {self._way_locks=}")
+            raise ValueError(f"out of bounds.  {error_reason=}  {move.to_code()=}  {input_way_1.to_code()=}  {input_way_2.to_code()=}  {self._way_locks=}")
 
 
         # 対象の路に石が置いてあれば上書きフラグをOn、そうでなければOff
@@ -3703,3 +3695,36 @@ class PositionCommand():
             board.push_usi(move_u)
 
         return position_command
+
+
+class SfenHelper():
+    """SFEN ヘルパー"""
+
+
+    @staticmethod
+    def stringify_sfen(board, searched_clear_targets, from_present=False):
+        """SFEN 文字列を作成
+
+        Parameters
+        ----------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
+        from_present : bool
+            現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
+        """
+
+        line_list = []
+
+        line_list.append(f"[from beginning] {board.as_sfen(searched_clear_targets).to_code()}")
+
+        stone_before_change_str = board.as_stones_before_change()
+        if stone_before_change_str != '':
+            line_list.append(f"                 stones_before_change {stone_before_change_str}")
+
+        line_list.append(f"[from present]   {board.as_sfen(searched_clear_targets, from_present=True).to_code()}")
+
+        stone_before_change_str = board.as_stones_before_change(from_present=True)
+        if stone_before_change_str != '':
+            line_list.append(f"                 stones_before_change {stone_before_change_str}")
+
+        return '\n'.join(line_list)

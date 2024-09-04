@@ -1,9 +1,8 @@
 import datetime
 import random
 import time
-from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand
+from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand, SfenHelper
 from views import Views
-from views.board import BoardViews
 
 
 # 思考エンジンの名前が書かれたテキストファイル
@@ -83,15 +82,10 @@ class UsiEngine():
                 if searched_clear_targets is None:
                     raise ValueError("searched_clear_targets is None")
 
-            # 盤表示
-            #   code: board
-            elif cmd[0] == 'board':
-                BoardViews.print_board(self._board, searched_clear_targets)
-
             # SFENを出力
             #   code: sfen
             elif cmd[0] == 'sfen':
-                BoardViews.print_sfen(self._board, searched_clear_targets)
+                print(SfenHelper.stringify_sfen(self._board, searched_clear_targets))
 
             # デバッグ情報表示
             #   code: dump
@@ -445,8 +439,8 @@ class UsiEngine():
         searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
-        BoardViews.print_board(self._board, searched_clear_targets)
-        BoardViews.print_sfen(self._board, searched_clear_targets, from_present=True)
+        #SfenHelper.print_board(self._board, searched_clear_targets)
+        print(SfenHelper.stringify_sfen(self._board, searched_clear_targets, from_present=True))
         print("") # 空行
 
         return searched_clear_targets
@@ -466,7 +460,7 @@ class UsiEngine():
         self.isready()
         self.usinewgame()
         searched_clear_targets = self.position('position sfen 7/7/2o4/7/7/7 w - - 1 moves 4n')
-        BoardViews.print_board(self._board, searched_clear_targets)
+        #SfenHelper.print_board(self._board, searched_clear_targets)
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 

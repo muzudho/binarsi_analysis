@@ -1,10 +1,9 @@
 import pexpect.popen_spawn as psp
 import re
 import time
-from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand
+from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand, SfenHelper
 from coliceum.views import Views as ColiceumViews
 from views import Views
-from views.board import BoardViews
 
 
 class Coliceum():
@@ -226,8 +225,8 @@ class Coliceum():
                 position_command = self.update_board()
 
                 print() # 改行
-                print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
-                print(BoardViews.stringify_board_normal(self._board))   # 盤面
+                print(ColiceumViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
+                print(ColiceumViews.stringify_board_normal(self._board))   # 盤面
                 print() # 改行
 
             # SFEN 表示
@@ -236,7 +235,7 @@ class Coliceum():
                 # 盤を更新する
                 position_command = self.update_board()
                 print() # 改行
-                BoardViews.print_sfen(self._board, position_command.searched_clear_targets)
+                print(SfenHelper.stringify_sfen(self._board, position_command.searched_clear_targets))
 
             # TODO デバッグ用の盤表示。まだできてない
             elif input_str == 'test_board':
@@ -360,8 +359,8 @@ class Coliceum():
 
             # 盤表示
             print() # 改行
-            print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
-            print(BoardViews.stringify_board_normal(self._board))   # 盤面
+            print(ColiceumViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
+            print(ColiceumViews.stringify_board_normal(self._board))   # 盤面
             print() # 改行
 
             # １手探す
@@ -448,7 +447,7 @@ class Coliceum():
 
             if i < max_match_count - 10 and i % 10 == 9:
                 # 対局結果の集計の表示、またはファイルへの上書き
-                BoardViews.print_result_summary(
+                ColiceumViews.print_result_summary(
                     i,
                     black_bingo_win_count,
                     black_point_win_count_when_simultaneous_clearing,
@@ -459,7 +458,7 @@ class Coliceum():
 
 
         # 対局結果の集計の表示、またはファイルへの上書き
-        BoardViews.print_result_summary(
+        ColiceumViews.print_result_summary(
             max_match_count - 1,
             black_bingo_win_count,
             black_point_win_count_when_simultaneous_clearing,
@@ -585,8 +584,8 @@ Do you play sente or gote(1-2)?> """)
 
                 # 盤表示
                 print() # 改行
-                print(BoardViews.stringify_board_header(coliceum.board, position_command.searched_clear_targets))  # １行目表示
-                print(BoardViews.stringify_board_normal(coliceum.board))   # 盤面
+                print(ColiceumViews.stringify_board_header(coliceum.board, position_command.searched_clear_targets))  # １行目表示
+                print(ColiceumViews.stringify_board_normal(coliceum.board))   # 盤面
                 print() # 改行
 
                 # 盤表示後、間隔を空ける
