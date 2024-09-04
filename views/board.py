@@ -1,4 +1,4 @@
-from py_binarsi import C_BLACK, C_WHITE, BOARD_AREA, Colors, Square
+from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_BLACK, C_WHITE, BOARD_AREA, Colors, Square
 
 
 class BoardViews():
@@ -189,3 +189,97 @@ class BoardViews():
             print() # 改行
 
         print("罫線も引ける盤面　ここまで：")
+
+
+    @staticmethod
+    def print_board(board, searched_clear_targets):
+        """盤表示"""
+        print(BoardViews.stringify_board_header(board, searched_clear_targets))  # １行目表示
+        print(BoardViews.stringify_board_normal(board))   # 盤面
+
+
+    @staticmethod
+    def print_sfen(board, searched_clear_targets, from_present=False):
+        """SFEN を出力
+
+        Parameters
+        ----------
+        searched_clear_targets : SearchedClearTargets
+            クリアーターゲット
+        from_present : bool
+            現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
+        """
+        print(f"[from beginning] {board.as_sfen(searched_clear_targets).to_code()}")
+
+        stone_before_change_str = board.as_stones_before_change()
+        if stone_before_change_str != '':
+            print(f"                 stones_before_change {stone_before_change_str}")
+
+        print(f"[from present]   {board.as_sfen(searched_clear_targets, from_present=True).to_code()}")
+
+        stone_before_change_str = board.as_stones_before_change(from_present=True)
+        if stone_before_change_str != '':
+            print(f"                 stones_before_change {stone_before_change_str}")
+
+
+    @staticmethod
+    def print_result_summary(
+            i,
+            black_bingo_win_count,
+            black_point_win_count_when_simultaneous_clearing,
+            black_point_win_count_when_stalemate,
+            white_bingo_win_count,
+            white_point_win_count_when_simultaneous_clearing,
+            white_point_win_count_when_stalemate):
+        """対局結果の集計の表示、またはファイルへの上書き"""
+
+        global BLACK_KOMI, WHITE_KOMI
+
+        bingo_total = black_bingo_win_count + white_bingo_win_count
+        point_total_when_simultaneous_clearing = black_point_win_count_when_simultaneous_clearing + white_point_win_count_when_simultaneous_clearing
+        point_total_when_stalemate = black_point_win_count_when_stalemate + white_point_win_count_when_stalemate
+        total = bingo_total + point_total_when_simultaneous_clearing + point_total_when_stalemate
+        black_total = black_bingo_win_count + black_point_win_count_when_simultaneous_clearing + black_point_win_count_when_stalemate
+        white_total = white_bingo_win_count + white_point_win_count_when_simultaneous_clearing + white_point_win_count_when_stalemate
+
+        with open('result_summary.log', 'w', encoding='utf8') as f:
+            text = f"""\
+{i+1} 対局集計
+
+    黒コミ：{BLACK_KOMI:2.1f}
+    白コミ：{WHITE_KOMI:2.1f}
+
+    三本勝負
+    ーーーーーーーー
+    黒　　　　勝ち数： {black_bingo_win_count:6}　　　率： {black_bingo_win_count/total:3.3f}
+    白　　　　勝ち数： {white_bingo_win_count:6}　　　率： {white_bingo_win_count/total:3.3f}
+    ーーーーーーーー
+
+    点数計算（同着）
+    ーーーーーーーー
+    黒　　　　勝ち数： {black_point_win_count_when_simultaneous_clearing:6}　　　率： {black_point_win_count_when_simultaneous_clearing/total:3.3f}
+    白　　　　勝ち数： {white_point_win_count_when_simultaneous_clearing:6}　　　率： {white_point_win_count_when_simultaneous_clearing/total:3.3f}
+    ーーーーーーーー
+
+    点数計算（満局）
+    ーーーーーーーー
+    黒　　　　勝ち数： {black_point_win_count_when_stalemate:6}　　　率： {black_point_win_count_when_stalemate/total:3.3f}
+    白　　　　勝ち数： {white_point_win_count_when_stalemate:6}　　　率： {white_point_win_count_when_stalemate/total:3.3f}
+    ーーーーーーーー
+
+    決着方法比較
+    ーーーーーーーー
+    三本勝負　　　　： {bingo_total:6}　　　率： {bingo_total/total:3.3f}
+    点数計算（同着）： {point_total_when_simultaneous_clearing:6}　　　率： {point_total_when_simultaneous_clearing/total:3.3f}
+    点数計算（満局）： {point_total_when_stalemate:6}　　　率： {point_total_when_stalemate/total:3.3f}
+    ーーーーーーーー
+
+    先後比較
+    ーーーーーーーー
+    黒　　　　勝ち数： {black_total:6}　　　率： {black_total/total:3.3f}
+    白　　　　勝ち数： {white_total:6}　　　率： {white_total/total:3.3f}
+    ーーーーーーーー
+"""
+
+            f.write(text)
+            print(text, flush=True)

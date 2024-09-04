@@ -86,7 +86,7 @@ class UsiEngine():
             # 盤表示
             #   code: board
             elif cmd[0] == 'board':
-                self.print_board(searched_clear_targets)
+                BoardViews.print_board(self._board, searched_clear_targets)
 
             # 自己対局
             #   code: selfmatch
@@ -99,7 +99,7 @@ class UsiEngine():
             # SFENを出力
             #   code: sfen
             elif cmd[0] == 'sfen':
-                self.print_sfen(searched_clear_targets)
+                BoardViews.print_sfen(self._board, searched_clear_targets)
 
             # プレイ
             #   code: play 4n
@@ -162,7 +162,8 @@ class UsiEngine():
         return position_command.searched_clear_targets
 
 
-    def sub_go(self, legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover):
+    @staticmethod
+    def sub_go(board, legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover):
         """思考開始～最善手返却
         
         Parameters
@@ -184,7 +185,7 @@ class UsiEngine():
             説明
         """
 
-        if self._board.is_gameover(searched_gameover):
+        if board.is_gameover(searched_gameover):
             """投了局面時"""
 
             # 投了
@@ -233,10 +234,10 @@ class UsiEngine():
             for move in move_list:
 
                 # DO 対象となる路の石（または空欄）の長さを測る
-                way_segment = self._board.get_stone_segment_on_way(move.way)
+                way_segment = board.get_stone_segment_on_way(move.way)
 
                 # DO （１手指す前の）対象となる路の石（または空欄）の並びを取得
-                current_colors = self._board.get_colors_on_way(move.way, way_segment)
+                current_colors = board.get_colors_on_way(move.way, way_segment)
 
                 # DO （１手指す前の）対象路の色を数える
                 current_color_count = {
@@ -252,13 +253,13 @@ class UsiEngine():
                 #print(f"[sub_go]  {move.to_code()=}  {current_colors=}  {current_color_count=}")
 
                 # DO １手指す
-                self._board.push_usi(move.to_code())
+                board.push_usi(move.to_code())
 
                 # 指し手生成中に合法手生成したら処理速度が激減するので、やってはいけない
                 # 指し手生成中にクリアーターゲット判定をしたら処理速度が激減するので、やってはいけない
 
                 # DO （１手指した後の）対象となる路の石（または空欄）の並びを取得
-                next_colors = self._board.get_colors_on_way(move.way, way_segment)
+                next_colors = board.get_colors_on_way(move.way, way_segment)
 
                 # DO （１手指した後の）対象路の色を数える
                 next_color_count = {
@@ -274,7 +275,7 @@ class UsiEngine():
                 #print(f"[sub_go]  {move.to_code()=}  {next_colors=}  {next_color_count=}")
 
                 # DO １手戻す
-                self._board.pop()
+                board.pop()
 
                 # DO 手番の石の差分から、相手番の石の差分を引く。これを［利］と呼ぶとする
 
@@ -295,7 +296,7 @@ class UsiEngine():
                 # DEBUG
                 #print(f"[sub_go]  {move.to_code()=}  {self._board.get_next_turn()=}")
 
-                if self._board.get_next_turn() == C_BLACK:
+                if board.get_next_turn() == C_BLACK:
                     profit = difference_color_count[C_BLACK] - difference_color_count[C_WHITE]
 
                 else:
@@ -357,7 +358,7 @@ class UsiEngine():
         searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
         # 次の１手取得
-        (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
+        (best_move, reason) = UsiEngine.sub_go(self._board, legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
 
         if reason == 'resign':
             # 投了
@@ -459,22 +460,15 @@ class UsiEngine():
         searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
         # 現在の盤表示
-        self.print_board(searched_clear_targets)
-        self.print_sfen(searched_clear_targets, from_present=True)
+        BoardViews.print_board(self._board, searched_clear_targets)
+        BoardViews.print_sfen(self._board, searched_clear_targets, from_present=True)
         print("") # 空行
 
         return searched_clear_targets
 
 
-    def print_board(self, searched_clear_targets):
-        """盤表示
-            code: board
-        """
-        print(BoardViews.stringify_board_header(self._board, searched_clear_targets))  # １行目表示
-        print(BoardViews.stringify_board_normal(self._board))   # 盤面
-
-
-    def self_match_once(self, match_count):
+    @staticmethod
+    def self_match_once(board, match_count):
         """自己対局"""
 
         print(f"{match_count + 1} 局目ここから：")
@@ -485,105 +479,42 @@ class UsiEngine():
         # 100手も使わない
         for i in range(1, 100):
 
-            legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
+            legal_moves = SearchLegalMoves.generate_legal_moves(board)
 
             # 一手詰めの手を返す。無ければナンを返す
             mate_move_in_1ply = SearchMateMoveIn1Play.find_mate_move_in_1ply(
-                board=self._board,
+                board=board,
                 move_list=legal_moves.distinct_items,
                 searched_clear_targets=searched_clear_targets)
 
             # クリアーターゲット新規作成
             searched_clear_targets = SearchedClearTargets.create_new_clear_targets(
-                board=self._board,
+                board=board,
                 # 引き継ぎ
                 clear_targets_list=searched_clear_targets.clear_targets_list)
 
             # 終局判定
-            searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
+            searched_gameover = SearchedGameover.search(board, legal_moves, searched_clear_targets.clear_targets_list)
 
             # 現在の盤表示
-            self.print_board(searched_clear_targets)
-            self.print_sfen(searched_clear_targets, from_present=True)
+            BoardViews.print_board(board, searched_clear_targets)
+            BoardViews.print_sfen(board, searched_clear_targets, from_present=True)
             print("") # 空行
 
-            if self._board.is_gameover(searched_gameover):
+            if board.is_gameover(searched_gameover):
                 print(f"# gameover  {searched_gameover.reason=}  {searched_clear_targets.clear_targets_list=}")
                 break
 
             # １つ選ぶ
-            (best_move, reason) = self.sub_go(legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
+            (best_move, reason) = UsiEngine.sub_go(board, legal_moves, mate_move_in_1ply, searched_clear_targets, searched_gameover)
 
             # １手指す
-            self._board.push_usi(best_move.to_code())
+            board.push_usi(best_move.to_code())
 
 
         print(f"{match_count + 1} 局目ここまで")
 
         return searched_clear_targets
-
-
-    def _print_result_summary(
-            self,
-            i,
-            black_bingo_win_count,
-            black_point_win_count_when_simultaneous_clearing,
-            black_point_win_count_when_stalemate,
-            white_bingo_win_count,
-            white_point_win_count_when_simultaneous_clearing,
-            white_point_win_count_when_stalemate):
-        """対局結果の集計の表示、またはファイルへの上書き"""
-
-        global BLACK_KOMI, WHITE_KOMI
-
-        bingo_total = black_bingo_win_count + white_bingo_win_count
-        point_total_when_simultaneous_clearing = black_point_win_count_when_simultaneous_clearing + white_point_win_count_when_simultaneous_clearing
-        point_total_when_stalemate = black_point_win_count_when_stalemate + white_point_win_count_when_stalemate
-        total = bingo_total + point_total_when_simultaneous_clearing + point_total_when_stalemate
-        black_total = black_bingo_win_count + black_point_win_count_when_simultaneous_clearing + black_point_win_count_when_stalemate
-        white_total = white_bingo_win_count + white_point_win_count_when_simultaneous_clearing + white_point_win_count_when_stalemate
-
-        with open('result_summary.log', 'w', encoding='utf8') as f:
-            text = f"""\
-{i+1} 対局集計
-
-    黒コミ：{BLACK_KOMI:2.1f}
-    白コミ：{WHITE_KOMI:2.1f}
-
-    三本勝負
-    ーーーーーーーー
-    黒　　　　勝ち数： {black_bingo_win_count:6}　　　率： {black_bingo_win_count/total:3.3f}
-    白　　　　勝ち数： {white_bingo_win_count:6}　　　率： {white_bingo_win_count/total:3.3f}
-    ーーーーーーーー
-
-    点数計算（同着）
-    ーーーーーーーー
-    黒　　　　勝ち数： {black_point_win_count_when_simultaneous_clearing:6}　　　率： {black_point_win_count_when_simultaneous_clearing/total:3.3f}
-    白　　　　勝ち数： {white_point_win_count_when_simultaneous_clearing:6}　　　率： {white_point_win_count_when_simultaneous_clearing/total:3.3f}
-    ーーーーーーーー
-
-    点数計算（満局）
-    ーーーーーーーー
-    黒　　　　勝ち数： {black_point_win_count_when_stalemate:6}　　　率： {black_point_win_count_when_stalemate/total:3.3f}
-    白　　　　勝ち数： {white_point_win_count_when_stalemate:6}　　　率： {white_point_win_count_when_stalemate/total:3.3f}
-    ーーーーーーーー
-
-    決着方法比較
-    ーーーーーーーー
-    三本勝負　　　　： {bingo_total:6}　　　率： {bingo_total/total:3.3f}
-    点数計算（同着）： {point_total_when_simultaneous_clearing:6}　　　率： {point_total_when_simultaneous_clearing/total:3.3f}
-    点数計算（満局）： {point_total_when_stalemate:6}　　　率： {point_total_when_stalemate/total:3.3f}
-    ーーーーーーーー
-
-    先後比較
-    ーーーーーーーー
-    黒　　　　勝ち数： {black_total:6}　　　率： {black_total/total:3.3f}
-    白　　　　勝ち数： {white_total:6}　　　率： {white_total/total:3.3f}
-    ーーーーーーーー
-"""
-
-            f.write(text)
-            print(text, flush=True)
 
 
     def self_match(self, input_str):
@@ -619,7 +550,7 @@ class UsiEngine():
 
             # 自己対局
             # クリアーターゲット更新
-            searched_clear_targets = self.self_match_once(match_count=i)
+            searched_clear_targets = UsiEngine.self_match_once(self._board, match_count=i)
 
             # 終局判定のために、しかたなく終局後に合法手生成
             legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
@@ -648,7 +579,7 @@ class UsiEngine():
 
             if i % 10 == 9:
                 # 対局結果の集計の表示、またはファイルへの上書き
-                self._print_result_summary(
+                BoardViews.print_result_summary(
                     i,
                     black_bingo_win_count,
                     black_point_win_count_when_simultaneous_clearing,
@@ -659,7 +590,7 @@ class UsiEngine():
 
 
         # 対局結果の集計の表示、またはファイルへの上書き
-        self._print_result_summary(
+        BoardViews.print_result_summary(
             max_match_count - 1,
             black_bingo_win_count,
             black_point_win_count_when_simultaneous_clearing,
@@ -669,29 +600,6 @@ class UsiEngine():
             white_point_win_count_when_stalemate)
 
         print("自己対局　ここまで")
-
-
-    def print_sfen(self, searched_clear_targets, from_present=False):
-        """SFEN を出力
-
-        Parameters
-        ----------
-        searched_clear_targets : SearchedClearTargets
-            クリアーターゲット
-        from_present : bool
-            現局面からのSFENにしたいなら真。初期局面からのSFENにしたいなら偽
-        """
-        print(f"[from beginning] {self._board.as_sfen(searched_clear_targets).to_code()}")
-
-        stone_before_change_str = self._board.as_stones_before_change()
-        if stone_before_change_str != '':
-            print(f"                 stones_before_change {stone_before_change_str}")
-
-        print(f"[from present]   {self._board.as_sfen(searched_clear_targets, from_present=True).to_code()}")
-
-        stone_before_change_str = self._board.as_stones_before_change(from_present=True)
-        if stone_before_change_str != '':
-            print(f"                 stones_before_change {stone_before_change_str}")
 
 
     def play(self, input_str, searched_clear_targets):
@@ -739,8 +647,8 @@ class UsiEngine():
         searched_gameover_for_computer = SearchedGameover.search(self._board, legal_moves_for_computer, searched_clear_targets_for_computer.clear_targets_list)
 
         # 現在の盤表示
-        self.print_board(searched_clear_targets_for_computer)
-        self.print_sfen(searched_clear_targets_for_computer, from_present=True)
+        BoardViews.print_board(self._board, searched_clear_targets_for_computer)
+        BoardViews.print_sfen(self._board, searched_clear_targets_for_computer, from_present=True)
         print("") # 空行
 
         # 今１つでもクリアーしたものがあれば、クリアー目標表示
@@ -758,7 +666,7 @@ class UsiEngine():
         time.sleep(0.7)
 
         # DO コンピュータが次の一手を算出する
-        (best_move, reason) = self.sub_go(legal_moves_for_computer, mate_move_in_1ply, searched_clear_targets_for_computer, searched_gameover_for_computer)
+        (best_move, reason) = UsiEngine.sub_go(self._board, legal_moves_for_computer, mate_move_in_1ply, searched_clear_targets_for_computer, searched_gameover_for_computer)
 
         if best_move is None:
             # ターミナルが見づらいので、空行を挟む
@@ -789,8 +697,8 @@ class UsiEngine():
         searched_gameover_for_you = SearchedGameover.search(self._board, legal_moves_for_you, searched_clear_targets_for_you.clear_targets_list)
 
         # 現在の盤表示
-        self.print_board(searched_clear_targets_for_you)
-        self.print_sfen(searched_clear_targets_for_you, from_present=True)
+        BoardViews.print_board(self._board, searched_clear_targets_for_you)
+        BoardViews.print_sfen(self._board, searched_clear_targets_for_you, from_present=True)
         print("") # 空行
 
         # 今１つでもクリアーしたものがあれば、クリアー目標表示
@@ -823,7 +731,7 @@ class UsiEngine():
         self.isready()
         self.usinewgame()
         searched_clear_targets = self.position('position sfen 7/7/2o4/7/7/7 w - - 1 moves 4n')
-        self.print_board(searched_clear_targets)
+        BoardViews.print_board(self._board, searched_clear_targets)
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
