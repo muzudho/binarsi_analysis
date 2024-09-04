@@ -76,11 +76,6 @@ class UsiEngine():
                 if searched_clear_targets is None:
                     raise ValueError("searched_clear_targets is None")
 
-            # 逆操作コードの表示
-            #   code: inverse 4n
-            elif cmd[0] == 'inverse':
-                self.print_inverse_move(input_str)
-
             # 一手戻す
             #   code: undo
             elif cmd[0] == 'undo':
@@ -444,42 +439,6 @@ class UsiEngine():
         print("do ok")
 
         return searched_clear_targets
-
-
-    def print_inverse_move(self, input_str):
-        """逆操作コードの表示
-
-        Parameters
-        ----------
-        input_str : str
-            指し手コード
-            例： "inverse 4n"
-            例： "inverse 3e#0 0"
-        """
-
-        tokens = input_str.split(' ')
-
-        move_u = tokens[1]
-
-        if 2 < len(tokens):
-            stones_before_change = tokens[2]
-        else:
-            stones_before_change = ''
-
-        Move.validate_code(move_u)
-        move = Move.code_to_obj(move_u)
-
-        inverse_move = MoveHelper.inverse_move(
-            board=self._board,
-            move=move,
-            stones_before_change=stones_before_change)
-
-        if inverse_move is None:
-            print(f"[print_inverse_move] 未実装： {inverse_move=}")
-            return
-
-        # 表示
-        print(f"{move_u} --inverse--> {inverse_move.to_code()}")
 
 
     def undo(self, searched_clear_targets):

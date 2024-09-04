@@ -186,7 +186,8 @@ class Coliceum():
 `distinct_legal_moves` - Display the distinct legal moves.
 `history` - Display the input command list.
 `moves_for_edit` - Display the operation for edit.
-`test_board` - Test to display the new board (under development).""")
+`test_board` - Test to display the new board (under development).
+`inverse 4n` - Displays the inverse operation. The argument must be a move code.""")
 
             # アプリケーション終了
             elif input_str == 'quit':
@@ -238,6 +239,16 @@ class Coliceum():
                 ColiceumViews.print_history(self._board)
 
             else:
+
+                cmd = input_str.split(' ')
+
+                if 1 < len(cmd):
+                    # 逆操作コードの表示
+                    #   code: inverse 4n
+                    if cmd[0] == 'inverse':
+                        ColiceumViews.print_inverse_move(self._board, input_str)
+
+
                 result = re.match(r"^[0-9]+$", input_str)
                 if result:
                     input_num = int(input_str)
