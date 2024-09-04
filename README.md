@@ -255,8 +255,8 @@ Output:
 `sfen` - Display the sfen.
 `clear_targets` - Display the clear targets.
 `legal_moves` - Display the legal moves.
-`mate1` - Display the 1 move in mate 1 ply.
 `distinct_legal_moves` - Display the distinct legal moves.
+`mate1` - Display the 1 move in mate 1 ply.
 `history` - Display the input command list.
 `moves_for_edit` - Display the operation for edit.
 `test_board` - Test to display the new board (under development).
@@ -267,6 +267,7 @@ Output:
 ### quit コマンド
 
 コロシアムを終了します  
+
 
 ### board コマンド
 
@@ -319,6 +320,7 @@ f | . . . . . . . |
 
 👆　上図 `*` の場所は **d段（だん）**（d rank）、または **d路（ろ）**（d way）と呼びます  
 
+
 ### sfen コマンド
 
 Output Example 1:  
@@ -348,33 +350,108 @@ Output Example 2:
 
 TODO board コマンド  
 
+
 ### clear_targets コマンド
 
-TODO clear_targets コマンド  
+Output:  
+
+```
+CLEAR TARGETS
+-------------
+
+     [b3]           [b4]           [b5]           [w3]           [w4]           [w5]
++-----------+  +-----------+  +-----------+  +-----------+  +-----------+  +-----------+
+| . . . . . |  | 1 . . . . |  | . . 1 . . |  | . . . . . |  | 0 . . . . |  | . . . . . |
+| . . . . . |  | . 1 . . . |  | . . 1 . . |  | . . 0 . . |  | . 0 . . . |  | . . . . . |
+| . 1 1 1 . |  | . . 1 . . |  | . . 1 . . |  | . . 0 . . |  | . . 0 . . |  | 0 0 0 0 0 |
+| . . . . . |  | . . . 1 . |  | . . 1 . . |  | . . 0 . . |  | . . . 0 . |  | . . . . . |
+| . . . . . |  | . . . . . |  | . . 1 . . |  | . . . . . |  | . . . . . |  | . . . . . |
++-----------+  +-----------+  +-----------+  +-----------+  +-----------+  +-----------+
+
+    WANTED         WANTED         WANTED         WANTED         WANTED         WANTED
+-------------
+```
+
+👆 クリアー目標の一覧が表示されます  
+
 
 ### legal_moves コマンド
 
-TODO legal_moves コマンド  
+```plaintext
+LEGAL MOVES
+-----------
+
++--+----+------------------------------------+
+|No|Code|Description                         |
++--+----+------------------------------------+--+----+------------------------------------+--+----+------------------------------------+
+| 1|2n  | 2-file <-        NOT  3-file       | 3|bn  | b-rank <-        NOT  c-rank       |  |    |                                    |
+| 2|4n  | 4-file <-        NOT  3-file       | 4|dn  | d-rank <-        NOT  c-rank       |  |    |                                    |
++--+----+------------------------------------+--+----+------------------------------------+--+----+------------------------------------+
+```
+
+👆 合法手の一覧が表示されます  
+
+
+### distinct_legal_moves コマンド
+
+Output:  
+
+```
+DISTINCT LEGAL MOVES
+--------------------
+
++--------+---+
+|Distinct|All| Command
++--------+---+
+|        |  1| play 1a  | same 1n
+|       1|  2| play 1n
+|        |  3| play 1na | same 1o
+|        |  4| play 1no | same 1n
+|       2|  5| play 1o
+|        |  6| play 1xn | same 1n
+|        |  7| play 1xo | same 1o
+|       3|  8| play 4nL
+|       4|  9| play 5a
+|       5| 10| play 5n
+|        | 11| play 5na | same 5n
+|        | 12| play 5no | same 5n
+|        | 13| play 5o  | same 5a
+|        | 14| play 5xn | same 5n
+|        | 15| play 5xo | same 5a
+|       6| 16| play bn
+|       7| 17| play cs1
+|       8| 18| play cs2
+|       9| 19| play dn
++--------+---+
+```
+
+👆　合法手の一覧が数字、アルファベット順に表示されます  
+
+局面が進んでいくと、合法手は多いのに、どれを選んでも同じ結果になるケース（この手を**セームムーブ**（Same Move）と呼びます）も出てきます。  
+
+連番の左側は Distinct です。２つ目以降のセームムーブを省いた連番です。  
+連番の右側は、すべての合法手の連番です  
+
 
 ### mate1 コマンド
 
 TODO mate1 コマンド  
 
-### distinct_legal_moves コマンド
-
-TODO distinct_legal_moves コマンド  
 
 ### history コマンド
 
 TODO history コマンド  
 
+
 ### moves_for_edit コマンド
 
 TODO moves_for_edit コマンド  
 
+
 ### test_board コマンド
 
 TODO test_board コマンド
+
 
 ### inverse 4n コマンド
 
