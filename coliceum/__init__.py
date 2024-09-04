@@ -204,6 +204,7 @@ class Coliceum():
                 print(f"""\
 `quit` - Exit the application.
 `board` - Display the board.
+`sfen` - Display the sfen.
 `clear_targets` - Display the clear targets.
 `legal_moves` - Display the legal moves.
 `mate1` - Display the 1 move in mate 1 ply.
@@ -221,12 +222,21 @@ class Coliceum():
             elif input_str == 'board':
                 # コロシアムからエンジンへ SFEN コマンドを投げて、その結果から　クリアーターゲットを取得する必要がある
 
+                # 盤を更新する
                 position_command = self.update_board()
 
                 print() # 改行
                 print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
                 print(BoardViews.stringify_board_normal(self._board))   # 盤面
                 print() # 改行
+
+            # SFEN 表示
+            elif input_str == 'sfen':
+
+                # 盤を更新する
+                position_command = self.update_board()
+                print() # 改行
+                BoardViews.print_sfen(self._board, position_command.searched_clear_targets)
 
             # TODO デバッグ用の盤表示。まだできてない
             elif input_str == 'test_board':
