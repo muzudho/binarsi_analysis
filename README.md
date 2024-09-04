@@ -252,6 +252,7 @@ Output:
 ```plaintext
 `quit` - Exit the application.
 `board` - Display the board.
+`sfen` - Display the sfen.
 `clear_targets` - Display the clear targets.
 `legal_moves` - Display the legal moves.
 `mate1` - Display the 1 move in mate 1 ply.
@@ -317,6 +318,31 @@ f | . . . . . . . |
 ```
 
 👆　上図 `*` の場所は **d段（だん）**（d rank）、または **d路（ろ）**（d way）と呼びます  
+
+### sfen コマンド
+
+Output Example 1:  
+
+```plaintext
+[from beginning] startpos
+[from present]   startpos
+```
+
+👆 平手初期局面では `startpos` と返ってきます  
+
+
+Output Example 2:  
+
+```plaintext
+[from beginning] startpos moves 2n cs1 1n 4o 1nH 3a 2nL dn
+                 stones_before_change - - - - 1 1 0 -
+[from present]   sfen 7/7/xoox3/oxxo3/7/7 b 123c - 8
+```
+
+👆 `[from beginning]` は、初期局面と棋譜が付いています。  
+`[from present]` は、現在の局面が付いています。  
+`stones_before_change` は、盤上で上書きされて消えた石が記録されています（SFENには含まれません）  
+
 
 ### board コマンド
 
