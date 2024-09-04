@@ -122,11 +122,6 @@ class UsiEngine():
             elif cmd[0] == 'history':
                 self.print_history()
 
-            # クリアーターゲットを出力
-            #   code: clear_targets
-            elif cmd[0] == 'clear_targets':
-                Views.print_clear_targets(searched_clear_targets)
-
             # プレイ
             #   code: play 4n
             elif cmd[0] == 'play':

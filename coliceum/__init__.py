@@ -179,7 +179,8 @@ class Coliceum():
             if input_str == 'help':
                 print(f"""\
 `quit` - Exit the application.
-`board` - Display the board.""")
+`board` - Display the board.
+`clear_targets` - Display the clear targets.""")
 
             # アプリケーション終了
             elif input_str == 'quit':
@@ -195,6 +196,12 @@ class Coliceum():
                 print(BoardViews.stringify_board_header(self._board, position_command.searched_clear_targets))  # １行目表示
                 print(BoardViews.stringify_board_normal(self._board))   # 盤面
                 print() # 改行
+
+            # クリアーターゲット表示
+            elif input_str == 'clear_targets':
+                position_command = self.update_board()
+                print() # 改行
+                Views.print_clear_targets(position_command.searched_clear_targets)
 
             else:
                 result = re.match(r"^[0-9]+$", input_str)
