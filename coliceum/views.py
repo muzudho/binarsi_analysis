@@ -330,11 +330,10 @@ MATE IN 1 MOVE
 --------------""")
 
         if mate_move_in_1ply is None:
-            text_lines.append(f"""\
-there is no checkmate""")
+            text_lines.append("there is no checkmate")
 
         else:
-            text_lines.append(mate_move.to_code())
+            text_lines.append(mate_move_in_1ply.to_code())
 
         return '\n'.join(text_lines)
 

@@ -3573,7 +3573,7 @@ class SearchedGameover():
             盤
         legal_moves : LegalMoves
             合法手一覧
-            ステールメートしているかどうかの判定に使う
+            ステールメートしているか（点数勝負するか）どうかの判定に使う
         clear_targets_list : ClearTargetsList
             クリアーターゲット一覧
         """
