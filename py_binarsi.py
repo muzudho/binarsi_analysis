@@ -794,10 +794,10 @@ class Move():
 
 
     @classmethod
-    def validate_code(clazz, code, no_panic=False):
+    def validate_code(clazz, code, can_panic=False):
         result = clazz._re_move.match(code)
 
-        if not no_panic:
+        if can_panic:
             if result is None:
                 raise ValueError(f"format error.  move_u:`{code}`")
 
@@ -981,14 +981,14 @@ class MoveHelper():
                 shift_bits = 6
 
             move_u = f"{way.to_code()}s{way_segment.length-shift_bits}#"
-            Move.validate_code(move_u)
+            Move.validate_code(move_u, can_panic=True)
             return Move.code_to_obj(move_u)
 
 
         # ノット・ニュー --Inverse--> カットザエッジ＃
         if op == 'n':
             move_u = f"{way.to_code()}c#"
-            Move.validate_code(move_u)
+            Move.validate_code(move_u, can_panic=True)
             return Move.code_to_obj(move_u)
 
 
@@ -1002,7 +1002,7 @@ class MoveHelper():
             # stones_before_change と move.option_stones は別物なので要注意
 
             move_u = f"{way.to_code()}e#${stones_before_change}"
-            Move.validate_code(move_u)
+            Move.validate_code(move_u, can_panic=True)
             return Move.code_to_obj(move_u)
 
 
@@ -1014,13 +1014,13 @@ class MoveHelper():
             if stones_before_change == '':
 
                 move_u = f"{way.to_code()}c#"
-                Move.validate_code(move_u)
+                Move.validate_code(move_u, can_panic=True)
                 return Move.code_to_obj(move_u)
 
             # Modify {路}e#${石}
 
             move_u = f"{way.to_code()}e#${stones_before_change}"
-            Move.validate_code(move_u)
+            Move.validate_code(move_u, can_panic=True)
             return Move.code_to_obj(move_u)
 
 
@@ -2058,7 +2058,7 @@ class Board():
             盤面編集時の例：
             	"&7c#"
         """
-        Move.validate_code(move_u)
+        Move.validate_code(move_u, can_panic=True)
         move = Move.code_to_obj(move_u)
         stones_before_change = ''
 

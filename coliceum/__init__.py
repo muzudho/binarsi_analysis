@@ -260,7 +260,10 @@ class Coliceum():
             # １手詰めがあれば、その手をどれか１つ表示
             elif input_str == 'mate1':
                 position_command = self.update_board()
-                ColiceumViews.print_mate1(self._board, position_command.searched_clear_targets)
+                print(f"""\
+
+{ColiceumViews.stringify_mate1(self._board, position_command.searched_clear_targets)}
+""")
 
             # 編集用の操作一覧
             elif input_str == 'moves_for_edit':
@@ -281,6 +284,7 @@ class Coliceum():
                         ColiceumViews.print_inverse_move(self._board, input_str)
                 
                 else:
+                    # 番号入力
                     result = re.match(r"^[0-9]+$", input_str)
                     if result:
                         input_num = int(input_str)
@@ -290,18 +294,21 @@ class Coliceum():
                         move_u = move_code_help.code
 
                     else:
+                        # 指し手コードとして受付
                         move_u = input_str
 
 
-                    # 入力チェック
-                    if not Move.validate_code(move_u, no_panic=True):
+                    # 指し手コード書式チェック
+                    if not Move.validate_code(move_u):
                         print(f"illegal move: `{move_u}`")
 
-                        # 盤表示後、間隔を空ける
+                        # メッセージ表示後、間隔を空ける
                         time.sleep(0.7)
 
                         # コマンドループをやり直し
                         continue
+
+                    # FIXME 指し手コードの書式は合っているが、ルールに無い操作をすると応答がなく、Expect が例外を投げてしまう
 
 
                     # Coliceum said

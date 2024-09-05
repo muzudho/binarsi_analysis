@@ -435,7 +435,15 @@ DISTINCT LEGAL MOVES
 
 ### mate1 コマンド
 
-TODO mate1 コマンド  
+１手詰めの手があれば、どれか１つ返します  
+
+```
+MATE IN 1 MOVE
+--------------
+there is no checkmate
+```
+
+👆　１手詰めの手がない場合  
 
 
 ### history コマンド

@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand, SfenHelper
+from py_binarsi import C_EMPTY, C_BLACK, C_WHITE, Move, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand, SfenHelper
 
 
 # 思考エンジンの名前が書かれたテキストファイル
@@ -401,7 +401,7 @@ class UsiEngine():
 
         move_u = cmd[1]
 
-        if not Move.validate_code(move_u, no_panic=True):
+        if not Move.validate_code(move_u):
             print("illegal move")
             return searched_clear_targets
 

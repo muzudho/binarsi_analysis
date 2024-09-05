@@ -312,7 +312,7 @@ HISTORY
 
 
     @staticmethod
-    def print_mate1(board, searched_clear_targets):
+    def stringify_mate1(board, searched_clear_targets):
         """１手詰めがあれば、その手をどれか１つ表示"""
 
         legal_moves = SearchLegalMoves.generate_legal_moves(board)
@@ -323,11 +323,20 @@ HISTORY
             move_list=legal_moves.distinct_items,
             searched_clear_targets=searched_clear_targets)
 
-        if mate_move_in_1ply is None:
-            print(f"there is no checkmate")
-            return
+        text_lines = []
 
-        print(mate_move.to_code())
+        text_lines.append(f"""\
+MATE IN 1 MOVE
+--------------""")
+
+        if mate_move_in_1ply is None:
+            text_lines.append(f"""\
+there is no checkmate""")
+
+        else:
+            text_lines.append(mate_move.to_code())
+
+        return '\n'.join(text_lines)
 
 
     @staticmethod
@@ -360,7 +369,7 @@ HISTORY
         else:
             stones_before_change = ''
 
-        Move.validate_code(move_u)
+        Move.validate_code(move_u, can_panic=True)
         move = Move.code_to_obj(move_u)
 
         inverse_move = MoveHelper.inverse_move(
