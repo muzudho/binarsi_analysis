@@ -259,8 +259,8 @@ Output:
 `mate1` - Display the 1 move in mate 1 ply.
 `history` - Display the input command list.
 `moves_for_edit` - Display the operation for edit.
-`test_board` - Test to display the new board (under development).
 `inverse 4n` - Displays the inverse operation. The argument must be a move code.
+`test_board` - Test to display the new board (under development).
 ```
 
 
@@ -457,22 +457,59 @@ MATE IN 1 MOVE
 
 ### history コマンド
 
-TODO history コマンド  
+棋譜表示ですが、（あれば）盤面操作のコマンドも含みます  
+
+```
+HISTORY
+-------
+    番号： (対局棋譜番号|盤面編集番号）
+    凡例： `&` - 対局棋譜ではなく盤面編集の操作を示す
+    　　： `$` - 上書された石の並びを示す
+    ( 1| 1) move:dn $-
+    ( 2| 2) move:4n $-
+    ( 3| 3) move:en $-
+    ( 4| 4) move:5n $-
+    ( 5| 5) move:fn $-
+    ( 6| 6) move:6n $-
+    ( 7| 7) move:bno $-
+    ( 8| 8) move:2na $-
+-------
+```
 
 
 ### moves_for_edit コマンド
 
-TODO moves_for_edit コマンド  
+現局面で行える、対局の指し手とは異なる盤面操作です。  
 
+TODO 対局中に行うと違法手です  
 
-### test_board コマンド
-
-TODO test_board コマンド
+```
+MOVES FOR EDIT
+--------------
+    ( 1) ac
+    ( 2) dc
+    ( 3) eze
+    ( 4) eon
+--------------
+```
 
 
 ### inverse 4n コマンド
 
-TODO inverse 4n コマンド
+第１引数 （サンプルでは `4n`） に指定した指し手に対して、アンドゥと同じ働きをする指し手（逆の指し手）を返します。  
+逆の指し手がない指し手や、未実装の逆の指し手もあります  
+
+```
+INVERSE MOVE
+------------
+    4n --inverse--> 4c#
+------------
+```
+
+
+### test_board コマンド
+
+TODO 削除予定。開発用です
 
 
 # 参考文献

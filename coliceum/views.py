@@ -300,15 +300,17 @@ HISTORY
         """編集用の手一覧表示（合法手除く）
             code: moves_for_edit
         """
-        print("編集用の手一覧表示（合法手除く）　ここから：")
+        print("""\
+MOVES FOR EDIT
+--------------""")
 
         legal_moves = SearchLegalMoves.generate_legal_moves(board)
 
         for i in range(0, len(legal_moves.items_for_edit)):
             move = legal_moves.items_for_edit[i]
-            print(f"    ({i + 1:2}) move_for_edit:{move.to_code()}")
+            print(f"    ({i + 1:2}) {move.to_code()}")
 
-        print("編集用の手一覧表示（合法手除く）　ここまで：")
+        print("--------------")
 
 
     @staticmethod
@@ -348,7 +350,7 @@ MATE IN 1 MOVE
 
 
     @staticmethod
-    def print_inverse_move(board, input_str):
+    def stringify_inverse_move(board, input_str):
         """逆操作コードの表示
 
         Parameters
@@ -376,12 +378,22 @@ MATE IN 1 MOVE
             move=move,
             stones_before_change=stones_before_change)
 
+        text_lines = []
+        text_lines.append("""\
+INVERSE MOVE
+------------""")
+
+        # 対応する逆操作は未実装
         if inverse_move is None:
-            print(f"[print_inverse_move] 未実装： {inverse_move=}")
-            return
+            text_lines.append(f"Not implemented {inverse_move=}")
+        
+        else:
+            text_lines.append(f"""\
+    {move_u} --inverse--> {inverse_move.to_code()}
+------------""")
 
         # 表示
-        print(f"{move_u} --inverse--> {inverse_move.to_code()}")
+        return '\n'.join(text_lines)
 
 
     @staticmethod

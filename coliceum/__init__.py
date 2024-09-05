@@ -209,8 +209,8 @@ class Coliceum():
 `distinct_legal_moves` - Display the distinct legal moves.
 `history` - Display the input command list.
 `moves_for_edit` - Display the operation for edit.
-`test_board` - Test to display the new board (under development).
-`inverse 4n` - Displays the inverse operation. The argument must be a move code.""")
+`inverse 4n` - Displays the inverse operation. The argument must be a move code.
+`test_board` - Test to display the new board (under development).""")
 
             # アプリケーション終了
             elif input_str == 'quit':
@@ -235,10 +235,6 @@ class Coliceum():
                 position_command = self.update_board()
                 print() # 改行
                 print(SfenHelper.stringify_sfen(self._board, position_command.searched_clear_targets))
-
-            # TODO デバッグ用の盤表示。まだできてない
-            elif input_str == 'test_board':
-                ColiceumViews.print_test_board(self._board)
 
             # クリアーターゲット表示
             elif input_str == 'clear_targets':
@@ -267,11 +263,17 @@ class Coliceum():
 
             # 編集用の操作一覧
             elif input_str == 'moves_for_edit':
+                print() # 改行
                 ColiceumViews.print_moves_for_edit(self._board)
 
             # 操作履歴表示
             elif input_str == 'history':
+                print() # 改行
                 ColiceumViews.print_history(self._board)
+
+            # TODO デバッグ用の盤表示。まだできてない
+            elif input_str == 'test_board':
+                ColiceumViews.print_test_board(self._board)
 
             else:
 
@@ -281,7 +283,9 @@ class Coliceum():
                     # 逆操作コードの表示
                     #   code: inverse 4n
                     if cmd[0] == 'inverse':
-                        ColiceumViews.print_inverse_move(self._board, input_str)
+                        print(f"""\
+
+{ColiceumViews.stringify_inverse_move(self._board, input_str)}""")
                 
                 else:
                     # 番号入力
