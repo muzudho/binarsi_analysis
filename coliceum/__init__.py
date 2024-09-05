@@ -189,9 +189,9 @@ class Coliceum():
 
 
         # 合法手メニューの表示
-        legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
+        legal_move_code_help_list = ColiceumViews.create_legal_move_code_help_list(self._board)
         print() # 改行
-        Views.print_legal_moves_menu(legal_move_code_help_list)
+        ColiceumViews.print_legal_moves_menu(legal_move_code_help_list)
 
         # コマンド入力ループ
         while True:
@@ -250,13 +250,13 @@ class Coliceum():
             # 合法手メニュー表示
             elif input_str == 'legal_moves':
                 print() # 改行
-                legal_move_code_help_list = Views.create_legal_move_code_help_list(self._board)
-                Views.print_legal_moves_menu(legal_move_code_help_list)
+                legal_move_code_help_list = ColiceumViews.create_legal_move_code_help_list(self._board)
+                ColiceumViews.print_legal_moves_menu(legal_move_code_help_list)
 
             # 重複を覗いた合法手メニュー表示
             elif input_str == 'distinct_legal_moves':
                 print() # 改行
-                Views.print_distinct_legal_move_list(self._board)
+                ColiceumViews.print_distinct_legal_move_list(self._board)
 
             # １手詰めがあれば、その手をどれか１つ表示
             elif input_str == 'mate1':
