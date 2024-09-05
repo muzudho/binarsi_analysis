@@ -2,7 +2,6 @@ import datetime
 import random
 import time
 from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand, SfenHelper
-from views import Views
 
 
 # 思考エンジンの名前が書かれたテキストファイル

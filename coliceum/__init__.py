@@ -3,7 +3,6 @@ import re
 import time
 from py_binarsi import BLACK_KOMI, WHITE_KOMI, C_EMPTY, C_BLACK, C_WHITE, CLEAR_TARGETS_LEN, Colors, Move, MoveHelper, Board, SearchedClearTargets, SearchLegalMoves, SearchMateMoveIn1Play, SearchedGameover, PositionCommand, SfenHelper
 from coliceum.views import Views as ColiceumViews
-from views import Views
 
 
 class Coliceum():
@@ -106,7 +105,7 @@ class Coliceum():
     def go_computer(self):
         """コンピューターに１手指させる～盤表示まで"""
 
-        Views.print_comp()
+        ColiceumViews.print_comp()
         print() # 改行
 
         self.sendline("go")
@@ -176,13 +175,13 @@ class Coliceum():
         """
 
         if who == 'you':
-            Views.print_you()
+            ColiceumViews.print_you()
 
         elif who == 'black':
-            Views.print_black()
+            ColiceumViews.print_black()
 
         elif who == 'white':
-            Views.print_white()
+            ColiceumViews.print_white()
 
         else:
             raise ValueError("error go human")
@@ -245,7 +244,7 @@ class Coliceum():
             elif input_str == 'clear_targets':
                 position_command = self.update_board()
                 print() # 改行
-                Views.print_clear_targets(position_command.searched_clear_targets)
+                ColiceumViews.print_clear_targets(position_command.searched_clear_targets)
 
             # 合法手メニュー表示
             elif input_str == 'legal_moves':
@@ -592,8 +591,8 @@ Do you play sente or gote(1-2)?> """)
                 time.sleep(0.7)
 
                 # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
-                if Views.is_one_settled(coliceum.board, position_command.searched_clear_targets):
-                    Views.print_clear_targets(position_command.searched_clear_targets)
+                if ColiceumViews.is_one_settled(coliceum.board, position_command.searched_clear_targets):
+                    ColiceumViews.print_clear_targets(position_command.searched_clear_targets)
                     
                     # クリアーターゲット表示後、間隔を空ける
                     time.sleep(0.7)
@@ -611,7 +610,7 @@ Do you play sente or gote(1-2)?> """)
 
                 # 決着が付いていれば、結果表示
                 if coliceum.board.is_gameover(searched_gameover):
-                    Views.print_settled(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn, is_human_vs_human)
+                    ColiceumViews.print_settled(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn, is_human_vs_human)
 
                     # 結果表示後、間隔を空ける
                     time.sleep(0.7)
