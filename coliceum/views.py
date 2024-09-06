@@ -41,108 +41,110 @@ class Views():
 
 
     @staticmethod
-    def print_0():
-        print("""\
+    def stringify_0():
+        return """\
      ________
     /   __   |
     |  /  |  |
     |  |  |  |
     |  |  |  |
     |  |_/   |
-    |_______/""", flush=True)
+    |_______/"""
 
 
     @staticmethod
-    def print_1():
-        print("""\
+    def stringify_1():
+        return """\
        ___
       /   |
      /    |
     |__   |
       |   |
       |   |
-      |___|""", flush=True)
+      |___|"""
 
 
     @staticmethod
-    def print_black():
-        print("""\
+    def stringify_black():
+        return """\
      ________    ___     ________     ________   __    __ 
     /   __   |  |_  |   /_____   |   /   ____|  |  |  |  |
     |  |__|  |   |  |    _____|  |   |  /       |  |_/  / 
     |   __  /_   |  |   /   __   |   |  |       |      /_
     |  |  |  |   |  |   |  |  |  |   |  |       |   /|_ |_
     |  |_/   |   |  |_  |  |_/   |_  |  |____   |  |  |_ |_
-    |_______/    |___|  |__________| |_______|  |__|   |__|""", flush=True)
+    |_______/    |___|  |__________| |_______|  |__|   |__|"""
 
 
     @staticmethod
-    def print_white():
-        print("""\
+    def stringify_white():
+        return """\
      __     ___     ___   ___         ___      __        ________
     |  |   /   |   /  /  /  |        /  |   __|  |____  |   __   |
     |  |  /    |  /  /   |  |____    |_/   |__    ___/  |  |__|  |
     |  | /     | /  /    |   __  |_   __      |  |      |   _____/
     |  |/  /|  |/  /     |  |  |  |  |  |     |  |      |  |   ___
     |     / |     /      |  |  |  |  |  |     |  |      |  |__/  /
-    |____/  |____/       |__|  |__/  |__|     |__|      |_______/""", flush=True)
+    |____/  |____/       |__|  |__/  |__|     |__|      |_______/"""
 
 
     @staticmethod
-    def print_comp():
-        print("""\
+    def stringify_comp():
+        return """\
      ________   ________    ______  ______   ________
     /   ____|  /   __   |  |   __ |/ __   |  |   __  |
     |  /       |  |  |  |  |  |  |  |  |  |  |  |  |  |
     |  |       |  |  |  |  |  |  |  |  |  |  |  |__/  |
     |  |       |  |  |  |  |  |  |  |  |  |  |  _____/
     |  |____   |  |_/   |  |  |  |  |  |  |  |  |
-    |_______|  |_______/   |__|  |__|  |__|  |__|""", flush=True)
+    |_______|  |_______/   |__|  |__|  |__|  |__|"""
 
 
     @staticmethod
-    def print_you():
-        print("""\
+    def stringify_you():
+        return """\
      __     ___   ________    __    __ 
     |  |   /  /  /   __   |  |  |  |  |
     |  |__/  /   |  |  |  |  |  |  |  |
     |__    _/    |  |  |  |  |  |  |  |
        |  |      |  |  |  |  |  |  |  |
        |  |      |  |_/   |  |  |_/   |
-       |__|      |_______/   |_______/""", flush=True)
+       |__|      |_______/   |_______/"""
 
 
     @staticmethod
-    def print_win():
-        print("""\
+    def stringify_win():
+        return """\
      __     ___     ___   ___   ____      __ 
     |  |   /   |   /  /  /  |  |    |    |  |
     |  |  /    |  /  /   |_/   |     |   |  |
     |  | /     | /  /     __   |  |   |  |  |
     |  |/  /|  |/  /     |  |  |  ||   | |  |
     |     / |     /      |  |  |  | |   ||  |
-    |____/  |____/       |__|  |__|  |______|""", flush=True)
+    |____/  |____/       |__|  |__|  |______|"""
 
 
     @staticmethod
-    def print_lose():
-        print("""\
+    def stringify_lose():
+        return """\
      __          ________    _______    ________
     |  |        /   __   |  /   ____|  |   __   |
     |  |        |  |  |  |  |  /____   |  |__|  |
     |  |        |  |  |  |  |____   |  |   _____/
     |  |_____   |  |  |  |       |  |  |  |   ___
     |        |  |  |_/   |   ___/   /  |  |__/  /
-    |________|  |_______/   |______/   |_______/""", flush=True)
+    |________|  |_______/   |______/   |_______/"""
 
 
     @staticmethod
-    def print_settled(board, searched_clear_targets, searched_gameover, your_turn, is_human_vs_human):
-        """決着の表示、コロシアム用
+    def stringify_settled(board, searched_clear_targets, searched_gameover, your_turn, is_human_vs_human):
+        """決着時の文字列生成
         
         - 三本勝負で決着したのなら、特に説明は要らない
         - 点数計算で決着したのなら、点数も表示
         """
+
+        text_lines = []
 
 #         # TODO デバッグ消す
 #         print(f"""\
@@ -160,35 +162,41 @@ class Views():
         if is_human_vs_human:
             # 黒番の勝ち
             if searched_gameover.is_black_win:
-                Views.print_black()
-                Views.print_win()
+                text_lines.append(f"""\
+{Views.stringify_black()}
+{Views.stringify_win()}""")
             
             # 白番の勝ち
             else:
-                Views.print_white()
-                Views.print_win()                
+                text_lines.append(f"""\
+{Views.stringify_white()}
+{Views.stringify_win()}""")
 
         else:
             # あなたの勝ち
             if (your_turn == C_BLACK and searched_gameover.is_black_win) or (your_turn == C_WHITE and searched_gameover.is_white_win):
-                Views.print_you()
-                Views.print_win()
+                text_lines.append(f"""\
+{Views.stringify_you()}
+{Views.stringify_win()}""")
             
             # あなたの負け
             else:
-                Views.print_you()
-                Views.print_lose()
+                text_lines.append(f"""\
+{Views.stringify_you()}
+{Views.stringify_lose()}""")
 
         # 点数計算で決着したなら、点数も表示
         if searched_gameover.is_point_calculation:
-            print(f"""\
+            text_lines.append(f"""\
 Black {searched_gameover._black_count_with_komi:2.1f}
 White {searched_gameover._white_count_with_komi:2.1f}""")
 
+        return '\n'.join(text_lines)
+
 
     @staticmethod
-    def print_clear_targets(searched_clear_targets):
-        """クリアーターゲットの一覧表示
+    def stringify_clear_targets(searched_clear_targets):
+        """クリアーターゲットの一覧文字列生成
         
         Parameters
         ----------
@@ -205,7 +213,7 @@ White {searched_gameover._white_count_with_komi:2.1f}""")
                 disp1[i] = f' CLEAR in {searched_clear_targets.clear_targets_list[i]:2} '
                 disp2[i] = '             '
 
-        print(f"""\
+        return f"""\
 CLEAR TARGETS
 ----------------------------------------------------------------------------------------
 
@@ -221,7 +229,7 @@ CLEAR TARGETS
 {disp2[0]:13}  {disp2[1]:13}  {disp2[2]:13}  {disp2[3]:13}  {disp2[4]:13}  {disp2[5]:13}
 
 ----------------------------------------------------------------------------------------
-""")
+"""
 
 
     @staticmethod
@@ -235,12 +243,12 @@ CLEAR TARGETS
 
 
     @staticmethod
-    def print_title():
-        """タイトル表示"""
+    def stringify_title():
+        """タイトル文字列生成"""
 
         #          2         3         4         5         6         7
         #          0         0         0         0         0         0
-        print("""\
+        return """\
  ^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^v^
 <   ______                                                          >
  >  |  __  |   __   _______     ______    _______    ______   __   <
@@ -256,15 +264,17 @@ CLEAR TARGETS
 (3) computer VS computer
 (4) quit
 
-please input number(1-4):""")
+please input number(1-4):"""
 
 
     @staticmethod
-    def print_history(board):
+    def stringify_history(board):
         """履歴表示
             code: history
         """
-        print("""\
+
+        text_lines = []
+        text_lines.append("""\
 HISTORY
 -------
     番号： (対局棋譜番号|盤面編集番号）
@@ -288,19 +298,23 @@ HISTORY
             if stones_before_change == '':
                 stones_before_change = '-'
 
-            print(f"    ({sequence_number_str}) move:{move.to_code()} ${stones_before_change}")
+            text_lines.append(f"    ({sequence_number_str}) move:{move.to_code()} ${stones_before_change}")
 
-        print("""\
--------
-""")
+        text_lines.append("""\
+-------""")
+
+        return '\n'.join(text_lines)
 
 
     @staticmethod
-    def print_moves_for_edit(board):
-        """編集用の手一覧表示（合法手除く）
+    def stringify_moves_for_edit(board):
+        """編集用の手一覧（合法手除く）文字列生成
             code: moves_for_edit
         """
-        print("""\
+
+        text_lines = []
+
+        text_lines.append("""\
 MOVES FOR EDIT
 --------------""")
 
@@ -308,9 +322,11 @@ MOVES FOR EDIT
 
         for i in range(0, len(legal_moves.items_for_edit)):
             move = legal_moves.items_for_edit[i]
-            print(f"    ({i + 1:2}) {move.to_code()}")
+            text_lines.append(f"    ({i + 1:2}) {move.to_code()}")
 
-        print("--------------")
+        text_lines.append("--------------")
+
+        return '\n'.join(text_lines)
 
 
     @staticmethod
@@ -338,15 +354,6 @@ MATE IN 1 MOVE
             text_lines.append(mate_move_in_1ply.to_code())
 
         return '\n'.join(text_lines)
-
-
-    @staticmethod
-    def print_test_board(board):
-        """デバッグ用の盤表示
-            code: board
-            TODO あとで消す
-        """
-        print(Views.stringify_board_hard(board))   # 盤面
 
 
     @staticmethod
@@ -397,7 +404,7 @@ INVERSE MOVE
 
 
     @staticmethod
-    def print_result_summary(
+    def stringify_result_summary_and_save(
             i,
             black_bingo_win_count,
             black_point_win_count_when_simultaneous_clearing,
@@ -405,7 +412,7 @@ INVERSE MOVE
             white_bingo_win_count,
             white_point_win_count_when_simultaneous_clearing,
             white_point_win_count_when_stalemate):
-        """対局結果の集計の表示、またはファイルへの上書き"""
+        """対局結果の集計の文字列生成、また、ファイルへの上書き"""
 
         global BLACK_KOMI, WHITE_KOMI
 
@@ -456,7 +463,7 @@ INVERSE MOVE
 """
 
             f.write(text)
-            print(text, flush=True)
+            return text
 
 
     @staticmethod
@@ -836,11 +843,14 @@ INVERSE MOVE
 
 
     @staticmethod
-    def print_distinct_legal_move_list(board):
-        """（同じ指し手を除いた）合法手一覧表示
+    def stringify_distinct_legal_move_list(board):
+        """（同じ指し手を除いた）合法手一覧文字列生成
             code: legal_moves
         """
-        print("""\
+
+        text_lines = []
+
+        text_lines.append("""\
 DISTINCT LEGAL MOVES
 --------------------
 
@@ -871,11 +881,13 @@ DISTINCT LEGAL MOVES
                 num_str = f'{j+1:8}|{i+1:3}'
                 j += 1
 
-            print(f"|{num_str}| do {move.to_code():<3}{same_move_str}")
+            text_lines.append(f"|{num_str}| do {move.to_code():<3}{same_move_str}")
 
-        print("""\
+        text_lines.append("""\
 +--------+---+
 """)
+
+        return '\n'.join(text_lines)
 
 
     @staticmethod
@@ -906,8 +918,8 @@ DISTINCT LEGAL MOVES
 
 
     @staticmethod
-    def print_legal_moves_menu(legal_move_code_help_list):
-        """合法手メニューの表示
+    def stringify_legal_moves_menu(legal_move_code_help_list):
+        """合法手メニューの文字列生成
 
         縦方向に並べたい
 
@@ -920,38 +932,52 @@ DISTINCT LEGAL MOVES
         2 列目の先頭は 1 + 4、 3 列目の先頭は 1 + 2*4 という連番になる
         """
 
+        text_lines = []
+
         item_len = len(legal_move_code_help_list)
         column_num = 3
         row_num = math.ceil(item_len / 3)
 
-        def print_separator():
+        def stringify_separator():
+            text_tokens = []
+
             for i in range(0, column_num):
-                print("+--+----+------------------------------------", end='')
+                text_tokens.append("+--+----+------------------------------------")
 
-            print("+")
+            text_tokens.append("+")
+
+            # 改行は入れません
+            return ''.join(text_tokens)
 
 
-        print("""\
+        text_lines.append("""\
 LEGAL MOVES
 -----------
 
 +--+----+------------------------------------+
 |No|Code|Description                         |""")
 
-        print_separator()
+        text_lines.append(stringify_separator())
 
         for j in range(0, row_num):
+
+            text_tokens = []
+
             for i in range(0, column_num):
                 seq = i * row_num + j
 
                 if seq < item_len:
                     # 指し手を、コードではなく、人間が読める名前で表示したい
                     help = legal_move_code_help_list[seq]
-                    print(f"|{seq+1:2}|{help.code:4}| {help.description:<35}", end='')
+                    text_tokens.append(f"|{seq+1:2}|{help.code:4}| {help.description:<35}")
 
                 else:
-                    print(f"|  |    |                                    ", end='') # 空欄
+                    text_tokens.append(f"|  |    |                                    ") # 空欄
 
-            print("|") # 改行
+            text_tokens.append("|")
 
-        print_separator()
+            text_lines.append(''.join(text_tokens))
+
+        text_lines.append(stringify_separator())
+
+        return '\n'.join(text_lines)

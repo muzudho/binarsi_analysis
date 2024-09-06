@@ -105,8 +105,9 @@ class Coliceum():
     def go_computer(self):
         """コンピューターに１手指させる～盤表示まで"""
 
-        ColiceumViews.print_comp()
-        print() # 改行
+        print(f"""\
+{ColiceumViews.stringify_comp()}
+""")    # 改行
 
         self.sendline("go")
 
@@ -175,13 +176,13 @@ class Coliceum():
         """
 
         if who == 'you':
-            ColiceumViews.print_you()
+            print(ColiceumViews.stringify_you())
 
         elif who == 'black':
-            ColiceumViews.print_black()
+            print(ColiceumViews.stringify_black())
 
         elif who == 'white':
-            ColiceumViews.print_white()
+            print(ColiceumViews.stringify_white())
 
         else:
             raise ValueError("error go human")
@@ -189,8 +190,10 @@ class Coliceum():
 
         # 合法手メニューの表示
         legal_move_code_help_list = ColiceumViews.create_legal_move_code_help_list(self._board)
-        print() # 改行
-        ColiceumViews.print_legal_moves_menu(legal_move_code_help_list)
+        print(f"""\
+
+{ColiceumViews.stringify_legal_moves_menu(legal_move_code_help_list)}""")
+        
 
         # コマンド入力ループ
         while True:
@@ -233,25 +236,29 @@ class Coliceum():
 
                 # 盤を更新する
                 position_command = self.update_board()
-                print() # 改行
-                print(SfenHelper.stringify_sfen(self._board, position_command.searched_clear_targets))
+                print(f"""\
+
+{SfenHelper.stringify_sfen(self._board, position_command.searched_clear_targets)}""")
 
             # クリアーターゲット表示
             elif input_str == 'clear_targets':
                 position_command = self.update_board()
-                print() # 改行
-                ColiceumViews.print_clear_targets(position_command.searched_clear_targets)
+                print(f"""\
+
+{ColiceumViews.stringify_clear_targets(position_command.searched_clear_targets)}""")
 
             # 合法手メニュー表示
             elif input_str == 'legal_moves':
-                print() # 改行
                 legal_move_code_help_list = ColiceumViews.create_legal_move_code_help_list(self._board)
-                ColiceumViews.print_legal_moves_menu(legal_move_code_help_list)
+                print(f"""\
+
+{ColiceumViews.stringify_legal_moves_menu(legal_move_code_help_list)}""")
 
             # 重複を覗いた合法手メニュー表示
             elif input_str == 'distinct_legal_moves':
-                print() # 改行
-                ColiceumViews.print_distinct_legal_move_list(self._board)
+                print(f"""\
+
+{ColiceumViews.stringify_distinct_legal_move_list(self._board)}""")
 
             # １手詰めがあれば、その手をどれか１つ表示
             elif input_str == 'mate1':
@@ -263,17 +270,21 @@ class Coliceum():
 
             # 編集用の操作一覧
             elif input_str == 'moves_for_edit':
-                print() # 改行
-                ColiceumViews.print_moves_for_edit(self._board)
+                print(f"""\
+
+{ColiceumViews.stringify_moves_for_edit(self._board)}""")
 
             # 操作履歴表示
             elif input_str == 'history':
-                print() # 改行
-                ColiceumViews.print_history(self._board)
+                print(f"""\
 
-            # TODO デバッグ用の盤表示。まだできてない
+{ColiceumViews.stringify_history(self._board)}""")
+
+            # TODO 開発中の盤表示。まだできてない
             elif input_str == 'test_board':
-                ColiceumViews.print_test_board(self._board)
+                print(f"""\
+
+{Views.stringify_board_hard(self._board)}""")
 
             else:
 
@@ -457,25 +468,25 @@ class Coliceum():
 
             if i < max_match_count - 10 and i % 10 == 9:
                 # 対局結果の集計の表示、またはファイルへの上書き
-                ColiceumViews.print_result_summary(
+                print(ColiceumViews.stringify_result_summary_and_save(
                     i,
                     black_bingo_win_count,
                     black_point_win_count_when_simultaneous_clearing,
                     black_point_win_count_when_stalemate,
                     white_bingo_win_count,
                     white_point_win_count_when_simultaneous_clearing,
-                    white_point_win_count_when_stalemate)
+                    white_point_win_count_when_stalemate))
 
 
         # 対局結果の集計の表示、またはファイルへの上書き
-        ColiceumViews.print_result_summary(
+        print(ColiceumViews.stringify_result_summary_and_save(
             max_match_count - 1,
             black_bingo_win_count,
             black_point_win_count_when_simultaneous_clearing,
             black_point_win_count_when_stalemate,
             white_bingo_win_count,
             white_point_win_count_when_simultaneous_clearing,
-            white_point_win_count_when_stalemate)
+            white_point_win_count_when_stalemate))
 
         print("自己対局　ここまで")
 
@@ -525,10 +536,8 @@ class Coliceum():
         while True:
             coliceum.sendline("usinewgame")
 
-
-
             # タイトル表示
-            ColiceumViews.print_title()
+            print(ColiceumViews.stringify_title())
             input_str = input()
 
             your_turn = None
@@ -603,7 +612,9 @@ Do you play sente or gote(1-2)?> """)
 
                 # 今１つでもクリアーしたものがあれば、クリアー目標一覧表示
                 if ColiceumViews.is_one_settled(coliceum.board, position_command.searched_clear_targets):
-                    ColiceumViews.print_clear_targets(position_command.searched_clear_targets)
+                    print(f"""\
+
+{ColiceumViews.stringify_clear_targets(position_command.searched_clear_targets)}""")
                     
                     # クリアーターゲット表示後、間隔を空ける
                     time.sleep(0.7)
@@ -621,7 +632,9 @@ Do you play sente or gote(1-2)?> """)
 
                 # 決着が付いていれば、結果表示
                 if coliceum.board.is_gameover(searched_gameover):
-                    ColiceumViews.print_settled(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn, is_human_vs_human)
+                    print(f"""\
+
+{ColiceumViews.stringify_settled(coliceum.board, position_command.searched_clear_targets, searched_gameover, your_turn, is_human_vs_human)}""")
 
                     # 結果表示後、間隔を空ける
                     time.sleep(0.7)

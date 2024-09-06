@@ -437,8 +437,7 @@ class UsiEngine():
         # 終局判定
         searched_gameover = SearchedGameover.search(self._board, legal_moves, searched_clear_targets.clear_targets_list)
 
-        # 現在の盤表示
-        #SfenHelper.print_board(self._board, searched_clear_targets)
+        # 現在の状況表示
         print(SfenHelper.stringify_sfen(self._board, searched_clear_targets, from_present=True))
         print("") # 空行
 
@@ -459,7 +458,6 @@ class UsiEngine():
         self.isready()
         self.usinewgame()
         searched_clear_targets = self.position('position sfen 7/7/2o4/7/7/7 w - - 1 moves 4n')
-        #SfenHelper.print_board(self._board, searched_clear_targets)
 
         legal_moves = SearchLegalMoves.generate_legal_moves(self._board)
 
